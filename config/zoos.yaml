@@ -1,0 +1,98 @@
+user_agent: "ZooFanCrawler/0.1 (+https://github.com/zoofancrawler)"
+timeout: 20
+request_delay: 1
+max_retries: 3
+
+zoos:
+  - id: zoo-berlin
+    slug: zoo-berlin
+    name: "Zoo Berlin"
+    website_url: https://www.zoo-berlin.de/
+    metadata:
+      official_host: www.zoo-berlin.de
+    sources:
+      - id: zoo-berlin-news
+        name: news
+        kind: archive
+        url: https://www.zoo-berlin.de/de/aktuelles/news
+        config:
+          official_host: www.zoo-berlin.de
+          article_selector: "article.news-grid-item"
+          link_selector: 'a[href*="/de/aktuelles/news/artikel/"]'
+          title_selector: '[itemprop="headline"]'
+          date_selector: 'time[itemprop="datePublished"]'
+          article_allow: '/de/aktuelles/news/artikel/'
+          pagination_selector: '.page-navigation a[href*="tx_news_pi1"][href*="currentPage"]'
+          max_pages: 2
+      - id: zoo-berlin-press
+        name: press
+        kind: registry_only
+        url: https://www.zoo-berlin.de/de/aktuelles/presse
+        config:
+          official_host: www.zoo-berlin.de
+
+  - id: koeln-zoo
+    slug: koeln-zoo
+    name: "Kölner Zoo"
+    website_url: https://koelnerzoo.de/
+    metadata:
+      official_host: koelnerzoo.de
+    sources:
+      - id: koeln-zoo-news-sitemap
+        name: news-sitemap
+        kind: sitemap
+        url: https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml
+        config:
+          official_host: koelnerzoo.de
+          allow_regex: '^https://koelnerzoo\.de/aktuellartical/[^/]+/?$'
+          exclude_regex:
+            - monatsubersicht
+            - jahresubersicht
+      - id: koeln-zoo-news-archive
+        name: news-archive-health
+        kind: registry_only
+        url: https://koelnerzoo.de/aktuell/
+        config:
+          official_host: koelnerzoo.de
+          role: archive
+
+  - id: gaiazoo
+    slug: gaiazoo
+    name: GaiaZOO
+    website_url: https://www.gaiazoo.nl/
+    metadata:
+      official_host: www.gaiazoo.nl
+    sources:
+      - id: gaiazoo-news-rss
+        name: news-rss
+        kind: rss
+        url: https://www.gaiazoo.nl/category/nieuws/feed/
+        config:
+          official_host: www.gaiazoo.nl
+          # Feed membership is authoritative for Gaia article slugs.
+          navigation_patterns:
+            - '/(?:ticket|shop|restaurant|contact|privacy|terms|jobs?)(?:/|$)'
+      - id: gaiazoo-news-archive
+        name: news-archive
+        kind: archive
+        url: https://www.gaiazoo.nl/nieuws-vlogs/
+        config:
+          official_host: www.gaiazoo.nl
+          article_selector: 'article.card'
+          link_selector: 'a[href]'
+          title_selector: '.card-title'
+          date_selector: '.date'
+          max_pages: 2
+      - id: gaiazoo-sitemap
+        name: sitemap-health
+        kind: registry_only
+        url: https://www.gaiazoo.nl/sitemap_index.xml
+        config:
+          official_host: www.gaiazoo.nl
+          role: health_check_only
+      - id: gaiazoo-press
+        name: press
+        kind: registry_only
+        url: https://www.gaiazoo.nl/pers/
+        config:
+          official_host: www.gaiazoo.nl

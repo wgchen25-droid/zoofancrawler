@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Articles · ZooFanCrawler{% endblock %}
+{% block content %}
+  <div class="page-heading"><div><p class="eyebrow">Content inventory</p><h1>Articles</h1></div></div>
+  <form class="filters" method="get" action="{{ url_for('articles') }}">
+    <label>Zoo
+      <select name="zoo">
+        <option value="">All zoos</option>
+        {% for zoo in zoos|sort(attribute='name') %}
+          <option value="{{ zoo.slug or zoo.id }}"{% if selected_zoo == (zoo.slug or zoo.id)|string %} selected{% endif %}>{{ zoo.name or zoo.slug }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Source type
+      <select name="source_type">
+        <option value="">All types</option>
+        {% for source_type in source_types %}<option value="{{ source_type }}"{% if selected_source_type == source_type %} selected{% endif %}>{{ source_type }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+    {% if selected_zoo or selected_source_type %}<a class="reset" href="{{ url_for('articles') }}">Clear</a>{% endif %}
+  </form>
+  {% if articles %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Title</th><th>Zoo</th><th>Source type</th><th>Published</th><th></th></tr></thead>
+      <tbody>
+        {% for article in articles %}
+          <tr>
+            <td><a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a></td>
+            <td>{{ article.zoo_names|join(', ') or '—' }}</td>
+            <td>{{ article.source_type or '—' }}</td>
+            <td>{{ article.published_at|timestamp }}</td>
+            <td>{% if article.url %}<a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">Official ↗</a>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}<p class="empty">No articles match these filters.</p>{% endif %}
+{% endblock %}

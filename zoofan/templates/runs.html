@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Runs · ZooFanCrawler{% endblock %}
+{% block content %}
+  <div class="page-heading"><div><p class="eyebrow">Execution history</p><h1>Crawl runs</h1></div></div>
+  {% for group in run_groups %}
+    <section class="run-group">
+      <div class="section-heading"><h2>Batch {{ group.batch_id }}</h2></div>
+      {% for run in group.runs %}
+        <article class="card run-card">
+          <div class="card-heading"><h3>Run {{ run.id }}</h3><span class="status status-{{ run.status|lower|replace(' ', '-') }}">{{ run.status }}</span></div>
+          <p class="muted">{{ run.started_at|timestamp }} → {{ run.finished_at|timestamp }}{% if run.error %} · <span class="error-text">{{ run.error }}</span>{% endif %}</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Zoo</th><th>Status</th><th>Discovered</th><th>Fetched</th><th>Stored/new</th><th>Duplicates</th><th>Errors</th><th>Error summary</th></tr></thead>
+            <tbody>
+              {% for zoo in run.zoos %}
+                <tr><td>{{ zoo.name }}</td><td>{{ zoo.status }}</td><td>{{ zoo.discovered }}</td><td>{{ zoo.fetched }}</td><td>{{ zoo.stored }}</td><td>{{ zoo.duplicates }}</td><td>{{ zoo.errors }}</td><td class="error-text">{{ zoo.error_summary|join('; ') or '—' }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table></div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}<p class="empty">No crawl runs have been recorded.</p>{% endfor %}
+{% endblock %}

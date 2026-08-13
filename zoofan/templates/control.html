@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crawl control · ZooFanCrawler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  </head>
+  <body class="control-body">
+    <main class="shell control-page">
+      <header class="control-heading">
+        <div>
+          <p class="eyebrow">Local crawler control</p>
+          <h1>Start a configured crawl</h1>
+          <p class="muted">Only enabled zoos from the configured YAML file can be selected.</p>
+        </div>
+        {% if dashboard_url %}<a class="dashboard-link" href="{{ dashboard_url }}">Open dashboard</a>{% endif %}
+      </header>
+
+      <section class="control-card" aria-labelledby="crawl-form-title">
+        <h2 id="crawl-form-title">New crawl</h2>
+        <form action="{{ url_for('crawl') }}" method="post" class="control-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label for="selection">Zoo selection</label>
+          <select id="selection" name="selection" {% if state.status == 'running' %}disabled{% endif %}>
+            <option value="all">All enabled zoos</option>
+            {% for zoo in zoos %}
+              <option value="{{ zoo.slug }}" {% if state.selection == zoo.slug %}selected{% endif %}>{{ zoo.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" {% if state.status == 'running' %}disabled aria-disabled="true"{% endif %}>
+            {% if state.status == 'running' %}Crawl in progress{% else %}Start crawl{% endif %}
+          </button>
+        </form>
+      </section>
+
+      <section class="control-card crawl-status" aria-labelledby="status-title" aria-live="polite" aria-atomic="true" data-status-url="{{ url_for('status') }}" data-current-status="{{ state.status }}">
+        <div class="card-heading">
+          <h2 id="status-title">Run status</h2>
+          <span class="status status-{{ state.status }}"><span aria-hidden="true">●</span> {{ state.status|replace('_', ' ')|title }}</span>
+        </div>
+        <p class="status-message">{{ state.message }}</p>
+        <dl class="facts control-facts">
+          <div><dt>Selection</dt><dd>{{ state.selection or 'None yet' }}</dd></div>
+          <div><dt>Run ID</dt><dd>{{ state.run_id or '—' }}</dd></div>
+          <div><dt>Started</dt><dd>{{ state.started_at or '—' }}</dd></div>
+          <div><dt>Finished</dt><dd>{{ state.finished_at or '—' }}</dd></div>
+          <div><dt>Articles stored</dt><dd>{{ state.summary.stored }}</dd></div>
+          <div><dt>Errors</dt><dd>{{ state.summary.errors }}</dd></div>
+        </dl>
+      </section>
+    </main>
+    <script>
+      (function () {
+        var panel = document.querySelector('[data-status-url]');
+        if (!panel || !window.fetch) return;
+        window.setInterval(function () {
+          window.fetch(panel.getAttribute('data-status-url'), { credentials: 'same-origin' })
+            .then(function (response) { return response.ok ? response.json() : null; })
+            .then(function (state) {
+              if (state && state.status && state.status !== panel.getAttribute('data-current-status')) {
+                window.location.reload();
+              }
+            })
+            .catch(function () {});
+        }, 1500);
+      }());
+    </script>
+  </body>
+</html>

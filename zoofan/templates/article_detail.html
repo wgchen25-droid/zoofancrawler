@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} · ZooFanCrawler{% endblock %}
+{% block content %}
+  <p class="back-link"><a href="{{ url_for('articles') }}">← All articles</a></p>
+  <article class="article-page">
+    <p class="eyebrow">Article {{ article.id }}</p>
+    <h1>{{ article.title }}</h1>
+    <div class="article-meta">
+      <span>Published {{ article.published_at|timestamp }}</span>
+      {% if article.updated_at %}<span>Updated {{ article.updated_at|timestamp }}</span>{% endif %}
+      {% if article.author %}<span>By {{ article.author }}</span>{% endif %}
+    </div>
+    {% if article.url %}<p><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">Open official article ↗</a></p>{% endif %}
+    {% if article.sources %}
+      <p class="muted">Discovered from {% for source in article.sources %}{{ source.zoo_name }} / {{ source.type }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+    {% if article.summary %}<p class="summary">{{ article.summary }}</p>{% endif %}
+    {% if article.content %}<div class="article-content">{{ article.content }}</div>{% else %}<p class="empty">No parsed article content.</p>{% endif %}
+  </article>
+{% endblock %}

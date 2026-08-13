@@ -1,0 +1,22 @@
+# Local Python environments and generated caches
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.playwright-cli/
+
+# Normal local databases (the acceptance report and screenshot are retained)
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+*.db-wal
+*.db-shm
+data/artifacts/
+
+# Keep only the documented root acceptance artifacts
+artifacts/*
+artifacts/acceptance/**
+!artifacts/endgoal-report.json
+!artifacts/dashboard-acceptance.png

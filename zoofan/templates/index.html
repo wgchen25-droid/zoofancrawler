@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Overview · ZooFanCrawler{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Crawler inspection</p>
+      <h1>Overview</h1>
+    </div>
+    <p class="muted">Last crawl: {{ totals.last_crawl|timestamp }}</p>
+  </div>
+
+  <section class="summary-grid" aria-label="Crawler totals">
+    <div class="metric"><span>Sources</span><strong>{{ totals.sources }}</strong></div>
+    <div class="metric"><span>Articles</span><strong>{{ totals.articles }}</strong></div>
+    <div class="metric"><span>New</span><strong>{{ totals.new }}</strong></div>
+    <div class="metric"><span>Duplicates</span><strong>{{ totals.duplicates }}</strong></div>
+    <div class="metric"><span>Errors</span><strong>{{ totals.errors }}</strong></div>
+  </section>
+
+  <section>
+    <div class="section-heading"><h2>Zoo status</h2></div>
+    <div class="status-grid">
+      {% for panel in panels %}
+        <article class="card status-card">
+          <div class="card-heading">
+            <h3>
+              {% if panel.website_url %}<a href="{{ panel.website_url }}" target="_blank" rel="noopener noreferrer">{{ panel.name }}</a>
+              {% else %}{{ panel.name }}{% endif %}
+            </h3>
+            <span class="status status-{{ panel.status|lower|replace(' ', '-') }}">{{ panel.status }}</span>
+          </div>
+          <dl class="facts">
+            <div><dt>Sources</dt><dd>{{ panel.sources }}</dd></div>
+            <div><dt>Last crawl</dt><dd>{{ panel.last_crawl|timestamp }}</dd></div>
+            <div><dt>Articles</dt><dd>{{ panel.articles }}</dd></div>
+            <div><dt>New</dt><dd>{{ panel.new }}</dd></div>
+            <div><dt>Duplicates</dt><dd>{{ panel.duplicates }}</dd></div>
+            <div><dt>Errors</dt><dd>{{ panel.errors }}</dd></div>
+          </dl>
+          <div class="latest">
+            <span class="label">Latest article</span>
+            {% if panel.latest_article %}
+              <a href="{{ url_for('article_detail', article_id=panel.latest_article.id) }}">{{ panel.latest_article.title }}</a>
+              <small>{{ panel.latest_article.published_at|timestamp }}{% if panel.latest_article.url %} · <a href="{{ panel.latest_article.url }}" target="_blank" rel="noopener noreferrer">official URL</a>{% endif %}</small>
+            {% else %}
+              <span class="muted">No articles yet</span>
+            {% endif %}
+          </div>
+        </article>
+      {% else %}
+        <p class="empty">No zoos have been configured.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="section-heading"><h2>Recent articles</h2><a href="{{ url_for('articles') }}">View all →</a></div>
+    {% if articles %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Title</th><th>Zoo</th><th>Source type</th><th>Published</th></tr></thead>
+        <tbody>
+          {% for article in articles %}
+            <tr>
+              <td><a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>{% if article.url %} <a class="external" href="{{ article.url }}" target="_blank" rel="noopener noreferrer" aria-label="Open official URL">↗</a>{% endif %}</td>
+              <td>{{ article.zoo_names|join(', ') or '—' }}</td>
+              <td>{{ article.source_type or '—' }}</td>
+              <td>{{ article.published_at|timestamp }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+    {% else %}<p class="empty">No articles have been discovered.</p>{% endif %}
+  </section>
+{% endblock %}

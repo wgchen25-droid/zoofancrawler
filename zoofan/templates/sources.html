@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sources · ZooFanCrawler{% endblock %}
+{% block content %}
+  <div class="page-heading"><div><p class="eyebrow">Configured inputs</p><h1>Sources</h1></div></div>
+  {% if sources %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Zoo</th><th>Source ID</th><th>Source</th><th>Type</th><th>Status</th><th>Last checked</th><th>Last success</th><th>HTTP status</th><th>Last error</th><th>Config</th></tr></thead>
+      <tbody>
+        {% for source in sources %}
+          <tr>
+            <td>{{ source.zoo_name }}</td>
+            <td><code>{{ source.id }}</code></td>
+            <td>{% if source.url %}<a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.name }}</a>{% else %}{{ source.name }}{% endif %}</td>
+            <td>{{ source.source_type or '—' }}</td>
+            <td><span class="status status-{{ source.status|lower|replace(' ', '-') }}">{{ source.status }}</span>{% if not source.enabled %} <span class="muted">(disabled)</span>{% endif %}</td>
+            <td>{{ source.last_checked|timestamp }}</td>
+            <td>{{ source.last_success|timestamp }}</td>
+            <td>{{ source.last_http_status or '—' }}</td>
+            <td class="error-text">{{ source.last_error or '—' }}</td>
+            <td><pre class="config">{{ source.config }}</pre></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}<p class="empty">No sources have been configured.</p>{% endif %}
+{% endblock %}

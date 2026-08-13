@@ -1,0 +1,776 @@
+{
+  "artifacts": {
+    "dashboard_screenshot": "/Users/leichen/AIcoding/zoofancrawler/artifacts/dashboard-acceptance.png",
+    "report": "/Users/leichen/AIcoding/zoofancrawler/artifacts/endgoal-report.json"
+  },
+  "dashboard": {
+    "base_url": "http://127.0.0.1:58304",
+    "console_errors": [],
+    "db_live_article_count": 40,
+    "official_article_visible": true,
+    "page_errors": [],
+    "playwright_install": null,
+    "routes": {
+      "/": 200,
+      "/articles": 200,
+      "/runs": 200,
+      "/sources": 200
+    },
+    "screenshot": "/Users/leichen/AIcoding/zoofancrawler/artifacts/dashboard-acceptance.png",
+    "server_error_text": false,
+    "status": "PASS",
+    "three_zoos": true,
+    "zoo_article_counts": {
+      "gaiazoo": {
+        "expected_db_articles": 12,
+        "name_rendered": true,
+        "rendered_articles": 12,
+        "status": "PASS"
+      },
+      "koeln-zoo": {
+        "expected_db_articles": 10,
+        "name_rendered": true,
+        "rendered_articles": 10,
+        "status": "PASS"
+      },
+      "zoo-berlin": {
+        "expected_db_articles": 18,
+        "name_rendered": true,
+        "rendered_articles": 18,
+        "status": "PASS"
+      }
+    }
+  },
+  "database": "/Users/leichen/AIcoding/zoofancrawler/data/acceptance.db",
+  "dedup": {
+    "after_run1_total": 40,
+    "after_run2_total": 40,
+    "before_total": 0,
+    "canonical_duplicates": [],
+    "canonical_sql": "GROUP BY canonical_url HAVING COUNT(*) > 1",
+    "increase_only_new_distinct_canonical": true,
+    "no_duplicate_canonical": true,
+    "no_duplicate_normalized": true,
+    "normalized_duplicates": [],
+    "normalized_sql": "GROUP BY normalized_url HAVING COUNT(*) > 1",
+    "run1_new": 40,
+    "run1_new_canonicals": [
+      "https://koelnerzoo.de/aktuellartical/bevor-die-giraffen-einziehen-tag-der-offenen-tur-auf-der-neuen-giraffenanlage",
+      "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+      "https://koelnerzoo.de/aktuellartical/doppelt-so-gross-koelner-zoo-eroeffnet-neue-anlage-fuer-giraffen",
+      "https://koelnerzoo.de/aktuellartical/fur-echte-muttertiere-diesen-sonntag-ist-bauernhoftag-im-kolner-zoo",
+      "https://koelnerzoo.de/aktuellartical/kleines-faultier-im-kolner-zoo-ist-mannlich-und-heist-yono",
+      "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
+      "https://koelnerzoo.de/aktuellartical/nachwuchs-bei-den-goldgelben-lowenaffchen-im-kolner-zoo",
+      "https://koelnerzoo.de/aktuellartical/neues-preismodell-im-kolner-zoo",
+      "https://koelnerzoo.de/aktuellartical/rosarot-und-befluegelt-zwei-kuba-flamingos-im-koelner-zoo-geschluepft-vorverkauf-fuer-den-single-abend-im-koelner-zoo-laeuft",
+      "https://koelnerzoo.de/aktuellartical/weiblicher-prinz-alfred-hirsch-im-kolner-zoo-geboren",
+      "https://www.gaiazoo.nl/langverwachte-capibaras-geboren-juli-2026",
+      "https://www.gaiazoo.nl/maak-kennis-met-de-kok-van-gaia-event-center",
+      "https://www.gaiazoo.nl/nieuwe-leeuwenman-aangekomen-in-gaiazoo",
+      "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
+      "https://www.gaiazoo.nl/nieuwe-rode-panda-gearriveerd",
+      "https://www.gaiazoo.nl/siezels-uitgezet-in-het-wild",
+      "https://www.gaiazoo.nl/update-leeuwenintroductie-juli-2026",
+      "https://www.gaiazoo.nl/verkoeling-voor-de-dieren-2",
+      "https://www.gaiazoo.nl/verrassend-veel-nieuws-in-gaiazoo-jong-leven-nieuwe-verblijven-en-grote-zomerplannen",
+      "https://www.gaiazoo.nl/voordeel-voor-zorginstellingen-in-september",
+      "https://www.gaiazoo.nl/witlippekari-keert-terug-naar-gaiazoo",
+      "https://www.gaiazoo.nl/zeven-ooievaarsnesten-in-gaiazoo",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/antilopenhaus-in-neuem-gewand",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/bring-back-blue-die-rueckkehr-des-vietnamesischen-fasans",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/broetchen-ein-name-zum-anbeissen",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/das-beste-broetchen-der-stadt",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/drachenzaehmen-leichtgemacht",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-berliner-bongo-fuer-kenias-waelder",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-hauch-von-black-panther-in-berlin",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-kleiner-hoehlenkobold-auf-vier-pfoten",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/freibadsaison-eroeffnet-anbaden-im-zoo-berlin",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/gemeinsam-fuer-den-wisent",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/noch-mehr-hippo-glueck-im-zoo-berlin",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/premiere-nach-ueber-180-jahren",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/seit-jahrzehnten-verschollen-bring-back-blue",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/teenanger",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/tierisch-angepasst",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/wilde-sommerferien",
+      "https://www.zoo-berlin.de/de/aktuelles/news/artikel/zwischen-terrarium-und-tropenmedizin"
+    ],
+    "run2_new": 0,
+    "run2_new_canonicals": [],
+    "status": "PASS"
+  },
+  "errors": [],
+  "failure_isolation": {
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/python3",
+      "-m",
+      "pytest",
+      "-q",
+      "tests/test_failure_isolation.py"
+    ],
+    "duration_seconds": 0.394,
+    "returncode": 0,
+    "status": "PASS",
+    "test": "tests/test_failure_isolation.py",
+    "timed_out": false
+  },
+  "finished_at": "2026-08-12T22:00:34.664734+00:00",
+  "live": {
+    "dedup": {
+      "after_run1_total": 40,
+      "after_run2_total": 40,
+      "before_total": 0,
+      "canonical_duplicates": [],
+      "canonical_sql": "GROUP BY canonical_url HAVING COUNT(*) > 1",
+      "increase_only_new_distinct_canonical": true,
+      "no_duplicate_canonical": true,
+      "no_duplicate_normalized": true,
+      "normalized_duplicates": [],
+      "normalized_sql": "GROUP BY normalized_url HAVING COUNT(*) > 1",
+      "run1_new": 40,
+      "run1_new_canonicals": [
+        "https://koelnerzoo.de/aktuellartical/bevor-die-giraffen-einziehen-tag-der-offenen-tur-auf-der-neuen-giraffenanlage",
+        "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+        "https://koelnerzoo.de/aktuellartical/doppelt-so-gross-koelner-zoo-eroeffnet-neue-anlage-fuer-giraffen",
+        "https://koelnerzoo.de/aktuellartical/fur-echte-muttertiere-diesen-sonntag-ist-bauernhoftag-im-kolner-zoo",
+        "https://koelnerzoo.de/aktuellartical/kleines-faultier-im-kolner-zoo-ist-mannlich-und-heist-yono",
+        "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
+        "https://koelnerzoo.de/aktuellartical/nachwuchs-bei-den-goldgelben-lowenaffchen-im-kolner-zoo",
+        "https://koelnerzoo.de/aktuellartical/neues-preismodell-im-kolner-zoo",
+        "https://koelnerzoo.de/aktuellartical/rosarot-und-befluegelt-zwei-kuba-flamingos-im-koelner-zoo-geschluepft-vorverkauf-fuer-den-single-abend-im-koelner-zoo-laeuft",
+        "https://koelnerzoo.de/aktuellartical/weiblicher-prinz-alfred-hirsch-im-kolner-zoo-geboren",
+        "https://www.gaiazoo.nl/langverwachte-capibaras-geboren-juli-2026",
+        "https://www.gaiazoo.nl/maak-kennis-met-de-kok-van-gaia-event-center",
+        "https://www.gaiazoo.nl/nieuwe-leeuwenman-aangekomen-in-gaiazoo",
+        "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
+        "https://www.gaiazoo.nl/nieuwe-rode-panda-gearriveerd",
+        "https://www.gaiazoo.nl/siezels-uitgezet-in-het-wild",
+        "https://www.gaiazoo.nl/update-leeuwenintroductie-juli-2026",
+        "https://www.gaiazoo.nl/verkoeling-voor-de-dieren-2",
+        "https://www.gaiazoo.nl/verrassend-veel-nieuws-in-gaiazoo-jong-leven-nieuwe-verblijven-en-grote-zomerplannen",
+        "https://www.gaiazoo.nl/voordeel-voor-zorginstellingen-in-september",
+        "https://www.gaiazoo.nl/witlippekari-keert-terug-naar-gaiazoo",
+        "https://www.gaiazoo.nl/zeven-ooievaarsnesten-in-gaiazoo",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/antilopenhaus-in-neuem-gewand",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/bring-back-blue-die-rueckkehr-des-vietnamesischen-fasans",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/broetchen-ein-name-zum-anbeissen",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/das-beste-broetchen-der-stadt",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/drachenzaehmen-leichtgemacht",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-berliner-bongo-fuer-kenias-waelder",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-hauch-von-black-panther-in-berlin",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-kleiner-hoehlenkobold-auf-vier-pfoten",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/freibadsaison-eroeffnet-anbaden-im-zoo-berlin",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/gemeinsam-fuer-den-wisent",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/noch-mehr-hippo-glueck-im-zoo-berlin",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/premiere-nach-ueber-180-jahren",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/seit-jahrzehnten-verschollen-bring-back-blue",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/teenanger",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/tierisch-angepasst",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/wilde-sommerferien",
+        "https://www.zoo-berlin.de/de/aktuelles/news/artikel/zwischen-terrarium-und-tropenmedizin"
+      ],
+      "run2_new": 0,
+      "run2_new_canonicals": [],
+      "status": "PASS"
+    },
+    "run1": {
+      "discovered": 50,
+      "error": null,
+      "errors": 0,
+      "fetched": 40,
+      "run_id": "7067774f2c1d4a26ba393fa478a0d044",
+      "stats": [
+        {
+          "discovered": 18,
+          "errors": [],
+          "fetched": 18,
+          "source_id": "zoo-berlin-news",
+          "status": "completed",
+          "stored": 18,
+          "zoo_id": "zoo-berlin"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "zoo-berlin-press",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "zoo-berlin"
+        },
+        {
+          "discovered": 10,
+          "errors": [],
+          "fetched": 10,
+          "source_id": "koeln-zoo-news-sitemap",
+          "status": "completed",
+          "stored": 10,
+          "zoo_id": "koeln-zoo"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "koeln-zoo-news-archive",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "koeln-zoo"
+        },
+        {
+          "discovered": 10,
+          "errors": [],
+          "fetched": 10,
+          "source_id": "gaiazoo-news-rss",
+          "status": "completed",
+          "stored": 10,
+          "zoo_id": "gaiazoo"
+        },
+        {
+          "discovered": 12,
+          "errors": [],
+          "fetched": 2,
+          "source_id": "gaiazoo-news-archive",
+          "status": "completed",
+          "stored": 2,
+          "zoo_id": "gaiazoo"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "gaiazoo-sitemap",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "gaiazoo"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "gaiazoo-press",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "gaiazoo"
+        }
+      ],
+      "status": "completed",
+      "stored": 40
+    },
+    "run2": {
+      "discovered": 50,
+      "error": null,
+      "errors": 0,
+      "fetched": 0,
+      "run_id": "c76f534489d045afbdfe9261d09ace15",
+      "stats": [
+        {
+          "discovered": 18,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "zoo-berlin-news",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "zoo-berlin"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "zoo-berlin-press",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "zoo-berlin"
+        },
+        {
+          "discovered": 10,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "koeln-zoo-news-sitemap",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "koeln-zoo"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "koeln-zoo-news-archive",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "koeln-zoo"
+        },
+        {
+          "discovered": 10,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "gaiazoo-news-rss",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "gaiazoo"
+        },
+        {
+          "discovered": 12,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "gaiazoo-news-archive",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "gaiazoo"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "gaiazoo-sitemap",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "gaiazoo"
+        },
+        {
+          "discovered": 0,
+          "errors": [],
+          "fetched": 0,
+          "source_id": "gaiazoo-press",
+          "status": "completed",
+          "stored": 0,
+          "zoo_id": "gaiazoo"
+        }
+      ],
+      "status": "completed",
+      "stored": 0
+    },
+    "status": "PASS",
+    "validation": {
+      "invalid_articles": [],
+      "status": "PASS",
+      "total_rows": 40,
+      "valid_articles": 40,
+      "zoos": {
+        "gaiazoo": {
+          "article_count": 12,
+          "latest": {
+            "article_id": "b2f62a5910e94bb58aa501cf2ec84ea7",
+            "canonical_url": "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
+            "published_at": "2026-08-07T07:30:00+00:00",
+            "title": "Nieuwe leeuwenman in GaiaZOO overleden - GaiaZOO"
+          },
+          "minimum": 3,
+          "source_count": 4,
+          "status": "PASS",
+          "successful_official_sources": [
+            "gaiazoo-news-rss",
+            "gaiazoo-news-archive"
+          ]
+        },
+        "koeln-zoo": {
+          "article_count": 10,
+          "latest": {
+            "article_id": "8e49dd5f52c145759d7d7b3368ebdb32",
+            "canonical_url": "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
+            "published_at": null,
+            "title": "Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren"
+          },
+          "minimum": 3,
+          "source_count": 2,
+          "status": "PASS",
+          "successful_official_sources": [
+            "koeln-zoo-news-sitemap"
+          ]
+        },
+        "zoo-berlin": {
+          "article_count": 18,
+          "latest": {
+            "article_id": "ac02f41198cf4c289926144cfb5f1f29",
+            "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+            "published_at": "2026-08-12T00:00:00+00:00",
+            "title": "Naturverbundenheit beginnt mit einer Begegnung"
+          },
+          "minimum": 3,
+          "source_count": 2,
+          "status": "PASS",
+          "successful_official_sources": [
+            "zoo-berlin-news"
+          ]
+        }
+      }
+    },
+    "zoos": {
+      "gaiazoo": {
+        "articles": 12,
+        "crawl1_new": 12,
+        "crawl2_new": 0,
+        "errors": [],
+        "latest": {
+          "article_id": "b2f62a5910e94bb58aa501cf2ec84ea7",
+          "canonical_url": "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
+          "published_at": "2026-08-07T07:30:00+00:00",
+          "title": "Nieuwe leeuwenman in GaiaZOO overleden - GaiaZOO"
+        },
+        "name": "GaiaZOO",
+        "source_count": 4,
+        "sources": [
+          {
+            "id": "gaiazoo-news-rss",
+            "kind": "rss",
+            "url": "https://www.gaiazoo.nl/category/nieuws/feed"
+          },
+          {
+            "id": "gaiazoo-news-archive",
+            "kind": "archive",
+            "url": "https://www.gaiazoo.nl/nieuws-vlogs"
+          },
+          {
+            "id": "gaiazoo-sitemap",
+            "kind": "registry_only",
+            "url": "https://www.gaiazoo.nl/sitemap_index.xml"
+          },
+          {
+            "id": "gaiazoo-press",
+            "kind": "registry_only",
+            "url": "https://www.gaiazoo.nl/pers"
+          }
+        ],
+        "status": "PASS"
+      },
+      "koeln-zoo": {
+        "articles": 10,
+        "crawl1_new": 10,
+        "crawl2_new": 0,
+        "errors": [],
+        "latest": {
+          "article_id": "8e49dd5f52c145759d7d7b3368ebdb32",
+          "canonical_url": "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
+          "published_at": null,
+          "title": "Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren"
+        },
+        "name": "Kölner Zoo",
+        "source_count": 2,
+        "sources": [
+          {
+            "id": "koeln-zoo-news-sitemap",
+            "kind": "sitemap",
+            "url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml"
+          },
+          {
+            "id": "koeln-zoo-news-archive",
+            "kind": "registry_only",
+            "url": "https://koelnerzoo.de/aktuell"
+          }
+        ],
+        "status": "PASS"
+      },
+      "zoo-berlin": {
+        "articles": 18,
+        "crawl1_new": 18,
+        "crawl2_new": 0,
+        "errors": [],
+        "latest": {
+          "article_id": "ac02f41198cf4c289926144cfb5f1f29",
+          "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+          "published_at": "2026-08-12T00:00:00+00:00",
+          "title": "Naturverbundenheit beginnt mit einer Begegnung"
+        },
+        "name": "Zoo Berlin",
+        "source_count": 2,
+        "sources": [
+          {
+            "id": "zoo-berlin-news",
+            "kind": "archive",
+            "url": "https://www.zoo-berlin.de/de/aktuelles/news"
+          },
+          {
+            "id": "zoo-berlin-press",
+            "kind": "registry_only",
+            "url": "https://www.zoo-berlin.de/de/aktuelles/presse"
+          }
+        ],
+        "status": "PASS"
+      }
+    }
+  },
+  "sources_findings": {
+    "by_kind": {
+      "archive": 2,
+      "registry_only": 4,
+      "rss": 1,
+      "sitemap": 1
+    },
+    "configured": [
+      {
+        "allow_patterns": [
+          "/de/aktuelles/news/artikel/"
+        ],
+        "enabled": true,
+        "id": "zoo-berlin-news",
+        "kind": "archive",
+        "official_http": true,
+        "ssr": true,
+        "url": "https://www.zoo-berlin.de/de/aktuelles/news",
+        "zoo_id": "zoo-berlin"
+      },
+      {
+        "allow_patterns": [],
+        "enabled": true,
+        "id": "zoo-berlin-press",
+        "kind": "registry_only",
+        "official_http": true,
+        "ssr": false,
+        "url": "https://www.zoo-berlin.de/de/aktuelles/presse",
+        "zoo_id": "zoo-berlin"
+      },
+      {
+        "allow_patterns": [
+          "^https://koelnerzoo\\.de/aktuellartical/[^/]+/?$"
+        ],
+        "enabled": true,
+        "id": "koeln-zoo-news-sitemap",
+        "kind": "sitemap",
+        "official_http": true,
+        "ssr": false,
+        "url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml",
+        "zoo_id": "koeln-zoo"
+      },
+      {
+        "allow_patterns": [],
+        "enabled": true,
+        "id": "koeln-zoo-news-archive",
+        "kind": "registry_only",
+        "official_http": true,
+        "ssr": false,
+        "url": "https://koelnerzoo.de/aktuell",
+        "zoo_id": "koeln-zoo"
+      },
+      {
+        "allow_patterns": [],
+        "enabled": true,
+        "id": "gaiazoo-news-rss",
+        "kind": "rss",
+        "official_http": true,
+        "ssr": false,
+        "url": "https://www.gaiazoo.nl/category/nieuws/feed",
+        "zoo_id": "gaiazoo"
+      },
+      {
+        "allow_patterns": [],
+        "enabled": true,
+        "id": "gaiazoo-news-archive",
+        "kind": "archive",
+        "official_http": true,
+        "ssr": true,
+        "url": "https://www.gaiazoo.nl/nieuws-vlogs",
+        "zoo_id": "gaiazoo"
+      },
+      {
+        "allow_patterns": [],
+        "enabled": true,
+        "id": "gaiazoo-sitemap",
+        "kind": "registry_only",
+        "official_http": true,
+        "ssr": false,
+        "url": "https://www.gaiazoo.nl/sitemap_index.xml",
+        "zoo_id": "gaiazoo"
+      },
+      {
+        "allow_patterns": [],
+        "enabled": true,
+        "id": "gaiazoo-press",
+        "kind": "registry_only",
+        "official_http": true,
+        "ssr": false,
+        "url": "https://www.gaiazoo.nl/pers",
+        "zoo_id": "gaiazoo"
+      }
+    ],
+    "live": [
+      {
+        "id": "gaiazoo-news-archive",
+        "kind": "archive",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://www.gaiazoo.nl/nieuws-vlogs"
+      },
+      {
+        "id": "gaiazoo-news-rss",
+        "kind": "rss",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://www.gaiazoo.nl/category/nieuws/feed"
+      },
+      {
+        "id": "gaiazoo-press",
+        "kind": "registry_only",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://www.gaiazoo.nl/pers"
+      },
+      {
+        "id": "gaiazoo-sitemap",
+        "kind": "registry_only",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://www.gaiazoo.nl/sitemap_index.xml"
+      },
+      {
+        "id": "koeln-zoo-news-archive",
+        "kind": "registry_only",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://koelnerzoo.de/aktuell"
+      },
+      {
+        "id": "koeln-zoo-news-sitemap",
+        "kind": "sitemap",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml"
+      },
+      {
+        "id": "zoo-berlin-news",
+        "kind": "archive",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://www.zoo-berlin.de/de/aktuelles/news"
+      },
+      {
+        "id": "zoo-berlin-press",
+        "kind": "registry_only",
+        "last_error": null,
+        "last_http_status": null,
+        "status": "completed",
+        "success": 1,
+        "url": "https://www.zoo-berlin.de/de/aktuelles/presse"
+      }
+    ],
+    "playwright": {
+      "conclusion": "crawler source discovery remains HTTP/parser based; browser smoke validates rendered dashboard routes",
+      "used_for": "dashboard acceptance smoke"
+    },
+    "rss_sources": 1,
+    "sitemap_sources": 1,
+    "ssr_archive_sources": 2
+  },
+  "started_at": "2026-08-12T21:59:13.518718+00:00",
+  "status": "PASS",
+  "unit_tests": {
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/python3",
+      "-m",
+      "pytest",
+      "-q"
+    ],
+    "duration_seconds": 0.6,
+    "output": "....................................                                     [100%]\n36 passed in 0.34s\n",
+    "returncode": 0,
+    "status": "PASS",
+    "timed_out": false
+  },
+  "zoos": {
+    "gaiazoo": {
+      "articles": 12,
+      "crawl1_new": 12,
+      "crawl2_new": 0,
+      "errors": [],
+      "latest": {
+        "article_id": "b2f62a5910e94bb58aa501cf2ec84ea7",
+        "canonical_url": "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
+        "published_at": "2026-08-07T07:30:00+00:00",
+        "title": "Nieuwe leeuwenman in GaiaZOO overleden - GaiaZOO"
+      },
+      "name": "GaiaZOO",
+      "source_count": 4,
+      "sources": [
+        {
+          "id": "gaiazoo-news-rss",
+          "kind": "rss",
+          "url": "https://www.gaiazoo.nl/category/nieuws/feed"
+        },
+        {
+          "id": "gaiazoo-news-archive",
+          "kind": "archive",
+          "url": "https://www.gaiazoo.nl/nieuws-vlogs"
+        },
+        {
+          "id": "gaiazoo-sitemap",
+          "kind": "registry_only",
+          "url": "https://www.gaiazoo.nl/sitemap_index.xml"
+        },
+        {
+          "id": "gaiazoo-press",
+          "kind": "registry_only",
+          "url": "https://www.gaiazoo.nl/pers"
+        }
+      ],
+      "status": "PASS"
+    },
+    "koeln-zoo": {
+      "articles": 10,
+      "crawl1_new": 10,
+      "crawl2_new": 0,
+      "errors": [],
+      "latest": {
+        "article_id": "8e49dd5f52c145759d7d7b3368ebdb32",
+        "canonical_url": "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
+        "published_at": null,
+        "title": "Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren"
+      },
+      "name": "Kölner Zoo",
+      "source_count": 2,
+      "sources": [
+        {
+          "id": "koeln-zoo-news-sitemap",
+          "kind": "sitemap",
+          "url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml"
+        },
+        {
+          "id": "koeln-zoo-news-archive",
+          "kind": "registry_only",
+          "url": "https://koelnerzoo.de/aktuell"
+        }
+      ],
+      "status": "PASS"
+    },
+    "zoo-berlin": {
+      "articles": 18,
+      "crawl1_new": 18,
+      "crawl2_new": 0,
+      "errors": [],
+      "latest": {
+        "article_id": "ac02f41198cf4c289926144cfb5f1f29",
+        "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+        "published_at": "2026-08-12T00:00:00+00:00",
+        "title": "Naturverbundenheit beginnt mit einer Begegnung"
+      },
+      "name": "Zoo Berlin",
+      "source_count": 2,
+      "sources": [
+        {
+          "id": "zoo-berlin-news",
+          "kind": "archive",
+          "url": "https://www.zoo-berlin.de/de/aktuelles/news"
+        },
+        {
+          "id": "zoo-berlin-press",
+          "kind": "registry_only",
+          "url": "https://www.zoo-berlin.de/de/aktuelles/presse"
+        }
+      ],
+      "status": "PASS"
+    }
+  }
+}

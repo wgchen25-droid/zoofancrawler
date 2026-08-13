@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zoofancrawler"
+version = "0.1.0"
+description = "Polite multi-source article crawler core"
+requires-python = ">=3.9"
+dependencies = [
+  "httpx>=0.24",
+  "beautifulsoup4>=4.11",
+  "PyYAML>=6.0",
+  "Flask>=2.2",
+  "APScheduler>=3.10",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+acceptance = ["playwright>=1.40"]
+
+[tool.setuptools.packages.find]
+include = ["zoofan*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
