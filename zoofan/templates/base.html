@@ -4,12 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}ZooFanCrawler{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('favicon') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
   </head>
   <body>
     <header class="site-header">
       <div class="shell header-inner">
-        <a class="brand" href="{{ url_for('index') }}">ZooFanCrawler</a>
+        <a class="brand" href="{{ url_for('index') }}"><span aria-hidden="true">◉</span> ZooFanCrawler</a>
         <nav aria-label="Main navigation">
           <a href="{{ url_for('index') }}">Overview</a>
           <a href="{{ url_for('articles') }}">Articles</a>

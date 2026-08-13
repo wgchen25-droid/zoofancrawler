@@ -12,10 +12,14 @@ def _config_file(tmp_path):
         "  - slug: enabled-zoo\n"
         "    name: Enabled Zoo\n"
         "    website_url: https://enabled.example\n"
+        "    country_code: DE\n"
+        "    language: de\n"
         "    enabled: true\n"
         "  - slug: disabled-zoo\n"
         "    name: Disabled Zoo\n"
         "    website_url: https://disabled.example\n"
+        "    country_code: DE\n"
+        "    language: de\n"
         "    enabled: false\n",
         encoding="utf-8",
     )

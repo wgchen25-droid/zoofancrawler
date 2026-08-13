@@ -5,15 +5,26 @@
   <article class="article-page">
     <p class="eyebrow">Article {{ article.id }}</p>
     <h1>{{ article.title }}</h1>
-    <div class="article-meta">
-      <span>Published {{ article.published_at|timestamp }}</span>
-      {% if article.updated_at %}<span>Updated {{ article.updated_at|timestamp }}</span>{% endif %}
-      {% if article.author %}<span>By {{ article.author }}</span>{% endif %}
-    </div>
-    {% if article.url %}<p><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">Open official article ↗</a></p>{% endif %}
-    {% if article.sources %}
-      <p class="muted">Discovered from {% for source in article.sources %}{{ source.zoo_name }} / {{ source.type }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
-    {% endif %}
+    <dl class="detail-grid" data-acceptance-row="article-detail" data-acceptance-id="{{ article.id }}">
+      <div><dt>Article ID</dt><dd data-acceptance-field="article-id">{{ article.id }}</dd></div>
+      <div><dt>Title</dt><dd data-acceptance-field="title">{{ article.title }}</dd></div>
+      <div><dt>Zoo</dt><dd data-acceptance-field="zoo">{{ article.zoo_names|join(', ') or '—' }}</dd></div>
+      <div><dt>Source</dt><dd data-acceptance-field="sources">{{ article.sources|join(', ') or '—' }}</dd></div>
+      <div><dt>Original URL</dt><dd data-acceptance-field="original-url">{% if article.original_link %}<a href="{{ article.original_link }}" target="_blank" rel="noopener noreferrer">{{ article.original_url }}</a>{% else %}{{ article.original_url or '—' }}{% endif %}</dd></div>
+      <div><dt>Canonical URL</dt><dd data-acceptance-field="canonical-url">{% if article.canonical_link %}<a href="{{ article.canonical_link }}" target="_blank" rel="noopener noreferrer">{{ article.canonical_url }}</a>{% else %}{{ article.canonical_url or '—' }}{% endif %}</dd></div>
+      <div><dt>Language</dt><dd data-acceptance-field="language">{{ article.language or '—' }}</dd></div>
+      <div><dt>Article HTTP status</dt><dd data-acceptance-field="article-http-status">{% if article.http_status is not none %}{{ article.http_status }}{% else %}—{% endif %}</dd></div>
+      <div><dt>Crawl status</dt><dd data-acceptance-field="crawl-status">{{ article.crawl_status or '—' }}</dd></div>
+      <div><dt>HTML hash</dt><dd class="mono" data-acceptance-field="html-hash">{{ article.html_hash or '—' }}</dd></div>
+      <div><dt>Published at source</dt><dd data-acceptance-field="published-at-source">{{ article.published_at|timestamp }}</dd></div>
+      <div><dt>Updated at source</dt><dd data-acceptance-field="updated-at-source">{{ article.updated_at_source|timestamp }}</dd></div>
+      <div><dt>First discovered</dt><dd data-acceptance-field="first-discovered">{{ article.first_discovered|timestamp }}</dd></div>
+      <div><dt>Last discovered</dt><dd data-acceptance-field="last-discovered">{{ article.last_discovered|timestamp }}</dd></div>
+      <div><dt>Fetched at</dt><dd data-acceptance-field="fetched-at">{{ article.fetched_at|timestamp }}</dd></div>
+      <div><dt>Stored at</dt><dd data-acceptance-field="stored-at">{{ article.stored_at|timestamp }}</dd></div>
+      <div><dt>Storage updated at</dt><dd data-acceptance-field="storage-updated-at">{{ article.storage_updated_at|timestamp }}</dd></div>
+    </dl>
+    {% if article.author %}<p class="muted">By {{ article.author }}</p>{% endif %}
     {% if article.summary %}<p class="summary">{{ article.summary }}</p>{% endif %}
     {% if article.content %}<div class="article-content">{{ article.content }}</div>{% else %}<p class="empty">No parsed article content.</p>{% endif %}
   </article>

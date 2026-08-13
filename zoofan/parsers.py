@@ -255,6 +255,18 @@ def _meta(soup: Any, *names: str) -> Optional[str]:
     return None
 
 
+def _language_tag(value: Any) -> Optional[str]:
+    """Return a conservative normalized BCP-47-like language tag."""
+
+    if value is None:
+        return None
+    candidate = str(value).strip().replace("_", "-")
+    if not re.fullmatch(r"[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*", candidate):
+        return None
+    parts = candidate.split("-")
+    return "-".join([parts[0].lower(), *[part.upper() if len(part) == 2 else part for part in parts[1:]]])
+
+
 def _select_one(node: Any, selector: Optional[str]) -> Any:
     if not selector:
         return None
@@ -268,6 +280,8 @@ def parse_archive_page(
     payload: Union[str, bytes],
     config: Optional[Union[ArchiveParserConfig, Mapping[str, Any]]] = None,
     base_url: Optional[str] = None,
+    *,
+    deduplicate: bool = True,
 ) -> List[ParsedFeedItem]:
     """Parse one server-rendered archive page using configured CSS selectors."""
 
@@ -282,7 +296,7 @@ def parse_archive_page(
             continue
         href = link_node.get("href")
         resolved = _resolve(href, base_url)
-        if not resolved or resolved in seen:
+        if not resolved or (deduplicate and resolved in seen):
             continue
         seen.add(resolved)
         title_node = _select_one(card, cfg.title_selector) if cfg.title_selector else None
@@ -306,6 +320,8 @@ def parse_archive(
     base_url: Optional[str] = None,
     fetch_page: Optional[Callable[[str], Union[str, bytes]]] = None,
     max_pages: Optional[int] = None,
+    *,
+    preserve_duplicates: bool = False,
 ) -> List[ParsedFeedItem]:
     """Parse an archive and, when supplied, follow a bounded next-page link.
 
@@ -320,8 +336,10 @@ def parse_archive(
     result: list[ParsedFeedItem] = []
     seen_urls: set[str] = set()
     for page_number in range(page_limit):
-        for item in parse_archive_page(current_payload, cfg, current_url):
-            if item.url not in seen_urls:
+        for item in parse_archive_page(
+            current_payload, cfg, current_url, deduplicate=not preserve_duplicates,
+        ):
+            if preserve_duplicates or item.url not in seen_urls:
                 seen_urls.add(item.url)
                 result.append(item)
         if not fetch_page or not cfg.pagination_selector or page_number + 1 >= page_limit:
@@ -353,7 +371,93 @@ def _json_ld_objects(soup: Any) -> Iterable[Mapping[str, Any]]:
                 yield item
 
 
-def parse_article_page(payload: Union[str, bytes], url: Optional[str] = None) -> ParsedArticle:
+_DATELINE_MONTHS = {
+    "januar": 1,
+    "january": 1,
+    "februar": 2,
+    "february": 2,
+    "marz": 3,
+    "maerz": 3,
+    "march": 3,
+    "april": 4,
+    "mai": 5,
+    "may": 5,
+    "juni": 6,
+    "june": 6,
+    "juli": 7,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "oktober": 10,
+    "october": 10,
+    "november": 11,
+    "dezember": 12,
+    "december": 12,
+}
+
+
+def _normalized_month(value: str) -> Optional[int]:
+    # Case-fold first, then normalize the German umlaut spelling so both
+    # ``März`` and the commonly transliterated ``Maerz`` are accepted.
+    key = value.casefold().replace("ä", "a").rstrip(".")
+    return _DATELINE_MONTHS.get(key)
+
+
+def _configured_article_dateline(soup: Any, config: Optional[Mapping[str, Any]]) -> Optional[str]:
+    """Return a validated date-only value from leading configured paragraphs."""
+
+    cfg = config or {}
+    selector = cfg.get("article_date_selector")
+    pattern = cfg.get("article_date_pattern")
+    if not isinstance(selector, str) or not selector or not isinstance(pattern, str) or not pattern:
+        return None
+    try:
+        nodes = soup.select(selector)
+        expression = re.compile(pattern, re.IGNORECASE)
+    except (Exception, re.error):
+        return None
+    # A dateline is structural lead-in content. Restricting the search avoids
+    # interpreting dates mentioned later in the story as publication dates.
+    for node in nodes[:3]:
+        value = _node_text(node)
+        match = expression.match(value or "")
+        if match is None:
+            continue
+        try:
+            day = int(match.group("day"))
+            month = _normalized_month(match.group("month"))
+            year = int(match.group("year"))
+            if month is None:
+                continue
+            return datetime(year, month, day).date().isoformat()
+        except (IndexError, TypeError, ValueError):
+            continue
+    return None
+
+
+def _validated_article_datetime(value: Any) -> Optional[datetime]:
+    """Parse an article timestamp without retaining arbitrary invalid text."""
+
+    parsed = parse_datetime(value)
+    return parsed if isinstance(parsed, datetime) else None
+
+
+def _meta_datetime(soup: Any, *names: str) -> Optional[datetime]:
+    wanted = {name.lower() for name in names}
+    for tag in soup.find_all("meta"):
+        key = (tag.get("property") or tag.get("name") or tag.get("itemprop") or "").lower()
+        if key in wanted:
+            parsed = _validated_article_datetime(tag.get("content"))
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def parse_article_page(
+    payload: Union[str, bytes],
+    url: Optional[str] = None,
+    config: Optional[Mapping[str, Any]] = None,
+) -> ParsedArticle:
     """Extract canonical URL, metadata, readable content and a raw HTML hash."""
 
     raw_html = payload.decode("utf-8", errors="replace") if isinstance(payload, bytes) else str(payload)
@@ -368,7 +472,7 @@ def parse_article_page(payload: Union[str, bytes], url: Optional[str] = None) ->
     canonical = canonical or _resolve(_meta(soup, "og:url", "twitter:url"), url)
     title = _meta(soup, "og:title", "twitter:title")
     title = title or _node_text(soup.find("h1")) or _node_text(soup.find("title"))
-    published_value = _meta(
+    published_at = _meta_datetime(
         soup,
         "article:published_time",
         "datepublished",
@@ -376,24 +480,35 @@ def parse_article_page(payload: Union[str, bytes], url: Optional[str] = None) ->
         "date",
         "pubdate",
     )
-    updated_value = _meta(soup, "article:modified_time", "datemodified", "lastmod", "updated")
+    updated_at = _meta_datetime(soup, "article:modified_time", "datemodified", "lastmod", "updated")
     author = _meta(soup, "author", "article:author", "byline")
     summary = _meta(soup, "description", "og:description", "twitter:description")
     json_ld: list[Mapping[str, Any]] = list(_json_ld_objects(soup))
+    structured_language = _language_tag(
+        _meta(soup, "content-language", "language", "article:language", "og:locale")
+    )
     for item in json_ld:
         item_type = item.get("@type")
-        if not published_value and str(item_type).lower() in {"article", "newsarticle", "blogposting"}:
-            published_value = item.get("datePublished")
-        if not updated_value and str(item_type).lower() in {"article", "newsarticle", "blogposting"}:
-            updated_value = item.get("dateModified")
+        if published_at is None and str(item_type).lower() in {"article", "newsarticle", "blogposting"}:
+            published_at = _validated_article_datetime(item.get("datePublished"))
+        if updated_at is None and str(item_type).lower() in {"article", "newsarticle", "blogposting"}:
+            updated_at = _validated_article_datetime(item.get("dateModified"))
         if not author and isinstance(item.get("author"), Mapping):
             author = item["author"].get("name")
         if not summary and item.get("description"):
             summary = item.get("description")
-    if not published_value:
-        time_node = soup.find("time", datetime=True) or soup.find("time")
-        if time_node is not None:
-            published_value = time_node.get("datetime") or _node_text(time_node)
+        if not structured_language and str(item_type).lower() in {"article", "newsarticle", "blogposting", "webpage"}:
+            structured_language = _language_tag(item.get("inLanguage"))
+    if published_at is None:
+        for time_node in soup.find_all("time"):
+            published_at = _validated_article_datetime(
+                time_node.get("datetime") or _node_text(time_node)
+            )
+            if published_at is not None:
+                break
+    configured_published_date = None
+    if published_at is None:
+        configured_published_date = _configured_article_dateline(soup, config)
 
     content_node = soup.find("article") or soup.find("main") or soup.body or soup
     # Remove non-content elements before extracting readable text.
@@ -406,12 +521,18 @@ def parse_article_page(payload: Union[str, bytes], url: Optional[str] = None) ->
         value = meta.get("content")
         if key and value:
             metadata[str(key)] = _text(value)
+    html_node = soup.find("html")
+    html_language = _language_tag(html_node.get("lang") if html_node is not None else None)
+    if html_language:
+        metadata["html_language"] = html_language
+    if structured_language:
+        metadata["structured_language"] = structured_language
     return ParsedArticle(
         url=_resolve(url, None) if url else None,
         canonical_url=canonical,
         title=title,
-        published_at=parse_datetime(published_value),
-        updated_at_source=parse_datetime(updated_value),
+        published_at=configured_published_date or published_at,
+        updated_at_source=updated_at,
         author=_text(author),
         summary=_text(summary),
         content=content,
@@ -421,5 +542,9 @@ def parse_article_page(payload: Union[str, bytes], url: Optional[str] = None) ->
     )
 
 
-def parse_article(payload: Union[str, bytes], url: Optional[str] = None) -> ParsedArticle:
-    return parse_article_page(payload, url)
+def parse_article(
+    payload: Union[str, bytes],
+    url: Optional[str] = None,
+    config: Optional[Mapping[str, Any]] = None,
+) -> ParsedArticle:
+    return parse_article_page(payload, url, config)

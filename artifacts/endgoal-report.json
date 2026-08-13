@@ -4,20 +4,216 @@
     "report": "/Users/leichen/AIcoding/zoofancrawler/artifacts/endgoal-report.json"
   },
   "dashboard": {
-    "base_url": "http://127.0.0.1:58304",
+    "base_url": "http://127.0.0.1:57446",
     "console_errors": [],
+    "database_matches": {
+      "articles.access_link": true,
+      "articles.article_http_status": true,
+      "articles.canonical_url": true,
+      "articles.crawl_status": true,
+      "articles.discovered_at": true,
+      "articles.language": true,
+      "articles.published_at_source": true,
+      "articles.source": true,
+      "articles.title": true,
+      "articles.updated_at_source": true,
+      "articles.zoo": true,
+      "detail.article_http_status": true,
+      "detail.article_id": true,
+      "detail.canonical_url": true,
+      "detail.crawl_status": true,
+      "detail.fetched_at": true,
+      "detail.first_discovered": true,
+      "detail.html_hash": true,
+      "detail.language": true,
+      "detail.last_discovered": true,
+      "detail.original_url": true,
+      "detail.published_at_source": true,
+      "detail.sources": true,
+      "detail.storage_updated_at": true,
+      "detail.stored_at": true,
+      "detail.title": true,
+      "detail.updated_at_source": true,
+      "detail.zoo": true,
+      "home.already_known": true,
+      "home.duplicate_candidates": true,
+      "home.errors": true,
+      "home.stored": true,
+      "metrics.home_runs_consistent": true,
+      "run.already_known": true,
+      "run.discovered": true,
+      "run.duplicate_candidates": true,
+      "run.duration": true,
+      "run.end": true,
+      "run.errors": true,
+      "run.fetched": true,
+      "run.start": true,
+      "run.status": true,
+      "run.stored": true,
+      "source.http_status": true,
+      "source.id": true,
+      "source.kind": true,
+      "source.language": true,
+      "source.last_checked": true,
+      "source.last_error": true,
+      "source.status": true,
+      "source.zoo": true
+    },
     "db_live_article_count": 40,
+    "failures": [],
+    "null_publication": {
+      "rendered": "—",
+      "storage_created": "2026-08-13T19:14:53.355184+00:00"
+    },
+    "observed_routes": {
+      "/": {
+        "body": "◉ ZooFanCrawler\nOverview\nArticles\nSources\nRuns\n\nCRAWLER INSPECTION\n\nOverview\n\nLast crawl: 2026-08-13 19:16\n\nSources\n8\nArticles\n40\nStored\n0\nAlready known / skipped\n40\nDuplicate candidates\n10\nErrors\n0\nZoo status\nGaiaZOO\nHEALTHY\nSources\n4\nCountry\nNL\nLanguage\nnl\nLast crawl\n2026-08-13 19:16\nArticles\n12\nStored\n0\nAlready known / skipped\n12\nDuplicate candidates\n10\nErrors\n0\nLATEST BY SOURCE PUBLICATION\nNieuwe leeuwenman in GaiaZOO overleden - GaiaZOO\n2026-08-07 07:30 · official URL\nKölner Zoo\nHEALTHY\nSources\n2\nCountry\nDE\nLanguage\nde\nLast crawl\n2026-08-13 19:16\nArticles\n10\nStored\n0\nAlready known / skipped\n10\nDuplicate candidates\n0\nErrors\n0\nLATEST BY SOURCE PUBLICATION\nKleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren\n2026-07-23 · official URL\nZoo Berlin\nHEALTHY\nSources\n2\nCountry\nDE\nLanguage\nde\nLast crawl\n2026-08-13 19:16\nArticles\n18\nStored\n0\nAlready known / skipped\n18\nDuplicate candidates\n0\nErrors\n0\nLATEST BY SOURCE PUBLICATION\nNaturverbundenheit beginnt mit einer Begegnung\n2026-08-12 00:00 · official URL\nRecent articles\nView all →\nTitle\tZoo\tSource\tPublished at source\tFirst discovered\nDas gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft ↗\tKölner Zoo\tnews-sitemap\t—\t2026-08-13 19:14\nNaturverbundenheit beginnt mit einer Begegnung ↗\tZoo Berlin\tnews\t2026-08-12 00:00\t2026-08-13 19:14\nNieuwe leeuwenman in GaiaZOO overleden - GaiaZOO ↗\tGaiaZOO\tnews-archive, news-rss\t2026-08-07 07:30\t2026-08-13 19:15\nSiezels uitgezet in het wild - GaiaZOO ↗\tGaiaZOO\tnews-archive, news-rss\t2026-07-31 07:34\t2026-08-13 19:15\nBring Back Blue: Die Rückkehr des Vietnamesischen Fasans ↗\tZoo Berlin\tnews\t2026-07-29 00:00\t2026-08-13 19:14\nVoordeel voor zorginstellingen in september - GaiaZOO ↗\tGaiaZOO\tnews-archive, news-rss\t2026-07-24 08:00\t2026-08-13 19:15\nEin kleiner Höhlenkobold auf vier Pfoten ↗\tZoo Berlin\tnews\t2026-07-23 00:00\t2026-08-13 19:14\nKleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren ↗\tKölner Zoo\tnews-sitemap\t2026-07-23\t2026-08-13 19:15\nTeenager ↗\tZoo Berlin\tnews\t2026-07-21 00:00\t2026-08-13 19:14\nLangverwachte capibara’s geboren - GaiaZOO ↗\tGaiaZOO\tnews-archive, news-rss\t2026-07-17 09:05\t2026-08-13 19:15",
+        "labels": [
+          "Sources",
+          "Articles",
+          "Stored",
+          "Already known / skipped",
+          "Duplicate candidates",
+          "Errors",
+          "Sources",
+          "Country",
+          "Language",
+          "Last crawl",
+          "Articles",
+          "Stored",
+          "Already known / skipped",
+          "Duplicate candidates",
+          "Errors",
+          "Sources",
+          "Country",
+          "Language",
+          "Last crawl",
+          "Articles",
+          "Stored",
+          "Already known / skipped",
+          "Duplicate candidates",
+          "Errors",
+          "Sources",
+          "Country",
+          "Language",
+          "Last crawl",
+          "Articles",
+          "Stored",
+          "Already known / skipped",
+          "Duplicate candidates",
+          "Errors",
+          "Title",
+          "Zoo",
+          "Source",
+          "Published at source",
+          "First discovered"
+        ],
+        "status": 200
+      },
+      "/articles": {
+        "body": "◉ ZooFanCrawler\nOverview\nArticles\nSources\nRuns\n\nCONTENT INVENTORY\n\nArticles\nZoo\nAll zoos\nGaiaZOO\nKölner Zoo\nZoo Berlin\nSource type\nAll types\narchive\nregistry_only\nrss\nsitemap\nFilter\nZoo\tTitle\tPublished at source\tUpdated at source\tFirst discovered\tSource\tLanguage\tCrawl status\tArticle HTTP status\tCanonical URL\nKölner Zoo\tDas gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft\t—\t—\t2026-08-13 19:14\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft\nZoo Berlin\tNaturverbundenheit beginnt mit einer Begegnung\t2026-08-12 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung\nGaiaZOO\tNieuwe leeuwenman in GaiaZOO overleden - GaiaZOO\t2026-08-07 07:30\t2026-08-07 07:30\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026\nGaiaZOO\tSiezels uitgezet in het wild - GaiaZOO\t2026-07-31 07:34\t2026-08-04 09:36\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/siezels-uitgezet-in-het-wild\nZoo Berlin\tBring Back Blue: Die Rückkehr des Vietnamesischen Fasans\t2026-07-29 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/bring-back-blue-die-rueckkehr-des-vietnamesischen-fasans\nGaiaZOO\tVoordeel voor zorginstellingen in september - GaiaZOO\t2026-07-24 08:00\t2026-07-31 07:56\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/voordeel-voor-zorginstellingen-in-september\nZoo Berlin\tEin kleiner Höhlenkobold auf vier Pfoten\t2026-07-23 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-kleiner-hoehlenkobold-auf-vier-pfoten\nKölner Zoo\tKleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren\t2026-07-23\t—\t2026-08-13 19:15\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren\nZoo Berlin\tTeenager\t2026-07-21 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/teenanger\nGaiaZOO\tLangverwachte capibara’s geboren - GaiaZOO\t2026-07-17 09:05\t2026-07-17 09:53\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/langverwachte-capibaras-geboren-juli-2026\nGaiaZOO\tUpdate leeuwenintroductie - GaiaZOO\t2026-07-17 09:04\t2026-08-07 07:01\t2026-08-13 19:15\tnews-archive\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/update-leeuwenintroductie-juli-2026\nKölner Zoo\tRosarot und beflügelt: Zwei Kuba-Flamingos im Kölner Zoo geschlüpft Vorverkauf für den Single Abend im Kölner Zoo läuft\t2026-07-16\t—\t2026-08-13 19:15\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/rosarot-und-befluegelt-zwei-kuba-flamingos-im-koelner-zoo-geschluepft-vorverkauf-fuer-den-single-abend-im-koelner-zoo-laeuft\nKölner Zoo\tDoppelt so groß: Kölner Zoo eröffnet neue Anlage für Giraffen\t2026-07-10\t—\t2026-08-13 19:15\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/doppelt-so-gross-koelner-zoo-eroeffnet-neue-anlage-fuer-giraffen\nZoo Berlin\tWilde Sommerferien\t2026-07-07 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/wilde-sommerferien\nZoo Berlin\tDas beste Brötchen der Stadt\t2026-07-02 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/das-beste-broetchen-der-stadt\nKölner Zoo\tBevor die Giraffen einziehen: Tag der Offenen Tür auf der neuen Giraffenanlage\t2026-07-02\t—\t2026-08-13 19:15\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/bevor-die-giraffen-einziehen-tag-der-offenen-tur-auf-der-neuen-giraffenanlage\nGaiaZOO\tWitlippekari keert terug naar GaiaZOO - GaiaZOO\t2026-06-30 08:43\t2026-08-07 07:13\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/witlippekari-keert-terug-naar-gaiazoo\nZoo Berlin\tTierisch angepasst\t2026-06-29 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/tierisch-angepasst\nGaiaZOO\tNieuwe leeuwenman aangekomen in GaiaZOO - GaiaZOO\t2026-06-26 13:53\t2026-07-17 09:08\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/nieuwe-leeuwenman-aangekomen-in-gaiazoo\nZoo Berlin\tZwischen Terrarium und Tropenmedizin\t2026-06-23 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/zwischen-terrarium-und-tropenmedizin\nZoo Berlin\tAntilopenhaus in neuem Gewand\t2026-06-17 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/antilopenhaus-in-neuem-gewand\nZoo Berlin\tDrachenzähmen leicht gemacht?\t2026-06-12 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/drachenzaehmen-leichtgemacht\nZoo Berlin\tBrötchen – ein Name zum Anbeißen\t2026-06-10 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/broetchen-ein-name-zum-anbeissen\nZoo Berlin\tPremiere nach über 180 Jahren\t2026-06-01 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/premiere-nach-ueber-180-jahren\nGaiaZOO\tVerkoeling voor de dieren - GaiaZOO\t2026-05-28 13:04\t2026-07-17 09:09\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/verkoeling-voor-de-dieren-2\nGaiaZOO\tVerrassend veel nieuws in GaiaZOO: jong leven en grote zomerplannen - GaiaZOO\t2026-05-28 10:42\t2026-07-17 09:11\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/verrassend-veel-nieuws-in-gaiazoo-jong-leven-nieuwe-verblijven-en-grote-zomerplannen\nGaiaZOO\tMaak kennis met de kok van Gaia Event Center - GaiaZOO\t2026-05-27 08:49\t2026-05-27 08:49\t2026-08-13 19:15\tnews-archive\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/maak-kennis-met-de-kok-van-gaia-event-center\nZoo Berlin\tFreibadsaison eröffnet: Anbaden im Zoo Berlin\t2026-05-21 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/freibadsaison-eroeffnet-anbaden-im-zoo-berlin\nZoo Berlin\tGemeinsam für den Wisent\t2026-05-19 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/gemeinsam-fuer-den-wisent\nZoo Berlin\tEin Hauch von „Black Panther“ in Berlin\t2026-05-15 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-hauch-von-black-panther-in-berlin\nZoo Berlin\tNoch mehr Hippo-Glück im Zoo Berlin\t2026-05-12 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/noch-mehr-hippo-glueck-im-zoo-berlin\nZoo Berlin\tSeit Jahrzehnten verschollen: Bring Back Blue\t2026-05-11 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/seit-jahrzehnten-verschollen-bring-back-blue\nKölner Zoo\tFür echte „Muttertiere“: Diesen Sonntag ist Bauernhoftag im Kölner Zoo\t2026-05-07\t—\t2026-08-13 19:14\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/fur-echte-muttertiere-diesen-sonntag-ist-bauernhoftag-im-kolner-zoo\nGaiaZOO\tNieuwe rode panda gearriveerd - GaiaZOO\t2026-05-01 10:55\t2026-07-17 09:12\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/nieuwe-rode-panda-gearriveerd\nZoo Berlin\tEin Berliner Bongo für Kenias Wälder\t2026-04-29 00:00\t—\t2026-08-13 19:14\tnews\tde-DE\tsuccess\t200\thttps://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-berliner-bongo-fuer-kenias-waelder\nKölner Zoo\tNachwuchs bei den Goldgelben Löwenäffchen im Kölner Zoo\t2026-04-23\t—\t2026-08-13 19:14\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/nachwuchs-bei-den-goldgelben-lowenaffchen-im-kolner-zoo\nGaiaZOO\tZeven ooievaarsnesten in GaiaZOO - GaiaZOO\t2026-04-21 10:09\t2026-04-21 10:09\t2026-08-13 19:15\tnews-archive, news-rss\tnl-NL\tsuccess\t200\thttps://www.gaiazoo.nl/zeven-ooievaarsnesten-in-gaiazoo\nKölner Zoo\tNeues Preismodell im Kölner Zoo\t2026-04-16\t—\t2026-08-13 19:14\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/neues-preismodell-im-kolner-zoo\nKölner Zoo\tWeiblicher Prinz-Alfred-Hirsch im Kölner Zoo geboren\t2026-04-09\t—\t2026-08-13 19:15\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/weiblicher-prinz-alfred-hirsch-im-kolner-zoo-geboren\nKölner Zoo\tKleines Faultier im Kölner Zoo ist männlich und heißt „Yono“\t2026-03-26\t—\t2026-08-13 19:15\tnews-sitemap\tde\tsuccess\t200\thttps://koelnerzoo.de/aktuellartical/kleines-faultier-im-kolner-zoo-ist-mannlich-und-heist-yono",
+        "labels": [
+          "Zoo\nAll zoos\nGaiaZOO\nKölner Zoo\nZoo Berlin",
+          "Source type\nAll types\narchive\nregistry_only\nrss\nsitemap",
+          "Zoo",
+          "Title",
+          "Published at source",
+          "Updated at source",
+          "First discovered",
+          "Source",
+          "Language",
+          "Crawl status",
+          "Article HTTP status",
+          "Canonical URL"
+        ],
+        "status": 200
+      },
+      "/articles/4d1eed19cee14af7ab3806ad47f9e13b": {
+        "body": "◉ ZooFanCrawler\nOverview\nArticles\nSources\nRuns\n\n← All articles\n\nARTICLE 4D1EED19CEE14AF7AB3806AD47F9E13B\n\nDas gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft\nArticle ID\n4d1eed19cee14af7ab3806ad47f9e13b\nTitle\nDas gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft\nZoo\nKölner Zoo\nSource\nnews-sitemap\nOriginal URL\nhttps://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft\nCanonical URL\nhttps://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft\nLanguage\nde\nArticle HTTP status\n200\nCrawl status\nsuccess\nHTML hash\n8a217aeb67609c772a141923e1af75bb9be6124e1db828522003d61c31199af7\nPublished at source\n—\nUpdated at source\n—\nFirst discovered\n2026-08-13 19:14\nLast discovered\n2026-08-13 19:15\nFetched at\n2026-08-13 19:14\nStored at\n2026-08-13 19:14\nStorage updated at\n2026-08-13 19:14\n\nIm Kölner Zoo wachsen fünf junge Schwarzhalsschwäne auf. Sie schlüpften Mitte März und entwickeln sich sehr gut.\n\nIm Kölner Zoo wachsen fünf junge Schwarzhalsschwäne auf. Sie schlüpften Mitte März und entwickeln sich sehr gut. Einer ersten Geschlechtsbestimmung zufolge handelt es sich um ein männliches Tier und vier weibliche. Ihre Eltern sind vier Jahre alt. Es ist das erste Mal, dass sie erfolgreich Küken großziehen. Diese nicht bedrohte Art wird in Zoos eher selten gezeigt. Schwarzhalsschwäne sind anspruchsvoll und erfordern viel Know-how in der Haltung. Viele Küken überstehen die ersten Lebenstage nicht. Umso erfreulicher ist es für die Verantwortlichen des Kölner Zoo, dass das gesamte Gelege und alle fünf Küken proper und fit auf dem Teich in Nachbarschaft des „Arnulf-und-Elizabeth-Reichert-Haus“ schwimmen, wo sie gut zu sehen sind. Aus dem Süden Südamerikas Das Ursprungsgebiet der Schwarzhalsschwäne ist das südliche Südamerika. Ihre Brutgebiete reichen von der Mitte Chiles und dem Südosten Brasiliens über Patagonien bis Feuerland und zu den Falklandinseln. Im Winter ziehen die Vögel nach Norden bis Paraguay und Südostbrasilien. Sie bewohnen vor allem seichte Seen und Süßwassersümpfe, aber auch Brackwasserlagunen und geschützte Meeresbuchten. Auf dem Speiseplan stehen hauptsächlich Algen und andere Wasserpflanzen. Schwarzhalsschwäne erreichen eine Länge von bis zu 140 Zentimetern und wiegen in der Regel zwischen 3,5 bis 6,5 Kilogramm. Die Männchen sind deutlich größer als die Weibchen, ansonsten weist diese Art keinen auffälligen Geschlechtsdimorphismus auf. Auffällig und namensgebend sind der schwarz gefärbte Kopf und Hals. Das restliche Gefieder ist weiß. Die Augen werden von einem schmalen, weißen Augenstreifen eingerahmt. Der Schnabel ist grau und besitzt an der Basis einen großen, rot gefärbten fleischigen Höcker. Die Beine sind fleischfarben. Bei Jungvögeln sind die Kopf- und Halsfedern noch schwarzbraun – so auch bei den Jungtieren im Kölner Zoo derzeit. Die übrigen Partien des Federkleides sind hell-graubraun und mit weißen Federn durchsetzt. Der Schnabel ist bei heranwachsenden Vögeln noch grau. Die Gesamtpopulation des Schwarzhalsschwans wird von der Weltnaturschutzunion (IUCN) auf 26.000 bis 100.000 Tiere geschätzt. Die Art gilt als nicht gefährdet.",
+        "labels": [
+          "ARTICLE 4D1EED19CEE14AF7AB3806AD47F9E13B",
+          "Article ID",
+          "Title",
+          "Zoo",
+          "Source",
+          "Original URL",
+          "Canonical URL",
+          "Language",
+          "Article HTTP status",
+          "Crawl status",
+          "HTML hash",
+          "Published at source",
+          "Updated at source",
+          "First discovered",
+          "Last discovered",
+          "Fetched at",
+          "Stored at",
+          "Storage updated at"
+        ],
+        "status": 200
+      },
+      "/runs": {
+        "body": "◉ ZooFanCrawler\nOverview\nArticles\nSources\nRuns\n\nEXECUTION HISTORY\n\nCrawl runs\nBatch 58b63ad858d64db9aa2e8b72b0ffee9b\nRun ef5a6319719d4539a780b02e87d803bd\ncompleted\nStart\n2026-08-13 19:15\nEnd\n2026-08-13 19:16\nDuration\n12687 ms\nZoo\tStatus\tDiscovered\tFetched\tStored\tAlready known / skipped\tDuplicate candidates\tErrors\tError summary\nGaiaZOO\tcompleted\t22\t0\t0\t12\t10\t0\t—\nKölner Zoo\tcompleted\t10\t0\t0\t10\t0\t0\t—\nZoo Berlin\tcompleted\t18\t0\t0\t18\t0\t0\t—\nBatch e005ae08c7b547e4a27c2616a7b479e8\nRun 72776638ca104f698932d001f1e48600\ncompleted\nStart\n2026-08-13 19:14\nEnd\n2026-08-13 19:15\nDuration\n87438 ms\nZoo\tStatus\tDiscovered\tFetched\tStored\tAlready known / skipped\tDuplicate candidates\tErrors\tError summary\nGaiaZOO\tcompleted\t22\t12\t12\t0\t10\t0\t—\nKölner Zoo\tcompleted\t10\t10\t10\t0\t0\t0\t—\nZoo Berlin\tcompleted\t18\t18\t18\t0\t0\t0\t—",
+        "labels": [
+          "Start",
+          "End",
+          "Duration",
+          "Zoo",
+          "Status",
+          "Discovered",
+          "Fetched",
+          "Stored",
+          "Already known / skipped",
+          "Duplicate candidates",
+          "Errors",
+          "Error summary",
+          "Start",
+          "End",
+          "Duration",
+          "Zoo",
+          "Status",
+          "Discovered",
+          "Fetched",
+          "Stored",
+          "Already known / skipped",
+          "Duplicate candidates",
+          "Errors",
+          "Error summary"
+        ],
+        "status": 200
+      },
+      "/sources": {
+        "body": "◉ ZooFanCrawler\nOverview\nArticles\nSources\nRuns\n\nCONFIGURED INPUTS\n\nSources\nZoo\tZoo country\tZoo language\tSource ID\tSource\tKind\tLanguage\tStatus\tLast check\tLast success\tHTTP status\tLast error\tConfig\nGaiaZOO\tNL\tnl\tgaiazoo-news-archive\tnews-archive\tarchive\tnl\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"article_selector\": \"article.card\",\n  \"date_selector\": \".date\",\n  \"link_selector\": \"a[href]\",\n  \"max_pages\": 2,\n  \"official_host\": \"www.gaiazoo.nl\",\n  \"title_selector\": \".card-title\"\n}\n\nGaiaZOO\tNL\tnl\tgaiazoo-news-rss\tnews-rss\trss\tnl\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"navigation_patterns\": [\n    \"/(?:ticket|shop|restaurant|contact|privacy|terms|jobs?)(?:/|$)\"\n  ],\n  \"official_host\": \"www.gaiazoo.nl\"\n}\n\nGaiaZOO\tNL\tnl\tgaiazoo-press\tpress\tregistry_only\tnl\tcompleted\t2026-08-13 19:16\t2026-08-13 19:16\t200\t—\t\n{\n  \"official_host\": \"www.gaiazoo.nl\"\n}\n\nGaiaZOO\tNL\tnl\tgaiazoo-sitemap\tsitemap-health\tregistry_only\tnl\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"official_host\": \"www.gaiazoo.nl\",\n  \"role\": \"health_check_only\"\n}\n\nKölner Zoo\tDE\tde\tkoeln-zoo-news-archive\tnews-archive-health\tregistry_only\tde\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"official_host\": \"koelnerzoo.de\",\n  \"role\": \"archive\"\n}\n\nKölner Zoo\tDE\tde\tkoeln-zoo-news-sitemap\tnews-sitemap\tsitemap\tde\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"allow_regex\": \"^https://koelnerzoo\\\\.de/aktuellartical/[^/]+/?$\",\n  \"article_date_pattern\": \"^(?:Köln|Koeln|Cologne),?\\\\s+(?P<day>\\\\d{1,2})\\\\.?\\\\s+(?P<month>[A-Za-zÄÖÜäöüß]+)\\\\s+(?P<year>\\\\d{4})(?:\\\\b|$)\",\n  \"article_date_selector\": \"main#brx-content p\",\n  \"exclude_regex\": [\n    \"monatsubersicht\",\n    \"jahresubersicht\"\n  ],\n  \"official_host\": \"koelnerzoo.de\"\n}\n\nZoo Berlin\tDE\tde\tzoo-berlin-news\tnews\tarchive\tde\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"article_allow\": \"/de/aktuelles/news/artikel/\",\n  \"article_selector\": \"article.news-grid-item\",\n  \"date_selector\": \"time[itemprop=\\\"datePublished\\\"]\",\n  \"link_selector\": \"a[href*=\\\"/de/aktuelles/news/artikel/\\\"]\",\n  \"max_pages\": 2,\n  \"official_host\": \"www.zoo-berlin.de\",\n  \"pagination_selector\": \".page-navigation a[href*=\\\"tx_news_pi1\\\"][href*=\\\"currentPage\\\"]\",\n  \"title_selector\": \"[itemprop=\\\"headline\\\"]\"\n}\n\nZoo Berlin\tDE\tde\tzoo-berlin-press\tpress\tregistry_only\tde\tcompleted\t2026-08-13 19:15\t2026-08-13 19:15\t200\t—\t\n{\n  \"official_host\": \"www.zoo-berlin.de\"\n}",
+        "labels": [
+          "Zoo",
+          "Zoo country",
+          "Zoo language",
+          "Source ID",
+          "Source",
+          "Kind",
+          "Language",
+          "Status",
+          "Last check",
+          "Last success",
+          "HTTP status",
+          "Last error",
+          "Config"
+        ],
+        "status": 200
+      }
+    },
     "official_article_visible": true,
     "page_errors": [],
     "playwright_install": null,
     "routes": {
       "/": 200,
       "/articles": 200,
+      "/articles/4d1eed19cee14af7ab3806ad47f9e13b": 200,
       "/runs": 200,
       "/sources": 200
     },
     "screenshot": "/Users/leichen/AIcoding/zoofancrawler/artifacts/dashboard-acceptance.png",
-    "server_error_text": false,
+    "screenshot_written_this_run": true,
     "status": "PASS",
     "three_zoos": true,
     "zoo_article_counts": {
@@ -48,8 +244,11 @@
     "before_total": 0,
     "canonical_duplicates": [],
     "canonical_sql": "GROUP BY canonical_url HAVING COUNT(*) > 1",
+    "content_hash_duplicates": [],
+    "content_hash_sql": "GROUP BY content_hash HAVING COUNT(*) > 1",
     "increase_only_new_distinct_canonical": true,
     "no_duplicate_canonical": true,
+    "no_duplicate_content_hash": true,
     "no_duplicate_normalized": true,
     "normalized_duplicates": [],
     "normalized_sql": "GROUP BY normalized_url HAVING COUNT(*) > 1",
@@ -109,13 +308,13 @@
       "-q",
       "tests/test_failure_isolation.py"
     ],
-    "duration_seconds": 0.394,
+    "duration_seconds": 0.426,
     "returncode": 0,
     "status": "PASS",
     "test": "tests/test_failure_isolation.py",
     "timed_out": false
   },
-  "finished_at": "2026-08-12T22:00:34.664734+00:00",
+  "finished_at": "2026-08-13T19:16:07.940854+00:00",
   "live": {
     "dedup": {
       "after_run1_total": 40,
@@ -123,8 +322,11 @@
       "before_total": 0,
       "canonical_duplicates": [],
       "canonical_sql": "GROUP BY canonical_url HAVING COUNT(*) > 1",
+      "content_hash_duplicates": [],
+      "content_hash_sql": "GROUP BY content_hash HAVING COUNT(*) > 1",
       "increase_only_new_distinct_canonical": true,
       "no_duplicate_canonical": true,
+      "no_duplicate_content_hash": true,
       "no_duplicate_normalized": true,
       "normalized_duplicates": [],
       "normalized_sql": "GROUP BY normalized_url HAVING COUNT(*) > 1",
@@ -175,15 +377,20 @@
       "run2_new_canonicals": [],
       "status": "PASS"
     },
+    "failures": [],
     "run1": {
+      "already_known": 0,
       "discovered": 50,
+      "duplicate_candidates": 10,
       "error": null,
       "errors": 0,
       "fetched": 40,
-      "run_id": "7067774f2c1d4a26ba393fa478a0d044",
+      "run_id": "72776638ca104f698932d001f1e48600",
       "stats": [
         {
+          "already_known": 0,
           "discovered": 18,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 18,
           "source_id": "zoo-berlin-news",
@@ -192,7 +399,9 @@
           "zoo_id": "zoo-berlin"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "zoo-berlin-press",
@@ -201,7 +410,9 @@
           "zoo_id": "zoo-berlin"
         },
         {
+          "already_known": 0,
           "discovered": 10,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 10,
           "source_id": "koeln-zoo-news-sitemap",
@@ -210,7 +421,9 @@
           "zoo_id": "koeln-zoo"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "koeln-zoo-news-archive",
@@ -219,7 +432,9 @@
           "zoo_id": "koeln-zoo"
         },
         {
+          "already_known": 0,
           "discovered": 10,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 10,
           "source_id": "gaiazoo-news-rss",
@@ -228,7 +443,9 @@
           "zoo_id": "gaiazoo"
         },
         {
+          "already_known": 0,
           "discovered": 12,
+          "duplicate_candidates": 10,
           "errors": [],
           "fetched": 2,
           "source_id": "gaiazoo-news-archive",
@@ -237,7 +454,9 @@
           "zoo_id": "gaiazoo"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "gaiazoo-sitemap",
@@ -246,7 +465,9 @@
           "zoo_id": "gaiazoo"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "gaiazoo-press",
@@ -259,14 +480,18 @@
       "stored": 40
     },
     "run2": {
+      "already_known": 40,
       "discovered": 50,
+      "duplicate_candidates": 10,
       "error": null,
       "errors": 0,
       "fetched": 0,
-      "run_id": "c76f534489d045afbdfe9261d09ace15",
+      "run_id": "ef5a6319719d4539a780b02e87d803bd",
       "stats": [
         {
+          "already_known": 18,
           "discovered": 18,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "zoo-berlin-news",
@@ -275,7 +500,9 @@
           "zoo_id": "zoo-berlin"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "zoo-berlin-press",
@@ -284,7 +511,9 @@
           "zoo_id": "zoo-berlin"
         },
         {
+          "already_known": 10,
           "discovered": 10,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "koeln-zoo-news-sitemap",
@@ -293,7 +522,9 @@
           "zoo_id": "koeln-zoo"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "koeln-zoo-news-archive",
@@ -302,7 +533,9 @@
           "zoo_id": "koeln-zoo"
         },
         {
+          "already_known": 10,
           "discovered": 10,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "gaiazoo-news-rss",
@@ -311,7 +544,9 @@
           "zoo_id": "gaiazoo"
         },
         {
+          "already_known": 2,
           "discovered": 12,
+          "duplicate_candidates": 10,
           "errors": [],
           "fetched": 0,
           "source_id": "gaiazoo-news-archive",
@@ -320,7 +555,9 @@
           "zoo_id": "gaiazoo"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "gaiazoo-sitemap",
@@ -329,7 +566,9 @@
           "zoo_id": "gaiazoo"
         },
         {
+          "already_known": 0,
           "discovered": 0,
+          "duplicate_candidates": 0,
           "errors": [],
           "fetched": 0,
           "source_id": "gaiazoo-press",
@@ -341,6 +580,96 @@
       "status": "completed",
       "stored": 0
     },
+    "run_source_validation": {
+      "run1": {
+        "enabled_source_ids": [
+          "gaiazoo-news-archive",
+          "gaiazoo-news-rss",
+          "gaiazoo-press",
+          "gaiazoo-sitemap",
+          "koeln-zoo-news-archive",
+          "koeln-zoo-news-sitemap",
+          "zoo-berlin-news",
+          "zoo-berlin-press"
+        ],
+        "failures": [],
+        "run_id": "72776638ca104f698932d001f1e48600",
+        "stat_source_ids": [
+          "gaiazoo-news-archive",
+          "gaiazoo-news-rss",
+          "gaiazoo-press",
+          "gaiazoo-sitemap",
+          "koeln-zoo-news-archive",
+          "koeln-zoo-news-sitemap",
+          "zoo-berlin-news",
+          "zoo-berlin-press"
+        ],
+        "status": "PASS"
+      },
+      "run2": {
+        "enabled_source_ids": [
+          "gaiazoo-news-archive",
+          "gaiazoo-news-rss",
+          "gaiazoo-press",
+          "gaiazoo-sitemap",
+          "koeln-zoo-news-archive",
+          "koeln-zoo-news-sitemap",
+          "zoo-berlin-news",
+          "zoo-berlin-press"
+        ],
+        "failures": [],
+        "run_id": "ef5a6319719d4539a780b02e87d803bd",
+        "stat_source_ids": [
+          "gaiazoo-news-archive",
+          "gaiazoo-news-rss",
+          "gaiazoo-press",
+          "gaiazoo-sitemap",
+          "koeln-zoo-news-archive",
+          "koeln-zoo-news-sitemap",
+          "zoo-berlin-news",
+          "zoo-berlin-press"
+        ],
+        "status": "PASS"
+      }
+    },
+    "source_validation": {
+      "failures": [],
+      "sources": {
+        "gaiazoo-news-archive": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "gaiazoo-news-rss": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "gaiazoo-press": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "gaiazoo-sitemap": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "koeln-zoo-news-archive": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "koeln-zoo-news-sitemap": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "zoo-berlin-news": {
+          "reasons": [],
+          "status": "PASS"
+        },
+        "zoo-berlin-press": {
+          "reasons": [],
+          "status": "PASS"
+        }
+      },
+      "status": "PASS"
+    },
     "status": "PASS",
     "validation": {
       "invalid_articles": [],
@@ -351,7 +680,7 @@
         "gaiazoo": {
           "article_count": 12,
           "latest": {
-            "article_id": "b2f62a5910e94bb58aa501cf2ec84ea7",
+            "article_id": "d778290eeeec48949fa2fbca914fe3f8",
             "canonical_url": "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
             "published_at": "2026-08-07T07:30:00+00:00",
             "title": "Nieuwe leeuwenman in GaiaZOO overleden - GaiaZOO"
@@ -367,9 +696,9 @@
         "koeln-zoo": {
           "article_count": 10,
           "latest": {
-            "article_id": "8e49dd5f52c145759d7d7b3368ebdb32",
+            "article_id": "10c4bb1183cd42e9b883e359e0a0ae1a",
             "canonical_url": "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
-            "published_at": null,
+            "published_at": "2026-07-23",
             "title": "Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren"
           },
           "minimum": 3,
@@ -382,7 +711,7 @@
         "zoo-berlin": {
           "article_count": 18,
           "latest": {
-            "article_id": "ac02f41198cf4c289926144cfb5f1f29",
+            "article_id": "3b6a749071574045ba6056955c388f55",
             "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
             "published_at": "2026-08-12T00:00:00+00:00",
             "title": "Naturverbundenheit beginnt mit einer Begegnung"
@@ -403,7 +732,7 @@
         "crawl2_new": 0,
         "errors": [],
         "latest": {
-          "article_id": "b2f62a5910e94bb58aa501cf2ec84ea7",
+          "article_id": "d778290eeeec48949fa2fbca914fe3f8",
           "canonical_url": "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
           "published_at": "2026-08-07T07:30:00+00:00",
           "title": "Nieuwe leeuwenman in GaiaZOO overleden - GaiaZOO"
@@ -440,9 +769,9 @@
         "crawl2_new": 0,
         "errors": [],
         "latest": {
-          "article_id": "8e49dd5f52c145759d7d7b3368ebdb32",
+          "article_id": "10c4bb1183cd42e9b883e359e0a0ae1a",
           "canonical_url": "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
-          "published_at": null,
+          "published_at": "2026-07-23",
           "title": "Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren"
         },
         "name": "Kölner Zoo",
@@ -467,7 +796,7 @@
         "crawl2_new": 0,
         "errors": [],
         "latest": {
-          "article_id": "ac02f41198cf4c289926144cfb5f1f29",
+          "article_id": "3b6a749071574045ba6056955c388f55",
           "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
           "published_at": "2026-08-12T00:00:00+00:00",
           "title": "Naturverbundenheit beginnt mit einer Begegnung"
@@ -588,7 +917,7 @@
         "id": "gaiazoo-news-archive",
         "kind": "archive",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://www.gaiazoo.nl/nieuws-vlogs"
@@ -597,7 +926,7 @@
         "id": "gaiazoo-news-rss",
         "kind": "rss",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://www.gaiazoo.nl/category/nieuws/feed"
@@ -606,7 +935,7 @@
         "id": "gaiazoo-press",
         "kind": "registry_only",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://www.gaiazoo.nl/pers"
@@ -615,7 +944,7 @@
         "id": "gaiazoo-sitemap",
         "kind": "registry_only",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://www.gaiazoo.nl/sitemap_index.xml"
@@ -624,7 +953,7 @@
         "id": "koeln-zoo-news-archive",
         "kind": "registry_only",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://koelnerzoo.de/aktuell"
@@ -633,7 +962,7 @@
         "id": "koeln-zoo-news-sitemap",
         "kind": "sitemap",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml"
@@ -642,7 +971,7 @@
         "id": "zoo-berlin-news",
         "kind": "archive",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://www.zoo-berlin.de/de/aktuelles/news"
@@ -651,7 +980,7 @@
         "id": "zoo-berlin-press",
         "kind": "registry_only",
         "last_error": null,
-        "last_http_status": null,
+        "last_http_status": 200,
         "status": "completed",
         "success": 1,
         "url": "https://www.zoo-berlin.de/de/aktuelles/presse"
@@ -665,7 +994,7 @@
     "sitemap_sources": 1,
     "ssr_archive_sources": 2
   },
-  "started_at": "2026-08-12T21:59:13.518718+00:00",
+  "started_at": "2026-08-13T19:14:14.421804+00:00",
   "status": "PASS",
   "unit_tests": {
     "command": [
@@ -674,8 +1003,8 @@
       "pytest",
       "-q"
     ],
-    "duration_seconds": 0.6,
-    "output": "....................................                                     [100%]\n36 passed in 0.34s\n",
+    "duration_seconds": 5.46,
+    "output": "........................................................................ [ 40%]\n........................................................................ [ 80%]\n..................................                                       [100%]\n178 passed in 5.15s\n",
     "returncode": 0,
     "status": "PASS",
     "timed_out": false
@@ -687,7 +1016,7 @@
       "crawl2_new": 0,
       "errors": [],
       "latest": {
-        "article_id": "b2f62a5910e94bb58aa501cf2ec84ea7",
+        "article_id": "d778290eeeec48949fa2fbca914fe3f8",
         "canonical_url": "https://www.gaiazoo.nl/nieuwe-leeuwenman-in-gaiazoo-overleden-augustus-2026",
         "published_at": "2026-08-07T07:30:00+00:00",
         "title": "Nieuwe leeuwenman in GaiaZOO overleden - GaiaZOO"
@@ -724,9 +1053,9 @@
       "crawl2_new": 0,
       "errors": [],
       "latest": {
-        "article_id": "8e49dd5f52c145759d7d7b3368ebdb32",
+        "article_id": "10c4bb1183cd42e9b883e359e0a0ae1a",
         "canonical_url": "https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren",
-        "published_at": null,
+        "published_at": "2026-07-23",
         "title": "Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren"
       },
       "name": "Kölner Zoo",
@@ -751,7 +1080,7 @@
       "crawl2_new": 0,
       "errors": [],
       "latest": {
-        "article_id": "ac02f41198cf4c289926144cfb5f1f29",
+        "article_id": "3b6a749071574045ba6056955c388f55",
         "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
         "published_at": "2026-08-12T00:00:00+00:00",
         "title": "Naturverbundenheit beginnt mit einer Begegnung"

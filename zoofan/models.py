@@ -27,6 +27,8 @@ class Zoo:
     # ``url`` is accepted for config/API ergonomics; website_url remains the
     # canonical persisted field.
     url: Optional[str] = None
+    country_code: Optional[str] = None
+    language: Optional[str] = None
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -49,6 +51,7 @@ class Source:
     normalized_url: Optional[str] = None
     kind: str = "rss"
     name: Optional[str] = None
+    language: Optional[str] = None
     config: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
     status: str = "pending"
@@ -85,9 +88,13 @@ class Article:
     summary: Optional[str] = None
     content: Optional[str] = None
     content_hash: Optional[str] = None
-    # Hash of the exact raw HTML snapshot. content_hash remains the public
-    # compatibility name used by older callers.
+    # SHA-256 of the exact response body bytes.  This is deliberately
+    # independent from content_hash, which remains an article identity key.
     html_hash: Optional[str] = None
+    language: Optional[str] = None
+    http_status: Optional[int] = None
+    crawl_status: Optional[str] = None
+    last_fetched_at: Timestamp = None
     raw_html: Optional[str] = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -104,10 +111,18 @@ class Article:
             candidate = self.canonical_url or self.url
             if candidate:
                 self.normalized_url = normalize_url(candidate)
-        if self.content_hash is None and self.html_hash is not None:
-            self.content_hash = self.html_hash
-        if self.html_hash is None and self.content_hash is not None:
-            self.html_hash = self.content_hash
+
+
+@dataclass(frozen=True)
+class ArticleUpsertOutcome:
+    """Outcome-aware companion result without changing legacy upsert callers."""
+
+    article: Article
+    created: bool
+
+    @property
+    def already_known(self) -> bool:
+        return not self.created
 
 
 @dataclass
@@ -119,6 +134,7 @@ class ArticleDiscovery:
     source_id: Optional[str] = None
     discovered_url: Optional[str] = None
     discovered_at: Timestamp = None
+    last_discovered_at: Timestamp = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -130,6 +146,7 @@ class CrawlRun:
     batch_id: Optional[str] = None
     started_at: Timestamp = None
     finished_at: Timestamp = None
+    duration_ms: Optional[int] = None
     status: str = "running"
     error: Optional[str] = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -147,7 +164,10 @@ class CrawlRunStat:
     discovered_count: int = 0
     fetched_count: int = 0
     stored_count: int = 0
+    already_known_count: int = 0
+    duplicate_candidate_count: int = 0
     error_count: int = 0
+    duration_ms: Optional[int] = None
     started_at: Timestamp = None
     finished_at: Timestamp = None
     error: Optional[str] = None

@@ -10,18 +10,19 @@
   </div>
 
   <section class="summary-grid" aria-label="Crawler totals">
-    <div class="metric"><span>Sources</span><strong>{{ totals.sources }}</strong></div>
-    <div class="metric"><span>Articles</span><strong>{{ totals.articles }}</strong></div>
-    <div class="metric"><span>New</span><strong>{{ totals.new }}</strong></div>
-    <div class="metric"><span>Duplicates</span><strong>{{ totals.duplicates }}</strong></div>
-    <div class="metric"><span>Errors</span><strong>{{ totals.errors }}</strong></div>
+    <div class="metric"><span>Sources</span><strong data-acceptance-field="sources">{{ totals.sources }}</strong></div>
+    <div class="metric"><span>Articles</span><strong data-acceptance-field="articles">{{ totals.articles }}</strong></div>
+    <div class="metric"><span>Stored</span><strong data-acceptance-field="stored">{{ totals.stored }}</strong></div>
+    <div class="metric"><span>Already known / skipped</span><strong data-acceptance-field="already-known">{{ totals.already_known }}</strong></div>
+    <div class="metric"><span>Duplicate candidates</span><strong data-acceptance-field="duplicate-candidates">{% if totals.duplicate_candidates is not none %}{{ totals.duplicate_candidates }}{% else %}—{% endif %}</strong></div>
+    <div class="metric"><span>Errors</span><strong data-acceptance-field="errors">{{ totals.errors }}</strong></div>
   </section>
 
   <section>
     <div class="section-heading"><h2>Zoo status</h2></div>
     <div class="status-grid">
       {% for panel in panels %}
-        <article class="card status-card">
+        <article class="card status-card" data-acceptance-row="zoo" data-acceptance-id="{{ panel.id }}">
           <div class="card-heading">
             <h3>
               {% if panel.website_url %}<a href="{{ panel.website_url }}" target="_blank" rel="noopener noreferrer">{{ panel.name }}</a>
@@ -30,20 +31,23 @@
             <span class="status status-{{ panel.status|lower|replace(' ', '-') }}">{{ panel.status }}</span>
           </div>
           <dl class="facts">
-            <div><dt>Sources</dt><dd>{{ panel.sources }}</dd></div>
-            <div><dt>Last crawl</dt><dd>{{ panel.last_crawl|timestamp }}</dd></div>
-            <div><dt>Articles</dt><dd>{{ panel.articles }}</dd></div>
-            <div><dt>New</dt><dd>{{ panel.new }}</dd></div>
-            <div><dt>Duplicates</dt><dd>{{ panel.duplicates }}</dd></div>
-            <div><dt>Errors</dt><dd>{{ panel.errors }}</dd></div>
+            <div><dt>Sources</dt><dd data-acceptance-field="sources">{{ panel.sources }}</dd></div>
+            <div><dt>Country</dt><dd>{{ panel.country or '—' }}</dd></div>
+            <div><dt>Language</dt><dd>{{ panel.language or '—' }}</dd></div>
+            <div><dt>Last crawl</dt><dd data-acceptance-field="last-crawl">{{ panel.last_crawl|timestamp }}</dd></div>
+            <div><dt>Articles</dt><dd data-acceptance-field="articles">{{ panel.articles }}</dd></div>
+            <div><dt>Stored</dt><dd data-acceptance-field="stored">{{ panel.stored }}</dd></div>
+            <div><dt>Already known / skipped</dt><dd data-acceptance-field="already-known">{{ panel.already_known }}</dd></div>
+            <div><dt>Duplicate candidates</dt><dd data-acceptance-field="duplicate-candidates">{% if panel.duplicate_candidates is not none %}{{ panel.duplicate_candidates }}{% else %}—{% endif %}</dd></div>
+            <div><dt>Errors</dt><dd data-acceptance-field="errors">{{ panel.errors }}</dd></div>
           </dl>
           <div class="latest">
-            <span class="label">Latest article</span>
+            <span class="label">Latest by source publication</span>
             {% if panel.latest_article %}
               <a href="{{ url_for('article_detail', article_id=panel.latest_article.id) }}">{{ panel.latest_article.title }}</a>
               <small>{{ panel.latest_article.published_at|timestamp }}{% if panel.latest_article.url %} · <a href="{{ panel.latest_article.url }}" target="_blank" rel="noopener noreferrer">official URL</a>{% endif %}</small>
             {% else %}
-              <span class="muted">No articles yet</span>
+              <span class="muted">No articles with a source publication date</span>
             {% endif %}
           </div>
         </article>
@@ -57,14 +61,15 @@
     <div class="section-heading"><h2>Recent articles</h2><a href="{{ url_for('articles') }}">View all →</a></div>
     {% if articles %}
       <div class="table-wrap"><table>
-        <thead><tr><th>Title</th><th>Zoo</th><th>Source type</th><th>Published</th></tr></thead>
+        <thead><tr><th>Title</th><th>Zoo</th><th>Source</th><th>Published at source</th><th>First discovered</th></tr></thead>
         <tbody>
           {% for article in articles %}
-            <tr>
+            <tr data-acceptance-row="article" data-acceptance-id="{{ article.id }}">
               <td><a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>{% if article.url %} <a class="external" href="{{ article.url }}" target="_blank" rel="noopener noreferrer" aria-label="Open official URL">↗</a>{% endif %}</td>
               <td>{{ article.zoo_names|join(', ') or '—' }}</td>
-              <td>{{ article.source_type or '—' }}</td>
+              <td>{{ article.source_names|join(', ') or '—' }}</td>
               <td>{{ article.published_at|timestamp }}</td>
+              <td>{{ article.first_discovered|timestamp }}</td>
             </tr>
           {% endfor %}
         </tbody>

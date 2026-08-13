@@ -8,13 +8,14 @@ boundaries so one broken endpoint cannot abort the batch.
 from __future__ import annotations
 
 import logging
+import hashlib
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping, Optional
 
-from .discovery import DiscoveryCandidate, DiscoveryEngine, SourceRegistry, URLPolicy, source_priority
-from .fetcher import Fetcher
+from .discovery import DiscoveryCandidate, DiscoveryEngine, DiscoveryError, SourceRegistry, URLPolicy, source_priority
+from .fetcher import Fetcher, RequestPolicy, scoped_fetch
 from .models import Article, CrawlRun, CrawlRunStat, Source, Zoo
 from .normalization import normalize_url
 from .parsers import parse_article
@@ -29,6 +30,19 @@ def _now() -> datetime:
 
 def _status_code(error: BaseException) -> Optional[int]:
     return getattr(error, "status_code", getattr(error, "status", None))
+
+
+def _body_bytes(value: Any) -> bytes:
+    """Return exact bytes for text or any object implementing the buffer API."""
+
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, str):
+        return value.encode("utf-8")
+    try:
+        return bytes(memoryview(value))
+    except TypeError as exc:
+        raise TypeError("response body must be text or bytes-like") from exc
 
 
 @dataclass
@@ -65,6 +79,14 @@ class CrawlResult:
     def error_count(self) -> int:
         return sum(stat.error_count for stat in self.stats)
 
+    @property
+    def already_known_count(self) -> int:
+        return sum(stat.already_known_count for stat in self.stats)
+
+    @property
+    def duplicate_candidate_count(self) -> int:
+        return sum(stat.duplicate_candidate_count for stat in self.stats)
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "status": self.status,
@@ -73,6 +95,8 @@ class CrawlResult:
             "discovered": self.discovered_count,
             "fetched": self.fetched_count,
             "stored": self.stored_count,
+            "already_known": self.already_known_count,
+            "duplicate_candidates": self.duplicate_candidate_count,
             "errors": self.error_count,
             "stats": [
                 {
@@ -82,6 +106,8 @@ class CrawlResult:
                     "discovered": stat.discovered_count,
                     "fetched": stat.fetched_count,
                     "stored": stat.stored_count,
+                    "already_known": stat.already_known_count,
+                    "duplicate_candidates": stat.duplicate_candidate_count,
                     "errors": stat.errors or ([stat.error] if stat.error else []),
                 }
                 for stat in self.stats
@@ -211,13 +237,17 @@ class Crawler:
                 discovered_url=candidate.url, discovered_at=_now(), metadata=candidate.metadata,
             )
 
-    def _upsert_article(self, article: Article, source: Source, candidate: DiscoveryCandidate) -> Article:
+    def _upsert_article(self, article: Article, source: Source, candidate: DiscoveryCandidate) -> Any:
         if self.storage is None:
-            return article
+            return article, True
+        method = getattr(self.storage, "upsert_article_with_outcome", None)
+        if method is not None:
+            outcome = method(article, source_id=source.id, discovered_url=candidate.url, discovered_at=_now())
+            return outcome.article, bool(outcome.created)
         method = getattr(self.storage, "upsert_article", None) or getattr(self.storage, "save_article", None)
         if method is None:
             raise TypeError("storage must provide upsert_article(article, source_id=...)")
-        return method(article, source_id=source.id, discovered_url=candidate.url, discovered_at=_now())
+        return method(article, source_id=source.id, discovered_url=candidate.url, discovered_at=_now()), True
 
     @staticmethod
     def _recheck_enabled(source: Source, default: float) -> bool:
@@ -231,43 +261,50 @@ class Crawler:
             return False
 
     def _fetch_article(self, candidate: DiscoveryCandidate, source: Source, zoo: Zoo) -> Article:
-        if hasattr(self.fetcher, "fetch"):
-            response = self.fetcher.fetch(candidate.url)
-        elif hasattr(self.fetcher, "get"):
-            response = self.fetcher.get(candidate.url)
-        elif callable(self.fetcher):
-            response = self.fetcher(candidate.url)
-        else:
-            raise TypeError("fetcher must provide fetch(url), get(url), or be callable")
+        response = scoped_fetch(
+            self.fetcher, candidate.url, RequestPolicy.from_zoo_source(zoo, source)
+        )
+        status = None
         if isinstance(response, tuple) and len(response) >= 2:
-            if int(response[0]) >= 400:
-                raise RuntimeError(f"HTTP {response[0]}")
-            payload = response[1]
-            if isinstance(payload, bytes):
-                payload = payload.decode("utf-8", errors="replace")
-        elif isinstance(response, bytes):
-            payload = response.decode("utf-8", errors="replace")
+            status = int(response[0])
+            raw_bytes = _body_bytes(response[1])
         elif isinstance(response, str):
-            payload = response
+            raw_bytes = _body_bytes(response)
         else:
-            payload = None
-        if hasattr(response, "raise_for_status"):
-            response.raise_for_status()
-        elif int(getattr(response, "status_code", getattr(response, "status", 200))) >= 400:
-            raise RuntimeError(f"HTTP {getattr(response, 'status_code', getattr(response, 'status', 'error'))}")
-        if payload is None:
-            payload = getattr(response, "text", None)
-        if payload is None:
-            payload = getattr(response, "content", response)
-        if isinstance(payload, bytes):
-            payload = payload.decode("utf-8", errors="replace")
-        parsed = parse_article(payload, candidate.url)
+            try:
+                raw_bytes = _body_bytes(response)
+            except TypeError:
+                raw_bytes = None
+            status_value = getattr(response, "status_code", getattr(response, "status", None))
+            status = int(status_value) if status_value is not None else None
+            content = getattr(response, "content", None)
+            if raw_bytes is not None:
+                pass
+            elif content is not None:
+                raw_bytes = _body_bytes(content)
+            else:
+                text = getattr(response, "text", "")
+                text = text() if callable(text) else text
+                raw_bytes = _body_bytes(text or "")
+        if status is not None and status >= 400:
+            policy = RequestPolicy.from_zoo_source(zoo, source)
+            raise DiscoveryError(
+                f"HTTP {status} for source {policy.source_id} at {policy.safe_target(candidate.url)}",
+                status_code=status,
+            )
+        parsed = parse_article(raw_bytes, candidate.url, source.config)
         canonical = getattr(parsed, "canonical_url", None) or candidate.url
         policy = URLPolicy.from_zoo_source(zoo, source)
         if not policy.accepts(canonical, source_url=source.url):
             raise ValueError(f"article canonical URL outside official/allow policy: {canonical}")
         title = getattr(parsed, "title", None) or candidate.title
         metadata = {**(candidate.metadata or {}), **(getattr(parsed, "metadata", {}) or {})}
+        language = (
+            metadata.get("html_language")
+            or metadata.get("structured_language")
+            or source.language
+            or zoo.language
+        )
         return Article(
             url=candidate.url,
             canonical_url=canonical,
@@ -278,6 +315,13 @@ class Crawler:
             summary=getattr(parsed, "summary", None) or candidate.summary,
             content=getattr(parsed, "content", None),
             content_hash=getattr(parsed, "content_hash", None),
+            # SHA-256 over the exact response body bytes, independent of the
+            # parsed-content identity hash retained in ``content_hash``.
+            html_hash=hashlib.sha256(raw_bytes).hexdigest(),
+            language=language,
+            http_status=status,
+            crawl_status="success",
+            last_fetched_at=_now(),
             raw_html=getattr(parsed, "raw_html", None),
             metadata=metadata,
         )
@@ -291,6 +335,11 @@ class Crawler:
         selected_zoos = self._zoos(selection)
         result = CrawlResult(run=run)
         seen_articles: dict[str, Article] = {}
+        pre_run_article_ids = {
+            str(article.id) for article in (storage.list_articles() if hasattr(storage, "list_articles") else [])
+            if article.id is not None
+        }
+        resolved_article_ids: set[str] = set()
         zoo_errors = 0
 
         for zoo in selected_zoos:
@@ -305,10 +354,13 @@ class Crawler:
                     started_at=_now(), status="running",
                 )
                 errors: list[str] = []
+                root_http_status: Optional[int] = None
                 try:
                     candidates = self.discovery.discover(source, zoo=zoo)
                     stat.discovered_count = len(candidates)
-                    self._persist_status(source, status="discovered", success=False)
+                    stat.duplicate_candidate_count = int(getattr(candidates, "duplicate_candidate_count", 0))
+                    root_http_status = getattr(candidates, "root_http_status", None)
+                    self._persist_status(source, status="discovered", success=False, http_status=root_http_status)
                 except Exception as exc:
                     message = str(exc)
                     errors.append(message)
@@ -318,7 +370,8 @@ class Crawler:
                     stat.status = "error"
                     zoo_errors += 1
                     self._persist_status(source, status="error", success=False, error=message, http_status=_status_code(exc))
-                    self.logger.error("crawl source failed zoo=%s source=%s error=%s", zoo.slug, source.url, message)
+                    safe_source = RequestPolicy.safe_target(source.url)
+                    self.logger.error("crawl source failed zoo=%s source=%s error=%s", zoo.slug, safe_source, message)
                     stat.finished_at = _now()
                     result.stats.append(self._record_stat(stat))
                     continue
@@ -332,20 +385,41 @@ class Crawler:
                     if existing is not None and not recheck:
                         self._record_existing_discovery(existing, source, candidate)
                         seen_articles[key] = existing
+                        identity = str(existing.id)
+                        if identity in resolved_article_ids:
+                            stat.duplicate_candidate_count += 1
+                        elif identity in pre_run_article_ids:
+                            stat.already_known_count += 1
+                        else:
+                            stat.duplicate_candidate_count += 1
+                        resolved_article_ids.add(identity)
                         continue
                     try:
                         article = self._fetch_article(candidate, source, zoo)
                         stat.fetched_count += 1
-                        stored = self._upsert_article(article, source, candidate)
-                        stat.stored_count += 1
+                        stored, created = self._upsert_article(article, source, candidate)
+                        if created:
+                            stat.stored_count += 1
+                        identity = str(stored.id)
+                        if not created and identity in resolved_article_ids:
+                            stat.duplicate_candidate_count += 1
+                        elif not created and identity in pre_run_article_ids:
+                            stat.already_known_count += 1
+                        elif not created:
+                            stat.duplicate_candidate_count += 1
+                        resolved_article_ids.add(identity)
                         seen_articles[key] = stored
                         # The canonical URL may differ from the discovered URL.
                         seen_articles[normalize_url(getattr(stored, "canonical_url", None) or key)] = stored
                     except Exception as exc:
-                        message = f"{candidate.url}: {exc}"
+                        safe_candidate = RequestPolicy.safe_target(candidate.url)
+                        message = f"{safe_candidate}: {exc}"
                         errors.append(message)
                         stat.error_count += 1
-                        self.logger.warning("crawl article failed zoo=%s source=%s url=%s error=%s", zoo.slug, source.url, candidate.url, exc)
+                        self.logger.warning(
+                            "crawl article failed zoo=%s source=%s url=%s error=%s",
+                            zoo.slug, RequestPolicy.safe_target(source.url), safe_candidate, exc,
+                        )
 
                 stat.errors = errors
                 stat.status = "completed" if not errors else "partial"
@@ -354,10 +428,10 @@ class Crawler:
                 # Discovery succeeded even when an individual article page
                 # failed.  Keep ``last_success`` truthful at source level;
                 # article errors remain visible in the per-source run stat.
-                self._persist_status(source, status=stat.status, success=True, error=stat.error)
+                self._persist_status(source, status=stat.status, success=True, error=stat.error, http_status=root_http_status)
                 self.logger.info(
                     "crawl source zoo=%s source=%s status=%s discovered=%d fetched=%d stored=%d errors=%d",
-                    zoo.slug, source.url, stat.status, stat.discovered_count, stat.fetched_count,
+                    zoo.slug, RequestPolicy.safe_target(source.url), stat.status, stat.discovered_count, stat.fetched_count,
                     stat.stored_count, stat.error_count,
                 )
                 result.stats.append(self._record_stat(stat))

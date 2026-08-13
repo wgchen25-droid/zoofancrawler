@@ -7,11 +7,14 @@ zoos:
   - id: zoo-berlin
     slug: zoo-berlin
     name: "Zoo Berlin"
+    country_code: DE
+    language: de
     website_url: https://www.zoo-berlin.de/
     metadata:
       official_host: www.zoo-berlin.de
     sources:
       - id: zoo-berlin-news
+        language: de
         name: news
         kind: archive
         url: https://www.zoo-berlin.de/de/aktuelles/news
@@ -25,6 +28,7 @@ zoos:
           pagination_selector: '.page-navigation a[href*="tx_news_pi1"][href*="currentPage"]'
           max_pages: 2
       - id: zoo-berlin-press
+        language: de
         name: press
         kind: registry_only
         url: https://www.zoo-berlin.de/de/aktuelles/presse
@@ -34,21 +38,27 @@ zoos:
   - id: koeln-zoo
     slug: koeln-zoo
     name: "Kölner Zoo"
+    country_code: DE
+    language: de
     website_url: https://koelnerzoo.de/
     metadata:
       official_host: koelnerzoo.de
     sources:
       - id: koeln-zoo-news-sitemap
+        language: de
         name: news-sitemap
         kind: sitemap
         url: https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml
         config:
           official_host: koelnerzoo.de
           allow_regex: '^https://koelnerzoo\.de/aktuellartical/[^/]+/?$'
+          article_date_selector: 'main#brx-content p'
+          article_date_pattern: '^(?:Köln|Koeln|Cologne),?\s+(?P<day>\d{1,2})\.?\s+(?P<month>[A-Za-zÄÖÜäöüß]+)\s+(?P<year>\d{4})(?:\b|$)'
           exclude_regex:
             - monatsubersicht
             - jahresubersicht
       - id: koeln-zoo-news-archive
+        language: de
         name: news-archive-health
         kind: registry_only
         url: https://koelnerzoo.de/aktuell/
@@ -59,11 +69,14 @@ zoos:
   - id: gaiazoo
     slug: gaiazoo
     name: GaiaZOO
+    country_code: NL
+    language: nl
     website_url: https://www.gaiazoo.nl/
     metadata:
       official_host: www.gaiazoo.nl
     sources:
       - id: gaiazoo-news-rss
+        language: nl
         name: news-rss
         kind: rss
         url: https://www.gaiazoo.nl/category/nieuws/feed/
@@ -73,6 +86,7 @@ zoos:
           navigation_patterns:
             - '/(?:ticket|shop|restaurant|contact|privacy|terms|jobs?)(?:/|$)'
       - id: gaiazoo-news-archive
+        language: nl
         name: news-archive
         kind: archive
         url: https://www.gaiazoo.nl/nieuws-vlogs/
@@ -84,6 +98,7 @@ zoos:
           date_selector: '.date'
           max_pages: 2
       - id: gaiazoo-sitemap
+        language: nl
         name: sitemap-health
         kind: registry_only
         url: https://www.gaiazoo.nl/sitemap_index.xml
@@ -91,6 +106,7 @@ zoos:
           official_host: www.gaiazoo.nl
           role: health_check_only
       - id: gaiazoo-press
+        language: nl
         name: press
         kind: registry_only
         url: https://www.gaiazoo.nl/pers/

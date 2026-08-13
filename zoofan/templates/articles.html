@@ -22,15 +22,20 @@
   </form>
   {% if articles %}
     <div class="table-wrap"><table>
-      <thead><tr><th>Title</th><th>Zoo</th><th>Source type</th><th>Published</th><th></th></tr></thead>
+      <thead><tr><th>Zoo</th><th>Title</th><th>Published at source</th><th>Updated at source</th><th>First discovered</th><th>Source</th><th>Language</th><th>Crawl status</th><th>Article HTTP status</th><th>Canonical URL</th></tr></thead>
       <tbody>
         {% for article in articles %}
-          <tr>
-            <td><a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a></td>
-            <td>{{ article.zoo_names|join(', ') or '—' }}</td>
-            <td>{{ article.source_type or '—' }}</td>
-            <td>{{ article.published_at|timestamp }}</td>
-            <td>{% if article.url %}<a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">Official ↗</a>{% endif %}</td>
+          <tr data-acceptance-row="article" data-acceptance-id="{{ article.id }}">
+            <td data-acceptance-field="zoo">{{ article.zoo_names|join(', ') or '—' }}</td>
+            <td data-acceptance-field="title"><a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a></td>
+            <td data-acceptance-field="published-at-source">{{ article.published_at|timestamp }}</td>
+            <td data-acceptance-field="updated-at-source">{{ article.updated_at_source|timestamp }}</td>
+            <td data-acceptance-field="first-discovered">{{ article.first_discovered|timestamp }}</td>
+            <td data-acceptance-field="sources">{{ article.source_names|join(', ') or '—' }}</td>
+            <td data-acceptance-field="language">{{ article.language or '—' }}</td>
+            <td data-acceptance-field="crawl-status">{{ article.crawl_status or '—' }}</td>
+            <td data-acceptance-field="article-http-status">{% if article.http_status is not none %}{{ article.http_status }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="canonical-url">{% if article.url %}<a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.canonical_url }}</a>{% else %}{{ article.canonical_url or '—' }}{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>

@@ -14,6 +14,7 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Callable, Mapping, Optional
 
 from .models import FetchResponse
+from .normalization import normalize_url
 
 
 class FetchError(RuntimeError):
@@ -30,6 +31,113 @@ class RobotsDisallowed(FetchError):
 
 class RobotsUnavailable(FetchError):
     """robots.txt could not be fetched or parsed; fetching fails closed."""
+
+
+class RequestBoundaryError(FetchError):
+    """A source-scoped request target was rejected before transport."""
+
+
+@dataclass(frozen=True)
+class RequestPolicy:
+    """Validate network targets, independently of article-path selection.
+
+    Hosts are exact configured official hosts (including explicit aliases).
+    Article allow/exclude regexes deliberately have no bearing on this gate.
+    """
+
+    source_id: str
+    official_hosts: tuple[str, ...]
+
+    @classmethod
+    def from_zoo_source(cls, zoo: Any, source: Any) -> "RequestPolicy":
+        zoo_metadata = dict(getattr(zoo, "metadata", {}) or {})
+        source_config = dict(getattr(source, "config", {}) or {})
+        config = {**zoo_metadata, **source_config}
+        hosts: list[str] = []
+        for key in ("official_host", "host"):
+            value = config.get(key)
+            if value:
+                hosts.append(str(value))
+        for key in ("official_hosts", "allowed_hosts", "allowed_domains", "host_aliases", "official_host_aliases"):
+            value = config.get(key) or ()
+            if isinstance(value, str):
+                value = [value]
+            hosts.extend(str(item) for item in value if item)
+        if not hosts:
+            website = getattr(zoo, "website_url", None) or getattr(zoo, "url", None)
+            source_url = getattr(source, "url", None)
+            host = urllib.parse.urlsplit(str(website or source_url or "")).hostname
+            if host:
+                hosts.append(host)
+        normalized_hosts: list[str] = []
+        for value in hosts:
+            parsed = urllib.parse.urlsplit(value if "://" in value else "//" + value)
+            host = (parsed.hostname or "").lower().strip(".")
+            if host and host not in normalized_hosts:
+                normalized_hosts.append(host)
+        return cls(str(getattr(source, "id", None) or "unknown-source"), tuple(normalized_hosts))
+
+    @staticmethod
+    def safe_target(url: str) -> str:
+        """Return a diagnostic target without credentials or query secrets."""
+
+        try:
+            parsed = urllib.parse.urlsplit(str(url).strip())
+            host = (parsed.hostname or "").lower().rstrip(".")
+            if parsed.port is not None:
+                host = f"{host}:{parsed.port}"
+            return urllib.parse.urlunsplit((parsed.scheme.lower(), host, parsed.path or "/", "", ""))
+        except (TypeError, ValueError):
+            return "<invalid-url>"
+
+    @staticmethod
+    def _transport_url(url: str) -> str:
+        """Canonicalize a request URL without changing server-visible semantics.
+
+        Unlike article identity normalization, this preserves trailing slashes,
+        path escaping, and the complete query. Only surrounding whitespace,
+        host/scheme case, default ports, and the fragment are normalized.
+        """
+
+        parsed = urllib.parse.urlsplit(str(url).strip())
+        host = (parsed.hostname or "").lower().rstrip(".")
+        port = parsed.port  # validates numeric range
+        rendered_host = f"[{host}]" if ":" in host and not host.startswith("[") else host
+        default_port = (parsed.scheme.lower() == "http" and port == 80) or (
+            parsed.scheme.lower() == "https" and port == 443
+        )
+        if port is not None and not default_port:
+            rendered_host += f":{port}"
+        return urllib.parse.urlunsplit(
+            (parsed.scheme.lower(), rendered_host, parsed.path or "/", parsed.query, "")
+        )
+
+    def validate(self, url: str) -> str:
+        safe = self.safe_target(url)
+        try:
+            normalized = self._transport_url(url)
+            parsed = urllib.parse.urlsplit(str(url).strip())
+            host = (parsed.hostname or "").lower().rstrip(".")
+            # Accessing port is itself validation: urllib raises for
+            # non-numeric and out-of-range values.
+            parsed.port
+            valid = (
+                bool(normalized)
+                and parsed.scheme in {"http", "https"}
+                and bool(parsed.netloc)
+                and bool(host)
+                and parsed.username is None
+                and parsed.password is None
+                and host in self.official_hosts
+            )
+        except (TypeError, ValueError):
+            valid = False
+            normalized = ""
+        if not valid:
+            raise RequestBoundaryError(
+                f"source {self.source_id} rejected request target {safe}"
+            )
+        return normalized
 
 
 class HTTPStatusError(FetchError):
@@ -53,6 +161,13 @@ class FetchRequest:
 
 
 Transport = Callable[..., Any]
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Make urllib obey the transport's one-hop response contract."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        return None
 
 
 def _header(response: FetchResponse, name: str) -> Optional[str]:
@@ -94,6 +209,51 @@ def _coerce_response(value: Any, requested_url: str) -> FetchResponse:
     return FetchResponse(str(final_url), int(status), bytes(content or b""), headers, reason=reason)
 
 
+def scoped_fetch(fetcher: Any, url: str, policy: RequestPolicy) -> Any:
+    """Call an injected fetcher under the same one-hop request boundary.
+
+    Injected fetchers must explicitly declare ``supports_request_policy`` and
+    accept ``request_policy=``. Their response URL must identify the exact
+    requested hop. :class:`Fetcher` is special because it validates and
+    follows each redirect hop internally before returning the final response.
+    """
+
+    target = policy.validate(url)
+    if isinstance(fetcher, Fetcher):
+        return fetcher.fetch(target, request_policy=policy)
+    if not bool(getattr(fetcher, "supports_request_policy", False)):
+        raise RequestBoundaryError(
+            f"source {policy.source_id} rejected untrusted injected fetcher before request to {policy.safe_target(target)}"
+        )
+    method = getattr(fetcher, "fetch", None) or getattr(fetcher, "get", None)
+    if method is None:
+        raise TypeError("policy-aware fetcher must provide fetch(url, request_policy=...)")
+    try:
+        response = method(target, request_policy=policy)
+    except TypeError as exc:
+        raise TypeError(
+            "policy-aware fetcher must accept fetch(url, request_policy=...)"
+        ) from exc
+    response_url: Optional[str] = None
+    if isinstance(response, FetchResponse):
+        response_url = response.url
+    elif isinstance(response, tuple) and len(response) > 3:
+        response_url = str(response[3])
+    elif not isinstance(response, (str, bytes)):
+        value = getattr(response, "url", None)
+        if value:
+            response_url = str(value)
+    if response_url is None:
+        raise RequestBoundaryError(
+            f"source {policy.source_id} policy-aware fetcher returned no one-hop response URL for {policy.safe_target(target)}"
+        )
+    if policy.validate(response_url) != target:
+        raise RequestBoundaryError(
+            f"source {policy.source_id} transport response URL changed unexpectedly to {policy.safe_target(response_url)}"
+        )
+    return response
+
+
 class Fetcher:
     """HTTP client with robots checks, per-domain serialization and retries.
 
@@ -102,6 +262,8 @@ class Fetcher:
     return a :class:`FetchResponse`, a requests-like response, or a
     ``(status, content[, headers[, final_url]])`` tuple.
     """
+
+    supports_request_policy = True
 
     def __init__(
         self,
@@ -145,7 +307,8 @@ class Fetcher:
             url = request
         req = urllib.request.Request(url, headers=dict(headers or {}), method="GET")
         try:
-            with urllib.request.urlopen(req, timeout=timeout or self.timeout) as response:
+            opener = urllib.request.build_opener(_NoRedirectHandler())
+            with opener.open(req, timeout=timeout or self.timeout) as response:
                 return FetchResponse(
                     url=response.geturl(),
                     status_code=int(response.getcode() or 200),
@@ -193,21 +356,49 @@ class Fetcher:
             raise TransportError(str(exc)) from exc
         return _coerce_response(value, url)
 
-    def _robots_parser(self, origin: str) -> Optional[urllib.robotparser.RobotFileParser]:
+    def _validate_response_url(self, response: FetchResponse, requested_url: str, policy: Optional[RequestPolicy]) -> None:
+        requested = policy.validate(requested_url) if policy else normalize_url(requested_url)
+        actual = policy.validate(response.url) if policy else normalize_url(response.url)
+        if not actual or actual != requested:
+            source = policy.source_id if policy else "unscoped"
+            safe = policy.safe_target(response.url) if policy else RequestPolicy.safe_target(response.url)
+            raise RequestBoundaryError(
+                f"source {source} transport response URL changed unexpectedly to {safe}"
+            )
+
+    def _robots_parser(self, origin: str, policy: Optional[RequestPolicy]) -> Optional[urllib.robotparser.RobotFileParser]:
         if origin in self._robots:
             return self._robots[origin]
         robots_url = urllib.parse.urljoin(origin, "/robots.txt")
         transport = self.robots_transport or self.transport
         try:
-            # robots requests are subject to the same per-domain politeness
-            # budget as content requests, including injected transports.
-            self._wait_for_domain(self._domain(robots_url))
-            response = self._call_transport(
-                transport,
-                robots_url,
-                {"User-Agent": self.user_agent, "Accept": "text/plain,*/*;q=0.1"},
-            )
+            current_url = policy.validate(robots_url) if policy else normalize_url(robots_url)
+            history: list[str] = []
+            while True:
+                # robots requests are subject to the same politeness budget.
+                self._wait_for_domain(self._domain(current_url))
+                response = self._call_transport(
+                    transport, current_url,
+                    {"User-Agent": self.user_agent, "Accept": "text/plain,*/*;q=0.1"},
+                )
+                self._validate_response_url(response, current_url, policy)
+                if not 300 <= response.status_code < 400:
+                    break
+                location = (_header(response, "Location") or "").strip()
+                if not location:
+                    raise RequestBoundaryError(
+                        f"source {policy.source_id if policy else 'unscoped'} robots redirect missing Location at {RequestPolicy.safe_target(current_url)}"
+                    )
+                if len(history) >= self.max_redirects:
+                    raise RequestBoundaryError(
+                        f"source {policy.source_id if policy else 'unscoped'} robots redirect limit exceeded at {RequestPolicy.safe_target(current_url)}"
+                    )
+                next_url = urllib.parse.urljoin(current_url, location)
+                current_url = policy.validate(next_url) if policy else normalize_url(next_url)
+                history.append(current_url)
         except FetchError as exc:
+            if isinstance(exc, RequestBoundaryError):
+                raise
             raise RobotsUnavailable(f"unable to fetch robots.txt for {origin}") from exc
         if response.status_code == 404:
             self._robots[origin] = None
@@ -215,17 +406,17 @@ class Fetcher:
         if response.status_code >= 400:
             raise RobotsUnavailable(f"robots.txt returned HTTP {response.status_code} for {origin}")
         parser = urllib.robotparser.RobotFileParser()
-        parser.set_url(robots_url)
+        parser.set_url(current_url)
         parser.parse(response.text.splitlines())
         self._robots[origin] = parser
         return parser
 
-    def _allowed_by_robots(self, url: str) -> bool:
+    def _allowed_by_robots(self, url: str, policy: Optional[RequestPolicy]) -> bool:
         parsed = urllib.parse.urlsplit(url)
         if not parsed.netloc or parsed.scheme not in {"http", "https"}:
             return True
         origin = f"{parsed.scheme}://{parsed.netloc}"
-        parser = self._robots_parser(origin)
+        parser = self._robots_parser(origin, policy)
         return parser is None or parser.can_fetch(self.user_agent, url)
 
     def _wait_for_domain(self, domain: str) -> None:
@@ -257,9 +448,12 @@ class Fetcher:
         *,
         timeout: Optional[float] = None,
         respect_robots: Optional[bool] = None,
+        request_policy: Optional[RequestPolicy] = None,
     ) -> FetchResponse:
         """Fetch one URL, returning 404/other terminal HTTP responses intact."""
 
+        if request_policy is not None:
+            url = request_policy.validate(url)
         if not url or not urllib.parse.urlsplit(url).scheme:
             raise ValueError(f"absolute URL required: {url!r}")
         domain = self._domain(url)
@@ -270,8 +464,11 @@ class Fetcher:
         try:
             with lock:
                 if respect_robots if respect_robots is not None else self.respect_robots:
-                    if not self._allowed_by_robots(url):
-                        raise RobotsDisallowed(f"robots.txt disallows {url}")
+                    if not self._allowed_by_robots(url, request_policy):
+                        source = request_policy.source_id if request_policy else "unscoped"
+                        raise RobotsDisallowed(
+                            f"source {source} robots.txt disallows {RequestPolicy.safe_target(url)}"
+                        )
                 headers = {
                     "User-Agent": self.user_agent,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -290,8 +487,12 @@ class Fetcher:
                         self._wait_for_domain(request_domain)
                         try:
                             response = self._call_transport(self.transport, current_url, headers)
-                        except TransportError:
+                        except TransportError as exc:
                             if attempts >= self.retries:
+                                if request_policy:
+                                    raise TransportError(
+                                        f"source {request_policy.source_id} transport failed for {request_policy.safe_target(current_url)}"
+                                    ) from exc
                                 raise
                             time.sleep(self.backoff_factor * (2**attempts))
                             attempts += 1
@@ -300,20 +501,30 @@ class Fetcher:
                         if owns_request_lock:
                             request_lock.release()
                     response.history = tuple(history)
+                    self._validate_response_url(response, current_url, request_policy)
                     if 300 <= response.status_code < 400:
-                        location = _header(response, "Location")
-                        if location and len(history) < self.max_redirects:
-                            next_url = urllib.parse.urljoin(current_url, location)
-                            next_domain = self._domain(next_url)
-                            # Every redirect target gets an independent
-                            # robots check; this also fail-closes cross-domain
-                            # redirects whose robots endpoint is unavailable.
-                            if not self._allowed_by_robots(next_url):
-                                raise RobotsDisallowed(f"robots.txt disallows redirect target {next_url}")
-                            history.append(current_url)
-                            current_url = next_url
-                            current_domain = next_domain
-                            continue
+                        location = (_header(response, "Location") or "").strip()
+                        source = request_policy.source_id if request_policy else "unscoped"
+                        if not location:
+                            raise RequestBoundaryError(
+                                f"source {source} redirect missing Location at {RequestPolicy.safe_target(current_url)}"
+                            )
+                        if len(history) >= self.max_redirects:
+                            raise RequestBoundaryError(
+                                f"source {source} redirect limit exceeded at {RequestPolicy.safe_target(current_url)}"
+                            )
+                        next_url = urllib.parse.urljoin(current_url, location)
+                        next_url = request_policy.validate(next_url) if request_policy else normalize_url(next_url)
+                        # Validate first, then robots, then content transport.
+                        if respect_robots if respect_robots is not None else self.respect_robots:
+                            if not self._allowed_by_robots(next_url, request_policy):
+                                raise RobotsDisallowed(
+                                    f"source {source} robots.txt disallows redirect target {RequestPolicy.safe_target(next_url)}"
+                                )
+                        history.append(current_url)
+                        current_url = next_url
+                        current_domain = self._domain(next_url)
+                        continue
                     if response.status_code in {429, 500, 502, 503, 504, 507, 508, 520, 521, 522, 523, 524} and attempts < self.retries:
                         wait = self._retry_after(response)
                         if wait is None:

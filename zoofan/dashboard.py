@@ -10,14 +10,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
-from flask import Flask, abort, g, render_template, request
+from flask import Flask, abort, g, render_template, request, send_from_directory
 
 
 _TABLE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -105,6 +106,10 @@ def create_app(
         data = _load_data(get_db())
         return render_template("runs.html", run_groups=_run_groups(data))
 
+    @app.get("/favicon.ico")
+    def favicon() -> Any:
+        return send_from_directory(app.static_folder, "favicon.svg", mimetype="image/svg+xml")
+
     return app
 
 
@@ -125,8 +130,19 @@ def main(
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
-    connection = sqlite3.connect(db_path, uri=db_path.startswith("file:"))
+    if db_path == ":memory:":
+        connection = sqlite3.connect(db_path)
+    else:
+        path = Path(db_path).expanduser().resolve()
+        if path.is_file():
+            uri = f"file:{quote(str(path), safe='/')}?mode=ro"
+            connection = sqlite3.connect(uri, uri=True)
+        else:
+            # Missing databases are represented as an empty read-only view.
+            # Crucially, opening the dashboard never creates the configured path.
+            connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA query_only = ON")
     return connection
 
 
@@ -251,33 +267,55 @@ def _safe_external_url(value: Any) -> str | None:
 
 
 def _article_url(article: Mapping[str, Any]) -> str | None:
-    return _safe_external_url(_first(article, "canonical_url", "url", "normalized_url"))
+    return _safe_external_url(_first(article, "canonical_url"))
+
+
+def _article_relationships(
+    data: Mapping[str, Any], article_id: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[Mapping[str, Any]]]:
+    source_by_id = _source_map(data)
+    zoo_by_id = _zoo_map(data)
+    discoveries = [
+        row for row in data["discoveries"]
+        if _key(_first(row, "article_id")) == article_id
+    ]
+    source_ids = {
+        _key(_first(row, "source_id")) for row in discoveries
+        if _first(row, "source_id") is not None
+    }
+    sources = [source_by_id[item] for item in source_ids if item in source_by_id]
+    sources.sort(key=lambda source: _key(_first(source, "id", "source_id")))
+    zoo_ids = {
+        _key(_first(source, "zoo_id")) for source in sources
+        if _first(source, "zoo_id") is not None
+    }
+    article = next((row for row in data["articles"] if _key(_first(row, "id", "article_id")) == article_id), {})
+    if _first(article, "zoo_id") is not None:
+        zoo_ids.add(_key(_first(article, "zoo_id")))
+    zoos = [zoo_by_id[item] for item in zoo_ids if item in zoo_by_id]
+    zoos.sort(key=_zoo_name)
+    return sources, zoos, discoveries
+
+
+def _discovery_bounds(discoveries: Iterable[Mapping[str, Any]]) -> tuple[Any, Any]:
+    discoveries = list(discoveries)
+    first_values = [_first(row, "discovered_at") for row in discoveries]
+    last_values = [_first(row, "last_discovered_at", "discovered_at") for row in discoveries]
+    first_values = [value for value in first_values if value not in (None, "")]
+    last_values = [value for value in last_values if value not in (None, "")]
+    first = min(first_values, key=_sort_timestamp) if first_values else None
+    last = max(last_values, key=_sort_timestamp) if last_values else None
+    return first, last
 
 
 def _article_list(
     data: Mapping[str, Any], zoo_filter: str = "", source_type_filter: str = ""
 ) -> list[dict[str, Any]]:
-    zoo_by_id = _zoo_map(data)
-    source_by_id = _source_map(data)
-    article_zoos = _article_zoo_ids(data)
-    article_sources: dict[str, set[str]] = defaultdict(set)
-    for discovery in data["discoveries"]:
-        article_sources[_key(_first(discovery, "article_id"))].add(
-            _key(_first(discovery, "source_id"))
-        )
-
     selected: list[dict[str, Any]] = []
     for article in data["articles"]:
         article_id = _key(_first(article, "id", "article_id"))
-        zoo_ids = article_zoos.get(article_id, set())
-        zoo_rows = [zoo_by_id[zoo_id] for zoo_id in zoo_ids if zoo_id in zoo_by_id]
-        zoo_rows.sort(key=_zoo_name)
-        source_rows = [
-            source_by_id[source_id]
-            for source_id in article_sources.get(article_id, set())
-            if source_id in source_by_id
-        ]
-        source_rows.sort(key=lambda source: (_source_type(source), str(_first(source, "name", "url", default=""))))
+        source_rows, zoo_rows, discoveries = _article_relationships(data, article_id)
+        first_discovered, _ = _discovery_bounds(discoveries)
         source_types = sorted({_source_type(source) for source in source_rows if _source_type(source)})
         zoo_slugs = {_zoo_slug(zoo) for zoo in zoo_rows}
         if zoo_filter and zoo_filter not in zoo_slugs and zoo_filter not in {
@@ -290,15 +328,25 @@ def _article_list(
             {
                 "id": article_id,
                 "title": _first(article, "title", default="Untitled article") or "Untitled article",
-                "published_at": _first(article, "published_at", "updated_at_source", "created_at"),
+                "published_at": _first(article, "published_at"),
+                "updated_at_source": _first(article, "updated_at_source"),
+                "first_discovered": first_discovered,
                 "url": _article_url(article),
+                "canonical_url": _first(article, "canonical_url"),
                 "zoo_names": [_zoo_name(zoo) for zoo in zoo_rows],
                 "zoo_slugs": [_zoo_slug(zoo) for zoo in zoo_rows],
                 "source_type": ", ".join(source_types),
                 "source_types": source_types,
+                "source_names": [str(_first(source, "name", "id", default="")) for source in source_rows],
+                "language": _first(article, "language"),
+                "crawl_status": _first(article, "crawl_status"),
+                "http_status": _first(article, "http_status"),
             }
         )
-    selected.sort(key=lambda article: _sort_timestamp(article["published_at"]), reverse=True)
+    selected.sort(
+        key=lambda article: _sort_timestamp(article["published_at"] or article["first_discovered"]),
+        reverse=True,
+    )
     return selected
 
 
@@ -313,36 +361,33 @@ def _article_detail(data: Mapping[str, Any], article_id: str) -> dict[str, Any] 
     )
     if article is None:
         return None
-    source_by_id = _source_map(data)
-    zoo_by_id = _zoo_map(data)
-    discoveries = [
-        row
-        for row in data["discoveries"]
-        if _key(_first(row, "article_id")) == _key(article_id)
-    ]
-    sources = []
-    for discovery in discoveries:
-        source = source_by_id.get(_key(_first(discovery, "source_id")))
-        if source is None:
-            continue
-        zoo = zoo_by_id.get(_key(_first(source, "zoo_id")))
-        sources.append(
-            {
-                "name": _first(source, "name", default="") or _first(source, "url", default=""),
-                "type": _source_type(source),
-                "zoo_name": _zoo_name(zoo),
-            }
-        )
+    source_rows, zoo_rows, discoveries = _article_relationships(data, _key(article_id))
+    first_discovered, last_discovered = _discovery_bounds(discoveries)
+    original_url = _first(article, "source_url")
+    canonical_url = _first(article, "canonical_url")
     return {
         "id": _key(_first(article, "id", "article_id")),
         "title": _first(article, "title", default="Untitled article") or "Untitled article",
-        "url": _article_url(article),
+        "zoo_names": [_zoo_name(zoo) for zoo in zoo_rows],
+        "sources": [str(_first(source, "name", "id", default="")) for source in source_rows],
+        "original_url": original_url,
+        "original_link": _safe_external_url(original_url),
+        "canonical_url": canonical_url,
+        "canonical_link": _safe_external_url(canonical_url),
+        "language": _first(article, "language"),
+        "http_status": _first(article, "http_status"),
+        "crawl_status": _first(article, "crawl_status"),
+        "html_hash": _first(article, "html_hash"),
         "published_at": _first(article, "published_at"),
-        "updated_at": _first(article, "updated_at_source", "updated_at"),
+        "updated_at_source": _first(article, "updated_at_source"),
+        "first_discovered": first_discovered,
+        "last_discovered": last_discovered,
+        "fetched_at": _first(article, "last_fetched_at"),
+        "stored_at": _first(article, "created_at"),
+        "storage_updated_at": _first(article, "updated_at"),
         "author": _first(article, "author"),
         "summary": _first(article, "summary"),
         "content": _first(article, "content"),
-        "sources": sources,
     }
 
 
@@ -351,14 +396,18 @@ def _source_list(data: Mapping[str, Any]) -> list[dict[str, Any]]:
     result = []
     for source in data["sources"]:
         config = _first(source, "config_json", "config", default={})
+        zoo = zoo_by_id.get(_key(_first(source, "zoo_id")))
         result.append(
             {
                 "id": _key(_first(source, "id", "source_id")),
                 "name": _first(source, "name", default="") or _first(source, "url", default=""),
                 "url": _safe_external_url(_first(source, "url")),
                 "raw_url": _first(source, "url"),
-                "zoo_name": _zoo_name(zoo_by_id.get(_key(_first(source, "zoo_id")))),
+                "zoo_name": _zoo_name(zoo),
+                "zoo_country": _first(zoo or {}, "country_code"),
+                "zoo_language": _first(zoo or {}, "language"),
                 "source_type": _source_type(source),
+                "language": _first(source, "language"),
                 "config": _pretty_json(config),
                 "enabled": bool(_first(source, "enabled", default=True)),
                 "status": _first(source, "status", default="unknown") or "unknown",
@@ -373,8 +422,6 @@ def _source_list(data: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def _build_dashboard(data: Mapping[str, Any]) -> dict[str, Any]:
-    source_by_id = _source_map(data)
-    zoo_by_id = _zoo_map(data)
     article_rows = _article_list(data)
     article_by_id = {
         _key(_first(article, "id", "article_id")): article for article in data["articles"]
@@ -399,14 +446,10 @@ def _build_dashboard(data: Mapping[str, Any]) -> dict[str, Any]:
             if _key(_first(stat, "zoo_id")) == zoo_id
         ]
         latest_run, latest_stats = _latest_zoo_run(data["runs"], zoo_stats)
-        errors = _error_count(latest_run, latest_stats)
+        errors = _error_count(None, latest_stats)
         new_count = _metric(latest_stats, "new_count", "new_articles", "stored_count")
-        duplicate_count = _metric(
-            latest_stats,
-            "duplicate_count",
-            "duplicates",
-            default=max(0, _metric(latest_stats, "discovered_count") - new_count),
-        )
+        already_known_count = _metric(latest_stats, "already_known_count")
+        duplicate_count = _optional_metric(latest_stats, "duplicate_candidate_count")
         latest_article = _latest_article_for_zoo(zoo_articles)
         panels.append(
             {
@@ -414,12 +457,15 @@ def _build_dashboard(data: Mapping[str, Any]) -> dict[str, Any]:
                 "name": _zoo_name(zoo),
                 "slug": _zoo_slug(zoo),
                 "website_url": _safe_external_url(_first(zoo, "website_url", "url")),
+                "country": _first(zoo, "country_code"),
+                "language": _first(zoo, "language"),
                 "status": _zoo_status(latest_run, latest_stats, zoo_sources),
                 "sources": len(zoo_sources),
                 "last_crawl": _first(latest_run or {}, "finished_at", "started_at"),
                 "articles": len(zoo_articles),
-                "new": new_count,
-                "duplicates": duplicate_count,
+                "stored": new_count,
+                "already_known": already_known_count,
+                "duplicate_candidates": duplicate_count,
                 "errors": errors,
                 "latest_article": _article_summary(latest_article) if latest_article else None,
             }
@@ -428,8 +474,9 @@ def _build_dashboard(data: Mapping[str, Any]) -> dict[str, Any]:
     totals = {
         "sources": len(data["sources"]),
         "articles": len(data["articles"]),
-        "new": sum(int(panel["new"]) for panel in panels),
-        "duplicates": sum(int(panel["duplicates"]) for panel in panels),
+        "stored": sum(int(panel["stored"]) for panel in panels),
+        "already_known": sum(int(panel["already_known"]) for panel in panels),
+        "duplicate_candidates": _sum_known(panel["duplicate_candidates"] for panel in panels),
         "errors": sum(int(panel["errors"]) for panel in panels),
         "last_crawl": _latest_run_value(data["runs"], "finished_at", "started_at"),
     }
@@ -487,7 +534,7 @@ def _error_count(run: Mapping[str, Any] | None, stats: Iterable[Mapping[str, Any
                 explicit_count = int(explicit)
             except (TypeError, ValueError):
                 pass
-        errors = _parse_errors(_first(stat, "errors", "error_json"))
+        errors = _parse_errors(_first(stat, "errors_json", "errors", "error_json"))
         implicit_count = len(errors) or (1 if _first(stat, "error", "last_error") else 0)
         count += max(explicit_count if explicit_count is not None else 0, implicit_count)
     if run and _first(run, "error", "last_error"):
@@ -513,10 +560,35 @@ def _metric(
     return total if found else default
 
 
+def _optional_metric(stats: Iterable[Mapping[str, Any]], name: str) -> int | None:
+    """Sum a modern persisted metric, preserving absence as unknown."""
+
+    total = 0
+    found = False
+    for stat in stats:
+        if name not in stat:
+            continue
+        value = stat[name]
+        if value is None:
+            continue
+        try:
+            total += int(value)
+        except (TypeError, ValueError):
+            continue
+        found = True
+    return total if found else None
+
+
+def _sum_known(values: Iterable[Any]) -> int | None:
+    known = [int(value) for value in values if value is not None]
+    return sum(known) if known else None
+
+
 def _latest_article_for_zoo(articles: list[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    articles = [article for article in articles if _first(article, "published_at") not in (None, "")]
     if not articles:
         return None
-    return max(articles, key=lambda article: _sort_timestamp(_first(article, "published_at", "created_at")))
+    return max(articles, key=lambda article: _sort_timestamp(_first(article, "published_at")))
 
 
 def _article_summary(article: Mapping[str, Any]) -> dict[str, Any]:
@@ -524,7 +596,7 @@ def _article_summary(article: Mapping[str, Any]) -> dict[str, Any]:
         "id": _key(_first(article, "id", "article_id")),
         "title": _first(article, "title", default="Untitled article") or "Untitled article",
         "url": _article_url(article),
-        "published_at": _first(article, "published_at", "created_at"),
+        "published_at": _first(article, "published_at"),
     }
 
 
@@ -561,7 +633,8 @@ def _run_groups(data: Mapping[str, Any]) -> list[dict[str, Any]]:
                         "discovered": _metric(stats, "discovered_count"),
                         "fetched": _metric(stats, "fetched_count"),
                         "stored": _metric(stats, "stored_count", "new_count"),
-                        "duplicates": _metric(stats, "duplicate_count", "duplicates"),
+                        "already_known": _metric(stats, "already_known_count"),
+                        "duplicate_candidates": _optional_metric(stats, "duplicate_candidate_count"),
                         "errors": _error_count(None, stats),
                         "error_summary": _error_summary(stats),
                     }
@@ -572,6 +645,7 @@ def _run_groups(data: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "status": _first(run, "status", default="unknown"),
                     "started_at": _first(run, "started_at"),
                     "finished_at": _first(run, "finished_at"),
+                    "duration_ms": _first(run, "duration_ms"),
                     "error": _first(run, "error"),
                     "zoos": zoo_views,
                 }
@@ -592,7 +666,7 @@ def _error_summary(stats: Iterable[Mapping[str, Any]]) -> list[str]:
         error = _first(stat, "error", "last_error")
         if error:
             values.append(str(error))
-        values.extend(_parse_errors(_first(stat, "errors", "error_json")))
+        values.extend(_parse_errors(_first(stat, "errors_json", "errors", "error_json")))
     return list(dict.fromkeys(values))
 
 
@@ -647,6 +721,8 @@ def _format_timestamp(value: Any) -> str:
     if isinstance(value, datetime):
         return value.strftime("%Y-%m-%d %H:%M")
     text = str(value)
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text.strip()):
+        return text.strip()
     try:
         return datetime.fromisoformat(text.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
     except ValueError:

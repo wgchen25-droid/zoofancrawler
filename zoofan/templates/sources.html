@@ -4,19 +4,22 @@
   <div class="page-heading"><div><p class="eyebrow">Configured inputs</p><h1>Sources</h1></div></div>
   {% if sources %}
     <div class="table-wrap"><table>
-      <thead><tr><th>Zoo</th><th>Source ID</th><th>Source</th><th>Type</th><th>Status</th><th>Last checked</th><th>Last success</th><th>HTTP status</th><th>Last error</th><th>Config</th></tr></thead>
+      <thead><tr><th>Zoo</th><th>Zoo country</th><th>Zoo language</th><th>Source ID</th><th>Source</th><th>Kind</th><th>Language</th><th>Status</th><th>Last check</th><th>Last success</th><th>HTTP status</th><th>Last error</th><th>Config</th></tr></thead>
       <tbody>
         {% for source in sources %}
-          <tr>
-            <td>{{ source.zoo_name }}</td>
-            <td><code>{{ source.id }}</code></td>
+          <tr data-acceptance-row="source" data-acceptance-id="{{ source.id }}">
+            <td data-acceptance-field="zoo">{{ source.zoo_name }}</td>
+            <td>{{ source.zoo_country or '—' }}</td>
+            <td>{{ source.zoo_language or '—' }}</td>
+            <td data-acceptance-field="source-id"><code>{{ source.id }}</code></td>
             <td>{% if source.url %}<a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.name }}</a>{% else %}{{ source.name }}{% endif %}</td>
-            <td>{{ source.source_type or '—' }}</td>
-            <td><span class="status status-{{ source.status|lower|replace(' ', '-') }}">{{ source.status }}</span>{% if not source.enabled %} <span class="muted">(disabled)</span>{% endif %}</td>
-            <td>{{ source.last_checked|timestamp }}</td>
+            <td data-acceptance-field="kind">{{ source.source_type or '—' }}</td>
+            <td data-acceptance-field="language">{{ source.language or '—' }}</td>
+            <td data-acceptance-field="status"><span class="status status-{{ source.status|lower|replace(' ', '-') }}">{{ source.status }}</span>{% if not source.enabled %} <span class="muted">(disabled)</span>{% endif %}</td>
+            <td data-acceptance-field="last-check">{{ source.last_checked|timestamp }}</td>
             <td>{{ source.last_success|timestamp }}</td>
-            <td>{{ source.last_http_status or '—' }}</td>
-            <td class="error-text">{{ source.last_error or '—' }}</td>
+            <td data-acceptance-field="http-status">{% if source.last_http_status is not none %}{{ source.last_http_status }}{% else %}—{% endif %}</td>
+            <td class="error-text" data-acceptance-field="last-error">{{ source.last_error or '—' }}</td>
             <td><pre class="config">{{ source.config }}</pre></td>
           </tr>
         {% endfor %}

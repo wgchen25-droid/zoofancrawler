@@ -14,6 +14,7 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 from urllib.parse import urlsplit
 
 from .models import ParsedFeedItem, ParsedSitemapEntry, Source, Zoo
+from .fetcher import RequestPolicy, scoped_fetch
 from .normalization import normalize_url
 from .parsers import (
     parse_archive,
@@ -42,6 +43,34 @@ class DiscoveryCandidate:
 
     def __post_init__(self) -> None:
         self.url = normalize_url(self.url)
+
+
+class DiscoveryResult(list):
+    """List-compatible discovery output carrying source-request evidence.
+
+    ``root_http_status`` always describes the configured source URL request,
+    never a sitemap child or archive pagination request.  Duplicate count is
+    the number of otherwise-valid candidates suppressed within this source.
+    """
+
+    def __init__(
+        self,
+        candidates: Iterable[DiscoveryCandidate] = (),
+        *,
+        root_http_status: Optional[int] = None,
+        duplicate_candidate_count: int = 0,
+    ) -> None:
+        super().__init__(candidates)
+        self.root_http_status = root_http_status
+        self.duplicate_candidate_count = duplicate_candidate_count
+
+
+class DiscoveryError(RuntimeError):
+    """Discovery failure retaining the root source response status, if any."""
+
+    def __init__(self, message: str, *, status_code: Optional[int] = None) -> None:
+        self.status_code = status_code
+        super().__init__(message)
 
 
 @dataclass
@@ -252,28 +281,32 @@ def _response_text(response: Any) -> str:
     return content.decode("utf-8", errors="replace") if isinstance(content, bytes) else str(content or "")
 
 
-def _fetch(fetcher: Any, url: str) -> Any:
-    method = getattr(fetcher, "fetch", None) or getattr(fetcher, "get", None)
-    if method is not None:
-        return method(url)
-    if callable(fetcher):
-        return fetcher(url)
-    raise TypeError("fetcher must provide fetch(url), get(url), or be callable")
+def _fetch(fetcher: Any, url: str, policy: RequestPolicy) -> Any:
+    return scoped_fetch(fetcher, url, policy)
 
 
-def _raise_for_status(response: Any) -> None:
+def _raise_for_status(response: Any, policy: Optional[RequestPolicy] = None, requested_url: Optional[str] = None) -> None:
+    context = ""
+    if policy is not None and requested_url:
+        context = f" for source {policy.source_id} at {policy.safe_target(requested_url)}"
     if isinstance(response, tuple) and response:
         if int(response[0]) >= 400:
-            raise RuntimeError(f"HTTP {response[0]}")
+            raise DiscoveryError(f"HTTP {response[0]}{context}", status_code=int(response[0]))
         return
     if isinstance(response, (str, bytes)):
         return
-    if hasattr(response, "raise_for_status"):
-        response.raise_for_status()
-        return
     status = int(getattr(response, "status_code", getattr(response, "status", 200)))
     if status >= 400:
-        raise RuntimeError(f"HTTP {status}")
+        raise DiscoveryError(f"HTTP {status}{context}", status_code=status)
+
+
+def _response_status(response: Any) -> Optional[int]:
+    if isinstance(response, tuple) and response:
+        return int(response[0])
+    if isinstance(response, (str, bytes)):
+        return None
+    value = getattr(response, "status_code", getattr(response, "status", None))
+    return int(value) if value is not None else None
 
 
 def _as_candidate(item: Any, source: Source) -> DiscoveryCandidate:
@@ -302,46 +335,66 @@ class DiscoveryEngine:
         self.fetcher = fetcher
         self.logger = logger or LOGGER
 
-    def discover(self, source: Source, *, zoo: Optional[Zoo] = None) -> list[DiscoveryCandidate]:
+    def discover(self, source: Source, *, zoo: Optional[Zoo] = None) -> DiscoveryResult:
         kind = str(source.kind or "").lower().replace("-", "_")
+        effective_zoo = zoo or Zoo(website_url=source.url)
+        request_policy = RequestPolicy.from_zoo_source(effective_zoo, source)
+        response = _fetch(self.fetcher, source.url, request_policy)
+        root_http_status = _response_status(response)
+        _raise_for_status(response, request_policy, source.url)
         if kind in {"registry_only", "health_check", "healthcheck", "press"}:
-            _raise_for_status(_fetch(self.fetcher, source.url))
-            return []
-        response = _fetch(self.fetcher, source.url)
-        _raise_for_status(response)
-        payload = _response_text(response)
-        if kind in {"rss", "atom", "feed"}:
-            values = parse_feed(payload, source.url)
-        elif kind == "sitemap":
-            values = self._discover_sitemap(payload, source)
-        elif kind in {"archive", "html", "news_archive"}:
-            values = self._discover_archive(payload, source)
-        else:
-            raise ValueError(f"unsupported source kind: {source.kind}")
-        policy = URLPolicy.from_zoo_source(zoo or Zoo(website_url=source.url), source)
+            return DiscoveryResult(root_http_status=root_http_status)
+        try:
+            payload = _response_text(response)
+            if kind in {"rss", "atom", "feed"}:
+                values = parse_feed(payload, source.url)
+            elif kind == "sitemap":
+                values = self._discover_sitemap(payload, source, request_policy)
+            elif kind in {"archive", "html", "news_archive"}:
+                values = self._discover_archive(payload, source, request_policy)
+            else:
+                raise ValueError(f"unsupported source kind: {source.kind}")
+        except Exception as exc:
+            # The configured source response is the source-level HTTP
+            # evidence. Downstream child/pagination failures keep their own
+            # target/status in the message, but must not replace that root
+            # status in persistence.
+            raise DiscoveryError(str(exc), status_code=root_http_status) from exc
+        policy = URLPolicy.from_zoo_source(effective_zoo, source)
         candidates: list[DiscoveryCandidate] = []
         seen: set[str] = set()
+        duplicate_count = 0
         for value in values:
             candidate = _as_candidate(value, source)
             key = normalize_url(candidate.url)
-            if not key or key in seen or not policy.accepts(key, source_url=source.url):
+            if not key or not policy.accepts(key, source_url=source.url):
+                continue
+            if key in seen:
+                duplicate_count += 1
                 continue
             seen.add(key)
             candidates.append(candidate)
-        return candidates
+        return DiscoveryResult(
+            candidates,
+            root_http_status=root_http_status,
+            duplicate_candidate_count=duplicate_count,
+        )
 
-    def _discover_archive(self, payload: str, source: Source) -> list[Any]:
+    def _discover_archive(self, payload: str, source: Source, request_policy: RequestPolicy) -> list[Any]:
         config = dict(source.config or {})
         # ``parse_archive`` fetches pages through this callback.  Preserve the
         # exact href (including TYPO3 cHash) by resolving from the current URL.
         def fetch_page(url: str) -> str:
-            response = _fetch(self.fetcher, url)
-            _raise_for_status(response)
+            response = _fetch(self.fetcher, url, request_policy)
+            _raise_for_status(response, request_policy, url)
             return _response_text(response)
 
-        return parse_archive(payload, config, source.url, fetch_page=fetch_page, max_pages=config.get("max_pages"))
+        return parse_archive(
+            payload, config, source.url, fetch_page=fetch_page,
+            max_pages=config.get("max_pages"), preserve_duplicates=True,
+        )
 
-    def _discover_sitemap(self, payload: str, source: Source) -> list[Any]:
+    def _discover_sitemap(self, payload: str, source: Source, request_policy: RequestPolicy) -> list[Any]:
         entries = parse_sitemap(payload, source.url)
         result: list[Any] = []
         config = dict(source.config or {})
@@ -355,8 +408,8 @@ class DiscoveryEngine:
                 if url in visited or len(visited) >= max_sitemaps:
                     continue
                 visited.add(url)
-                response = _fetch(self.fetcher, url)
-                _raise_for_status(response)
+                response = _fetch(self.fetcher, url, request_policy)
+                _raise_for_status(response, request_policy, url)
                 children = parse_sitemap(_response_text(response), url)
                 pending.extend(children)
             else:
@@ -364,7 +417,7 @@ class DiscoveryEngine:
         return result
 
 
-def discover_source(source: Source, fetcher: Any, *, zoo: Optional[Zoo] = None) -> list[DiscoveryCandidate]:
+def discover_source(source: Source, fetcher: Any, *, zoo: Optional[Zoo] = None) -> DiscoveryResult:
     """Functional convenience wrapper used by small integrations/tests."""
 
     return DiscoveryEngine(fetcher).discover(source, zoo=zoo)
@@ -372,7 +425,9 @@ def discover_source(source: Source, fetcher: Any, *, zoo: Optional[Zoo] = None) 
 
 __all__ = [
     "DiscoveryCandidate",
+    "DiscoveryError",
     "DiscoveryEngine",
+    "DiscoveryResult",
     "SourceRegistry",
     "URLPolicy",
     "discover_source",

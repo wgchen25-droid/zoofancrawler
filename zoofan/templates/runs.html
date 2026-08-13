@@ -6,14 +6,19 @@
     <section class="run-group">
       <div class="section-heading"><h2>Batch {{ group.batch_id }}</h2></div>
       {% for run in group.runs %}
-        <article class="card run-card">
-          <div class="card-heading"><h3>Run {{ run.id }}</h3><span class="status status-{{ run.status|lower|replace(' ', '-') }}">{{ run.status }}</span></div>
-          <p class="muted">{{ run.started_at|timestamp }} → {{ run.finished_at|timestamp }}{% if run.error %} · <span class="error-text">{{ run.error }}</span>{% endif %}</p>
+        <article class="card run-card" data-acceptance-row="run" data-acceptance-id="{{ run.id }}">
+          <div class="card-heading"><h3>Run {{ run.id }}</h3><span class="status status-{{ run.status|lower|replace(' ', '-') }}" data-acceptance-field="run-status">{{ run.status }}</span></div>
+          <dl class="run-facts">
+            <div><dt>Start</dt><dd data-acceptance-field="run-start">{{ run.started_at|timestamp }}</dd></div>
+            <div><dt>End</dt><dd data-acceptance-field="run-end">{{ run.finished_at|timestamp }}</dd></div>
+            <div><dt>Duration</dt><dd data-acceptance-field="run-duration">{% if run.duration_ms is not none %}{{ run.duration_ms }} ms{% else %}—{% endif %}</dd></div>
+          </dl>
+          {% if run.error %}<p class="error-text">{{ run.error }}</p>{% endif %}
           <div class="table-wrap"><table>
-            <thead><tr><th>Zoo</th><th>Status</th><th>Discovered</th><th>Fetched</th><th>Stored/new</th><th>Duplicates</th><th>Errors</th><th>Error summary</th></tr></thead>
+            <thead><tr><th>Zoo</th><th>Status</th><th>Discovered</th><th>Fetched</th><th>Stored</th><th>Already known / skipped</th><th>Duplicate candidates</th><th>Errors</th><th>Error summary</th></tr></thead>
             <tbody>
               {% for zoo in run.zoos %}
-                <tr><td>{{ zoo.name }}</td><td>{{ zoo.status }}</td><td>{{ zoo.discovered }}</td><td>{{ zoo.fetched }}</td><td>{{ zoo.stored }}</td><td>{{ zoo.duplicates }}</td><td>{{ zoo.errors }}</td><td class="error-text">{{ zoo.error_summary|join('; ') or '—' }}</td></tr>
+                <tr data-acceptance-row="run-zoo"><td data-acceptance-field="zoo">{{ zoo.name }}</td><td data-acceptance-field="status">{{ zoo.status }}</td><td data-acceptance-field="discovered">{{ zoo.discovered }}</td><td data-acceptance-field="fetched">{{ zoo.fetched }}</td><td data-acceptance-field="stored">{{ zoo.stored }}</td><td data-acceptance-field="already-known">{{ zoo.already_known }}</td><td data-acceptance-field="duplicate-candidates">{% if zoo.duplicate_candidates is not none %}{{ zoo.duplicate_candidates }}{% else %}—{% endif %}</td><td data-acceptance-field="errors">{{ zoo.errors }}</td><td class="error-text">{{ zoo.error_summary|join('; ') or '—' }}</td></tr>
               {% endfor %}
             </tbody>
           </table></div>
