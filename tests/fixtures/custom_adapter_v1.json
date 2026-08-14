@@ -1,0 +1,8 @@
+{
+  "items": [
+    {"url": "/news/custom-one", "title": "Custom adapter one", "date": "2025-04-03"},
+    {"url": "/news/custom-two", "title": "Custom adapter two", "date": "3 avril 2025"},
+    {"url": "/news/custom-one/?utm_source=adapter", "title": "Duplicate custom one"},
+    {"url": "https://outside.example/news/not-official", "title": "Rejected external"}
+  ]
+}

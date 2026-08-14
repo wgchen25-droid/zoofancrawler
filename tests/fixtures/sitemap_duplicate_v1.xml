@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>/news/sitemap-duplicate/</loc></url>
+  <url><loc>https://official.example/news/sitemap-duplicate</loc></url>
+  <url><loc>/news/sitemap-second</loc></url>
+</urlset>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://koelnerzoo.de/aktuellartical/neuer-erdmaennchen-nachwuchs/</loc>
+    <lastmod>2025-04-03</lastmod>
+  </url>
+  <url>
+    <loc>https://koelnerzoo.de/aktuellartical/monatsubersicht/</loc>
+    <lastmod>2025-04-04</lastmod>
+  </url>
+  <url>
+    <loc>https://koelnerzoo.de/tickets/</loc>
+    <lastmod>2025-04-05</lastmod>
+  </url>
+  <url>
+    <loc>https://outside.example/aktuellartical/external/</loc>
+    <lastmod>2025-04-06</lastmod>
+  </url>
+</urlset>

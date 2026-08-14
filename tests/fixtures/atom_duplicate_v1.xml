@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <title>Ein Artikel</title>
+    <link rel="alternate" href="/de/aktuelles/news/artikel/ein-artikel" />
+    <published>2025-04-03</published>
+  </entry>
+  <entry>
+    <title>Ein Artikel (tracking)</title>
+    <link rel="alternate" href="https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-artikel/?utm_source=atom" />
+    <published>2025-04-03</published>
+  </entry>
+</feed>

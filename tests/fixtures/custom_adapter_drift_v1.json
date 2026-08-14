@@ -1,0 +1,16 @@
+{
+  "results": [
+    {
+      "uuid": "custom-drift-1",
+      "headline": "Custom adapter benign drift",
+      "link": {"href": "/news/custom-drift"},
+      "createdAt": "2025-04-03",
+      "description": "The adapter tolerates a renamed collection and fields."
+    },
+    {
+      "uuid": "custom-drift-no-link",
+      "headline": "Navigation item without article URL",
+      "createdAt": "2025-04-04"
+    }
+  ]
+}

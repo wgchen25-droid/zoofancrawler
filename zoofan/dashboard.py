@@ -108,7 +108,10 @@ def create_app(
 
     @app.get("/favicon.ico")
     def favicon() -> Any:
-        return send_from_directory(app.static_folder, "favicon.svg", mimetype="image/svg+xml")
+        static_folder = app.static_folder
+        if static_folder is None:
+            abort(404)
+        return send_from_directory(static_folder, "favicon.svg", mimetype="image/svg+xml")
 
     return app
 
@@ -289,7 +292,10 @@ def _article_relationships(
         _key(_first(source, "zoo_id")) for source in sources
         if _first(source, "zoo_id") is not None
     }
-    article = next((row for row in data["articles"] if _key(_first(row, "id", "article_id")) == article_id), {})
+    article: Mapping[str, Any] = next(
+        (row for row in data["articles"] if _key(_first(row, "id", "article_id")) == article_id),
+        {},
+    )
     if _first(article, "zoo_id") is not None:
         zoo_ids.add(_key(_first(article, "zoo_id")))
     zoos = [zoo_by_id[item] for item in zoo_ids if item in zoo_by_id]
@@ -601,7 +607,6 @@ def _article_summary(article: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _run_groups(data: Mapping[str, Any]) -> list[dict[str, Any]]:
-    zoo_by_id = _zoo_map(data)
     stats_by_run: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     for stat in data["stats"]:
         stats_by_run[_key(_first(stat, "crawl_run_id", "run_id"))].append(stat)
@@ -609,17 +614,17 @@ def _run_groups(data: Mapping[str, Any]) -> list[dict[str, Any]]:
     for run in data["runs"]:
         batch_id = _key(_first(run, "batch_id")) or _key(_first(run, "id", "run_id"))
         groups[batch_id].append(run)
-    result = []
+    result: list[dict[str, Any]] = []
     for batch_id, runs in groups.items():
         runs = sorted(runs, key=lambda run: _sort_timestamp(_first(run, "started_at")), reverse=True)
-        run_views = []
+        run_views: list[dict[str, Any]] = []
         for run in runs:
             run_id = _key(_first(run, "id", "run_id"))
             run_stats = stats_by_run.get(run_id, [])
             stats_by_zoo: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
             for stat in run_stats:
                 stats_by_zoo[_key(_first(stat, "zoo_id"))].append(stat)
-            zoo_views = []
+            zoo_views: list[dict[str, Any]] = []
             for zoo in sorted(data["zoos"], key=_zoo_name):
                 zoo_id = _key(_first(zoo, "id", "zoo_id"))
                 stats = stats_by_zoo.get(zoo_id, [])

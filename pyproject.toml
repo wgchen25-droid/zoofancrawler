@@ -18,9 +18,57 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
 acceptance = ["playwright>=1.40"]
+dev = [
+  "ruff>=0.6,<1.0",
+  "mypy>=1.10,<2.0",
+  "types-PyYAML>=6.0",
+]
 
 [tool.setuptools.packages.find]
-include = ["zoofan*"]
+include = ["zoofan*", "config*"]
+
+# ``zoofan.__main__`` keeps importing the historical top-level ``cli`` module
+# so both ``python3 cli.py`` and ``python -m zoofan`` remain compatible.  Keep
+# that module in built distributions as well as in the source checkout.
+[tool.setuptools]
+py-modules = ["cli"]
+
+# Flask discovers these resources relative to the installed ``zoofan``
+# package.  Declare them explicitly so wheels and installed sdists retain the
+# dashboard pages, styles, favicon, and offline acceptance report template.
+[tool.setuptools.package-data]
+zoofan = [
+  "templates/*.html",
+  "static/*.css",
+  "static/*.svg",
+]
+config = [
+  "zoos.yaml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+extend-exclude = [
+  "artifacts",
+  "build",
+  "data",
+  "dist",
+  "reports",
+  ".venv",
+]
+
+[tool.ruff.lint]
+# Keep the gate focused on correctness/import errors.  No project-wide rule
+# ignores are used; an existing violation remains a visible lint failure.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.9"
+files = ["cli.py", "zoofan"]
+exclude = "(^|/)(artifacts|build|data|dist|reports|\\.venv)/"
+mypy_path = ["stubs"]
+ignore_missing_imports = false

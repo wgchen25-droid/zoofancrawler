@@ -1,0 +1,1119 @@
+schema_version: core-global-config.v1
+contract: reports/source-research/import-contract.md
+checked_at: "2026-08-14"
+scope:
+  region: Global
+  groups: [core30, global_top10]
+  roster_file: data/zoofan_phase0_zoo_list_v0_1.md
+  roster_version: Phase0 v0.1
+  roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  authority: user_confirmed_authoritative_membership_list
+  rows_expected: 10
+  source_policy:
+    primary_evidence_only: true
+    robots_fail_closed: true
+    javascript_bypass: false
+    enabled_source_statuses: [success]
+
+zoos:
+  - id: san-diego-zoo
+    slug: san-diego-zoo
+    name: San Diego Zoo
+    city: San Diego
+    groups: [core30, global_top10]
+    country_code: US
+    language: en
+    enabled: true
+    source_status: success
+    website_url: https://zoo.sandiegozoo.org/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 35
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: zoo.sandiegozoo.org
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: success
+        adapter_status: supported
+        js_required: false
+        js_observed: server_rendered_html
+        robots_status: allow
+        status_reason: "The official zoo site and its operator's Story Hub expose a server-rendered press/news listing with first-party article links; robots.txt is available and does not disallow the proposed path."
+        gaps: []
+        evidence_urls:
+          - https://zoo.sandiegozoo.org/
+          - https://sandiegozoowildlifealliance.org/
+          - https://sandiegozoowildlifealliance.org/story-hub/search-news
+          - https://sandiegozoowildlifealliance.org/story-hub/media-resources
+          - https://sandiegozoowildlifealliance.org/robots.txt
+        adapter_proposal:
+          kind: archive
+          source_urls:
+            - https://sandiegozoowildlifealliance.org/story-hub/search-news
+          config_notes: "Use the server-rendered Story Hub search/news listing and restrict detail links to the Alliance's first-party story/press paths. Do not use the Alliance sitemap as the primary source without filtering stale legacy host locations."
+    sources:
+      - id: san-diego-zoo-story-hub
+        name: story-hub-news
+        language: en
+        kind: archive
+        source_status: success
+        enabled: true
+        url: https://sandiegozoowildlifealliance.org/story-hub/search-news
+        config:
+          official_host: sandiegozoowildlifealliance.org
+          allow_regex: '^https://sandiegozoowildlifealliance\.org/(?:PR|pressroom/news-releases)/[^/?#]+/?$'
+          exclude_regex:
+            - '^https://sandiegozoowildlifealliance\.org/story-hub/'
+            - '^https://sandiegozoowildlifealliance\.org/admin/'
+          article_selector: div.newsroom-lists
+          link_selector: 'div.headline a[href]'
+          title_selector: 'div.headline h3'
+          date_selector: 'div.date time[datetime]'
+          pagination_selector: 'nav[aria-labelledby="pagination-heading"] a[rel="next"]'
+          max_pages: 2
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: supported
+            checked_at: "2026-08-14"
+            robots_url: https://sandiegozoowildlifealliance.org/robots.txt
+            robots_status: allow
+            javascript_required: false
+            evidence_urls:
+              - https://zoo.sandiegozoo.org/
+              - https://sandiegozoowildlifealliance.org/story-hub/search-news
+              - https://sandiegozoowildlifealliance.org/robots.txt
+            direct_endpoint_candidates: 10
+            selector_candidate_count: 10
+            pagination_evidence: "The direct page exposed a rel=next link to /story-hub/search-news?page=1."
+
+  - id: bronx-zoo
+    slug: bronx-zoo
+    name: Bronx Zoo
+    city: New York
+    groups: [core30, global_top10]
+    country_code: US
+    language: en
+    enabled: true
+    source_status: success
+    website_url: https://bronxzoo.com/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 36
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: bronxzoo.com
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: success
+        adapter_status: supported
+        js_required: false
+        js_observed: server_rendered_html_WCS_DNN_RSS
+        robots_status: allow
+        success_claim: true
+        status_reason: "The operator-wide WCS RSS feed is reachable and eight of 25 observed items pass the Bronx identity filter. The source-scoped .article-body selector passed the bounded live retest: the first run fetched and stored one clean 4,429-character article and the second found it already known, with no content_parse_error or new duplicate."
+        gaps: [shared_wcs_feed_requires_identity_filter]
+        evidence_urls:
+          - https://bronxzoo.com/
+          - https://newsroom.wcs.org/
+          - https://newsroom.wcs.org/News-Releases.aspx
+          - https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25
+          - https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx
+          - https://newsroom.wcs.org/robots.txt
+        adapter_proposal:
+          kind: rss
+          source_urls:
+            - https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25
+            - https://newsroom.wcs.org/News-Releases.aspx
+          config_notes: "The WCS feed is operator-wide; retain only official detail URLs/content that identifies Bronx Zoo or Bronx, NY. The source-scoped article_content_selector .article-body passed the bounded live retest below."
+    sources:
+      - id: bronx-zoo-wcs-rss
+        name: wcs-newsroom-rss
+        language: en
+        kind: rss
+        source_status: success
+        success_claim: true
+        enabled: true
+        url: https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25
+        config:
+          official_host: newsroom.wcs.org
+          allow_regex: '^https://newsroom\.wcs\.org/News-Releases/articleType/ArticleView/'
+          exclude_regex:
+            - '^https://newsroom\.wcs\.org/DesktopModules/'
+            - '^https://newsroom\.wcs\.org/News-Releases/ArticleView/'
+          identity_filter:
+            required_text_any: [Bronx Zoo, "Bronx, NY"]
+          article_content_selector: .article-body
+          remediation_status: verified_live_retest
+          remediation_note: "The source-scoped .article-body selector passed bounded retest runs d1dc9a0cfc15474dbcb322d9e73b97ef and 5372992f73a74afda78d0a1573d00790: first fetched/stored 1 clean 4,429-character article, second already-known 1, with no content_parse_error or new duplicate."
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: supported
+            success_claim: true
+            checked_at: "2026-08-14"
+            robots_url: https://newsroom.wcs.org/robots.txt
+            robots_status: allow
+            javascript_required: false
+            evidence_urls:
+              - https://bronxzoo.com/
+              - https://newsroom.wcs.org/News-Releases.aspx
+              - https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25
+              - https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx
+              - https://newsroom.wcs.org/robots.txt
+            direct_endpoint_candidates: 25
+            selector_candidate_count: 25
+            identity_match_count: 8
+            identity_filter_note: "The feed is operator-wide; the eight text matches are an observation, not a structured WCS Bronx category."
+            article_content_selector: .article-body
+            remediation_status: verified_live_retest
+            diagnostic_artifact_dir: /tmp/zoofan-phase0.9Jx9xK
+            diagnostic_runs: [global_top10.pass1, global_top10.pass2]
+            article_probe:
+              url: https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx
+              http_status: 200
+              main_root_present: false
+              article_root_present: false
+            retest:
+              run_ids: [d1dc9a0cfc15474dbcb322d9e73b97ef, 5372992f73a74afda78d0a1573d00790]
+              rss_discovered_identity_matches: 8
+              first_fetched: 1
+              first_stored: 1
+              first_content_chars: 4429
+              second_already_known: 1
+              content_parse_errors: 0
+              new_duplicates: 0
+              success_claim: true
+
+  - id: smithsonians-national-zoo
+    slug: smithsonians-national-zoo
+    name: "Smithsonian's National Zoo"
+    city: "Washington, DC"
+    groups: [core30, global_top10]
+    country_code: US
+    language: en
+    enabled: true
+    source_status: partial
+    website_url: https://nationalzoo.si.edu/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 37
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: nationalzoo.si.edu
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: partial
+        adapter_status: partial
+        js_required: false
+        js_observed: server_rendered_html
+        robots_status: allow_current_disallow_archive
+        status_reason: "The official current news listing is directly crawlable, but robots.txt disallows the historical archive paths, leaving only a limited current listing for a compliant adapter."
+        gaps: [historical_archive_robots_disallowed, latest_listing_only]
+        evidence_urls:
+          - https://nationalzoo.si.edu/
+          - https://nationalzoo.si.edu/news
+          - https://nationalzoo.si.edu/news/press-release-archive
+          - https://nationalzoo.si.edu/sitemap.xml
+          - https://nationalzoo.si.edu/robots.txt
+        adapter_proposal:
+          kind: archive
+          source_urls: [https://nationalzoo.si.edu/news]
+          config_notes: "Use only the limited current server-rendered news cards. Do not follow /news/archive or /news/press-release-archive while robots disallows them."
+    sources:
+      - id: smithsonians-national-zoo-current-news
+        name: current-news
+        language: en
+        kind: archive
+        source_status: partial
+        enabled: false
+        url: https://nationalzoo.si.edu/news
+        config:
+          official_host: nationalzoo.si.edu
+          allow_regex: '^https://nationalzoo\.si\.edu/(?:news|animals/news)/'
+          exclude_regex:
+            - '^https://nationalzoo\.si\.edu/news/archive'
+            - '^https://nationalzoo\.si\.edu/news/press-release-archive'
+            - '^https://nationalzoo\.si\.edu/news/media-contact-form'
+          article_selector: '#block-views-block-media-release-and-news-block-16 .card, #block-views-block-media-release-and-news-block-15 .card'
+          link_selector: 'div.p-4.pr-8.flex-grow > a[href]'
+          title_selector: '.card--title'
+          date_selector: '.card--tagline'
+          max_pages: 1
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: partial
+            checked_at: "2026-08-14"
+            robots_url: https://nationalzoo.si.edu/robots.txt
+            robots_status: allow_current_disallow_archive
+            javascript_required: false
+            evidence_urls:
+              - https://nationalzoo.si.edu/news
+              - https://nationalzoo.si.edu/robots.txt
+            direct_endpoint_candidates: 16
+            selector_candidate_count: 16
+            disable_reason: limited_current_listing_not_ready_for_import
+      - id: smithsonians-national-zoo-historical-archive
+        name: historical-press-archive
+        language: en
+        kind: archive
+        source_status: robots_disallowed
+        enabled: false
+        url: https://nationalzoo.si.edu/news/press-release-archive
+        config:
+          official_host: nationalzoo.si.edu
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://nationalzoo.si.edu/robots.txt
+            robots_status: path_disallowed
+            javascript_required: false
+            evidence_urls:
+              - https://nationalzoo.si.edu/news/press-release-archive
+              - https://nationalzoo.si.edu/robots.txt
+            disable_reason: robots_disallowed_no_bypass
+
+  - id: toronto-zoo
+    slug: toronto-zoo
+    name: Toronto Zoo
+    city: Toronto
+    groups: [core30, global_top10]
+    country_code: CA
+    language: en
+    enabled: true
+    source_status: robots_disallowed
+    website_url: https://www.torontozoo.com/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 38
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.torontozoo.com
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: blocked
+        adapter_status: robots_disallowed
+        js_required: false
+        js_observed: server_rendered_html
+        robots_status: missing_http_404
+        status_reason: "The official media room and press2026 archive are available as HTML, but https://www.torontozoo.com/robots.txt returns HTTP 404; fail-closed robots handling therefore prevents crawling."
+        gaps: [robots_txt_missing_http_404]
+        evidence_urls:
+          - https://www.torontozoo.com/
+          - https://www.torontozoo.com/mediaroom
+          - https://www.torontozoo.com/mediaroom/press2026
+          - https://www.torontozoo.com/robots.txt
+        adapter_proposal:
+          kind: archive
+          source_urls: [https://www.torontozoo.com/mediaroom/press2026]
+          config_notes: "Enable only after the official host serves a valid robots.txt; the current HTTP 404 is fail-closed."
+    sources:
+      - id: toronto-zoo-press-2026
+        name: press-2026
+        language: en
+        kind: archive
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.torontozoo.com/mediaroom/press2026
+        config:
+          official_host: www.torontozoo.com
+          allow_regex: '^https://www\.torontozoo\.com/mediaroom/press2026/[^/?#]+$'
+          exclude_regex:
+            - '^https://www\.torontozoo\.com/(?:!/|tickets)(?:/|$)'
+          article_selector: a.press-item
+          link_selector: 'a.press-item[href]'
+          title_selector: '.press-title'
+          date_selector: '.press-content > span'
+          max_pages: 1
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://www.torontozoo.com/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.torontozoo.com/mediaroom/press2026
+              - https://www.torontozoo.com/robots.txt
+            direct_endpoint_candidates: null
+            selector_candidate_count: null
+            probe_only: true
+            disable_reason: robots_disallowed_no_bypass
+
+  - id: singapore-zoo
+    slug: singapore-zoo
+    name: Singapore Zoo
+    city: Singapore
+    groups: [core30, global_top10]
+    country_code: SG
+    language: en
+    enabled: true
+    source_status: partial
+    website_url: https://www.mandai.com/en/singapore-zoo.html
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 39
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.mandai.com
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: partial
+        adapter_status: partial
+        js_required: true
+        js_observed: AEM_SSR_article_pages_media_centre_index_uses_JS_filter_servlet
+        robots_status: api_path_disallowed
+        status_reason: "Mandai's official sitemap exposes a usable first-party media-centre URL set, while the current listing is JS-gated and its /bin API is robots-disallowed and not a reliable direct endpoint."
+        gaps: [media_centre_index_javascript_required, media_api_robots_disallowed]
+        evidence_urls:
+          - https://www.mandai.com/en/singapore-zoo.html
+          - https://www.mandai.com/en/about-mandai/media-centre.html
+          - https://www.mandai.com/content/wrs/en.sitemap.xml
+          - https://www.mandai.com/robots.txt
+        adapter_proposal:
+          kind: sitemap
+          source_urls: [https://www.mandai.com/content/wrs/en.sitemap.xml]
+          config_notes: "Filter the official English sitemap to /en/about-mandai/media-centre/ article URLs; do not use the JS filter servlet under /bin/."
+    sources:
+      - id: singapore-zoo-mandai-media-sitemap
+        name: mandai-media-sitemap
+        language: en
+        kind: sitemap
+        source_status: partial
+        enabled: false
+        url: https://www.mandai.com/content/wrs/en.sitemap.xml
+        config:
+          official_host: www.mandai.com
+          allow_regex: '^https://www\.mandai\.com/en/about-mandai/media-centre/[^/?#]+/?$'
+          exclude_regex:
+            - '^https://www\.mandai\.com/en/about-mandai/media-centre\.html$'
+            - '^https://www\.mandai\.com/(?:bin|api|services)(?:/|$)'
+          max_sitemaps: 1
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: registry_only
+            checked_at: "2026-08-14"
+            robots_url: https://www.mandai.com/robots.txt
+            robots_status: allow_not_promoted
+            javascript_required: false
+            evidence_urls:
+              - https://www.mandai.com/content/wrs/en.sitemap.xml
+              - https://www.mandai.com/robots.txt
+            direct_endpoint_candidates: null
+            selector_candidate_count: null
+            disable_reason: no_verified_singapore_zoo_identity_filter
+      - id: singapore-zoo-mandai-media-index
+        name: mandai-media-centre-index
+        language: en
+        kind: registry_only
+        source_status: javascript_required
+        enabled: false
+        url: https://www.mandai.com/en/about-mandai/media-centre.html
+        config:
+          official_host: www.mandai.com
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: javascript_required
+            checked_at: "2026-08-14"
+            robots_url: https://www.mandai.com/robots.txt
+            robots_status: api_path_disallowed
+            javascript_required: true
+            evidence_urls:
+              - https://www.mandai.com/en/about-mandai/media-centre.html
+              - https://www.mandai.com/robots.txt
+            disable_reason: javascript_required_no_browser_fallback
+      - id: singapore-zoo-mandai-media-api
+        name: mandai-media-api
+        language: en
+        kind: json_api
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.mandai.com/bin/commons/pressRoomBlockDataServlet?pagePath=/content/wrs/en/mandai/about-mandai/media-centre/jcr:content/root/responsivegrid/pressroomblock
+        config:
+          official_host: www.mandai.com
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://www.mandai.com/robots.txt
+            robots_status: path_disallowed
+            javascript_required: true
+            evidence_urls:
+              - https://www.mandai.com/bin/commons/pressRoomBlockDataServlet?pagePath=/content/wrs/en/mandai/about-mandai/media-centre/jcr:content/root/responsivegrid/pressroomblock
+              - https://www.mandai.com/robots.txt
+            disable_reason: robots_disallowed_and_direct_probe_http_500
+
+  - id: ueno-zoo
+    slug: ueno-zoo
+    name: Ueno Zoo
+    city: Tokyo
+    groups: [core30, global_top10]
+    country_code: JP
+    language: ja
+    enabled: true
+    source_status: robots_disallowed
+    website_url: https://www.tokyo-zoo.net/ueno/index.html
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 40
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.tokyo-zoo.net
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: blocked
+        adapter_status: robots_disallowed
+        js_required: false
+        js_observed: server_rendered_html
+        robots_status: missing_http_404
+        status_reason: "Official Japanese and English Ueno news archives and sitemap are directly available, but https://www.tokyo-zoo.net/robots.txt returns HTTP 404; the default Fetcher therefore cannot proceed."
+        gaps: [robots_txt_missing_http_404]
+        language_tag: ja
+        evidence_urls:
+          - https://www.tokyo-zoo.net/ueno/index.html
+          - https://www.tokyo-zoo.net/ueno/news/index.html
+          - https://www.tokyo-zoo.net/en/ueno/news/index.html
+          - https://www.tokyo-zoo.net/sitemap.xml
+          - https://www.tokyo-zoo.net/robots.txt
+        adapter_proposal:
+          kind: archive
+          source_urls: [https://www.tokyo-zoo.net/ueno/news/index.html]
+          config_notes: "Enable only after the host serves robots.txt; the current HTTP 404 is fail-closed."
+    sources:
+      - id: ueno-zoo-news-ja
+        name: japanese-news
+        language: ja
+        kind: archive
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.tokyo-zoo.net/ueno/news/index.html
+        config:
+          official_host: www.tokyo-zoo.net
+          allow_regex: '^https://www\.tokyo-zoo\.net/ueno/news/[0-9]+/index\.html$'
+          exclude_regex:
+            - '^https://www\.tokyo-zoo\.net/(?:common|image|en)(?:/|$)'
+          article_selector: '.el-news__item[data-category="news"]'
+          link_selector: 'a.el-news__item__inner[href]'
+          title_selector: '.el-news__item__heading-text'
+          date_selector: '.el-news__item__date'
+          max_pages: 1
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://www.tokyo-zoo.net/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.tokyo-zoo.net/ueno/news/index.html
+              - https://www.tokyo-zoo.net/robots.txt
+            direct_endpoint_candidates: null
+            selector_candidate_count: null
+            probe_only: true
+            disable_reason: robots_disallowed_no_bypass
+
+  - id: taipei-zoo
+    slug: taipei-zoo
+    name: Taipei Zoo
+    city: Taipei
+    groups: [core30, global_top10]
+    country_code: TW
+    language: zh
+    enabled: true
+    source_status: robots_disallowed
+    website_url: https://www.zoo.gov.taipei/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 41
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.zoo.gov.taipei
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      language_tag: zh-Hant
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: blocked
+        adapter_status: robots_disallowed
+        js_required: false
+        js_observed: server_rendered_html_official_RSS_XML_JSON_endpoints
+        robots_status: missing_http_404_on_chinese_and_english_hosts
+        status_reason: "Taipei Zoo has official RSS/XML/JSON and HTML news sources, but both official language hosts return HTTP 404 for robots.txt; fail-closed robots handling blocks the crawl."
+        gaps: [robots_txt_missing_http_404_on_chinese_and_english_hosts]
+        evidence_urls:
+          - https://www.zoo.gov.taipei/
+          - https://english.zoo.gov.taipei/Default.aspx
+          - https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6
+          - https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E
+          - https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A
+          - https://www.zoo.gov.taipei/sitemap.xml
+          - https://www.zoo.gov.taipei/robots.txt
+          - https://english.zoo.gov.taipei/robots.txt
+        adapter_proposal:
+          kind: rss
+          source_urls:
+            - https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E
+            - https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A
+          config_notes: "Enable only after robots is restored; retain the BD065B2FA7782989 news collection and official News_Content.aspx links."
+    sources:
+      - id: taipei-zoo-press-rss
+        name: press-rss
+        language: zh
+        kind: rss
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E
+        config:
+          official_host: www.zoo.gov.taipei
+          allow_regex: '^https://www\.zoo\.gov\.taipei/News_Content\.aspx\?(?=[^#]*[?&]n=BD065B2FA7782989(?:&|$))(?=[^#]*[?&]s=[^&#]+(?:&|$))[^#]+$'
+          exclude_regex:
+            - '^https://www\.zoo\.gov\.taipei/(?:OpenData|News)\.aspx'
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoo.gov.taipei/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E
+              - https://www.zoo.gov.taipei/robots.txt
+            direct_endpoint_candidates: 50
+            selector_candidate_count: 50
+            query_constraints: {n: BD065B2FA7782989, s: required}
+            disable_reason: robots_disallowed_no_bypass
+      - id: taipei-zoo-press-json
+        name: press-json
+        language: zh
+        kind: json_api
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A
+        config:
+          official_host: www.zoo.gov.taipei
+          allow_regex: '^https://www\.zoo\.gov\.taipei/News_Content\.aspx\?(?=[^#]*[?&]n=BD065B2FA7782989(?:&|$))(?=[^#]*[?&]s=[^&#]+(?:&|$))[^#]+$'
+          exclude_regex:
+            - '^https://www\.zoo\.gov\.taipei/(?:OpenData|News)\.aspx'
+          title_path: title
+          url_path: Source
+          date_path: 日期時間
+          summary_path: 內容
+          max_items: 50
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoo.gov.taipei/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A
+              - https://www.zoo.gov.taipei/robots.txt
+            direct_endpoint_candidates: 50
+            selector_candidate_count: 50
+            items_path: root_array
+            query_constraints: {n: BD065B2FA7782989, s: required}
+            disable_reason: robots_disallowed_no_bypass
+      - id: taipei-zoo-press-xml
+        name: press-xml
+        language: zh
+        kind: unsupported
+        source_status: unsupported
+        enabled: false
+        url: https://www.zoo.gov.taipei/OpenData.aspx?SN=1B8CDF622E1AD51D
+        config:
+          official_host: www.zoo.gov.taipei
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: unsupported
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoo.gov.taipei/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.zoo.gov.taipei/OpenData.aspx?SN=1B8CDF622E1AD51D
+              - https://www.zoo.gov.taipei/robots.txt
+            disable_reason: no_builtin_generic_xml_adapter
+      - id: taipei-zoo-press-archive
+        name: press-archive
+        language: zh
+        kind: archive
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6
+        config:
+          official_host: www.zoo.gov.taipei
+          allow_regex: '^https://www\.zoo\.gov\.taipei/News_Content\.aspx\?(?=[^#]*[?&]n=BD065B2FA7782989(?:&|$))(?=[^#]*[?&]s=[^&#]+(?:&|$))[^#]+$'
+          exclude_regex:
+            - '^https://www\.zoo\.gov\.taipei/(?:News|OpenData)\.aspx'
+          article_selector: '#CCMS_Content a[href*="News_Content.aspx"]'
+          link_selector: 'a[href*="News_Content.aspx"]'
+          pagination_selector: 'a[href*="PageSize=20"][href*="page=2"]'
+          max_pages: 2
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoo.gov.taipei/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6
+              - https://www.zoo.gov.taipei/robots.txt
+            direct_endpoint_candidates: 20
+            selector_candidate_count: 20
+            pagination_evidence: "The first page exposed PageSize=20 links including page=2; the disabled plan is capped at two pages."
+            disable_reason: robots_disallowed_no_bypass
+      - id: taipei-zoo-sitemap-health
+        name: sitemap-health
+        language: zh
+        kind: registry_only
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.zoo.gov.taipei/sitemap.xml
+        config:
+          official_host: www.zoo.gov.taipei
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: registry_only
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoo.gov.taipei/robots.txt
+            robots_status: missing_http_404
+            javascript_required: false
+            evidence_urls:
+              - https://www.zoo.gov.taipei/sitemap.xml
+              - https://www.zoo.gov.taipei/robots.txt
+            direct_endpoint_candidates: 102
+            selector_candidate_count: 0
+            max_sitemaps: 1
+            disable_reason: health_evidence_only
+
+  - id: taronga-zoo-sydney
+    slug: taronga-zoo-sydney
+    name: Taronga Zoo Sydney
+    city: Sydney
+    groups: [core30, global_top10]
+    country_code: AU
+    language: en
+    enabled: true
+    source_status: partial
+    website_url: https://www.taronga.org.au/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 42
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.taronga.org.au
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: partial
+        adapter_status: partial
+        js_required: true
+        js_observed: SSR_newsroom_shell_plus_first_party_JSON_API
+        robots_status: allow
+        status_reason: "The official Taronga newsroom and first-party article-search API are available and robots.txt permits the host, but the operator-wide API returned zero verified Sydney-specific candidates and no safe Sydney identity filter was established."
+        gaps: [endpoint_is_operator_wide_sydney_identity_filter_required, zero_verified_sydney_specific_candidates]
+        evidence_urls:
+          - https://www.taronga.org.au/
+          - https://www.taronga.org.au/sydney-zoo/
+          - https://www.taronga.org.au/about/newsroom
+          - https://www.taronga.org.au/about/newsroom/media-releases
+          - https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358
+          - https://www.taronga.org.au/robots.txt
+        adapter_proposal:
+          kind: api
+          source_urls:
+            - https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358
+          config_notes: "The first-party API is structured but operator-wide; no Sydney-specific category or path filter was verified and the checked page yielded zero verified Sydney-specific candidates. Keep disabled; do not infer Sydney identity or add an unverified query parameter."
+    sources:
+      - id: taronga-zoo-sydney-article-api
+        name: newsroom-article-api
+        language: en
+        kind: json_api
+        source_status: partial
+        enabled: false
+        url: https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358
+        config:
+          official_host: www.taronga.org.au
+          allow_regex: '^https://www\.taronga\.org\.au/about/newsroom/(?:posts|media-releases)/[^/?#]+/?$'
+          exclude_regex:
+            - '^https://www\.taronga\.org\.au/api/'
+            - '^https://www\.taronga\.org\.au/dubbo-zoo/'
+          items_path: result.items
+          title_path: header
+          url_path: link.href
+          date_path: articleDate
+          summary_path: summary
+          max_items: 9
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: partial
+            checked_at: "2026-08-14"
+            robots_url: https://www.taronga.org.au/robots.txt
+            robots_status: allow
+            javascript_required: false
+            evidence_urls:
+              - https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358
+              - https://www.taronga.org.au/robots.txt
+            direct_endpoint_candidates: 9
+            selector_candidate_count: 9
+            verified_sydney_specific_count: 0
+            pagination_max_pages: 2
+            identity_filter_required: true
+            disable_reason: operator_wide_endpoint_no_verified_sydney_filter_in_builtin_adapter
+      - id: taronga-zoo-sydney-news-sitemap
+        name: newsroom-sitemap
+        language: en
+        kind: sitemap
+        source_status: partial
+        enabled: false
+        url: https://www.taronga.org.au/sitemap.xml
+        config:
+          official_host: www.taronga.org.au
+          allow_regex: '^https://www\.taronga\.org\.au/about/newsroom/(?:posts|media-releases)/[^/?#]+/?$'
+          exclude_regex:
+            - '^https://www\.taronga\.org\.au/api/'
+            - '^https://www\.taronga\.org\.au/dubbo-zoo/'
+          max_sitemaps: 1
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: registry_only
+            checked_at: "2026-08-14"
+            robots_url: https://www.taronga.org.au/robots.txt
+            robots_status: allow_not_promoted
+            javascript_required: false
+            evidence_urls:
+              - https://www.taronga.org.au/sitemap.xml
+              - https://www.taronga.org.au/robots.txt
+            direct_endpoint_candidates: 2830
+            selector_candidate_count: 2446
+            verified_sydney_specific_count: 0
+            disable_reason: operator_wide_sitemap_identity_filter_not_verified
+
+  - id: sao-paulo-zoo
+    slug: sao-paulo-zoo
+    name: São Paulo Zoo
+    city: São Paulo
+    groups: [core30, global_top10]
+    country_code: BR
+    language: pt
+    enabled: true
+    source_status: robots_disallowed
+    website_url: https://www.zoologico.com.br/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 43
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.zoologico.com.br
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      language_tag: pt-BR
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: blocked
+        adapter_status: robots_disallowed
+        js_required: true
+        js_observed: NextJS_press_page_plus_first_party_JSON_API
+        robots_status: missing_http_404_on_both_aliases
+        status_reason: "The official Next.js press page and first-party JSON API are verified, but both official robots.txt endpoints return HTTP 404; fail-closed robots handling blocks the crawl."
+        gaps: [robots_txt_missing_http_404_on_both_aliases, api_records_null_links]
+        evidence_urls:
+          - https://www.zoologico.com.br/
+          - https://www.zoologico.com.br/en
+          - https://www.zoologico.com.br/noticias
+          - https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC
+          - https://www.zoologico.com.br/robots.txt
+          - https://zoologico.com.br/robots.txt
+        adapter_proposal:
+          kind: api
+          source_urls:
+            - https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC
+          config_notes: "Do not synthesize article URLs from null links or bypass robots; the endpoint remains unsupported and blocked until both conditions are resolved."
+    sources:
+      - id: sao-paulo-zoo-press-api
+        name: press-api
+        language: pt
+        kind: json_api
+        source_status: robots_disallowed
+        enabled: false
+        url: https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC
+        config:
+          official_host: www.zoologico.com.br
+          items_path: data
+          title_path: title
+          url_path: link
+          date_path: publication_date
+          summary_path: content
+          max_items: 6
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: robots_disallowed
+            adapter_status: unsupported
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoologico.com.br/robots.txt
+            robots_status: missing_http_404
+            javascript_required: true
+            evidence_urls:
+              - https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC
+              - https://www.zoologico.com.br/robots.txt
+              - https://zoologico.com.br/robots.txt
+            direct_endpoint_candidates: 6
+            selector_candidate_count: 6
+            canonical_url_candidates: 0
+            disable_reason: robots_disallowed_and_null_links_no_url_synthesis
+      - id: sao-paulo-zoo-press-page
+        name: press-page
+        language: pt
+        kind: registry_only
+        source_status: javascript_required
+        enabled: false
+        url: https://www.zoologico.com.br/noticias
+        config:
+          official_host: www.zoologico.com.br
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: javascript_required
+            checked_at: "2026-08-14"
+            robots_url: https://www.zoologico.com.br/robots.txt
+            robots_status: missing_http_404
+            javascript_required: true
+            evidence_urls:
+              - https://www.zoologico.com.br/noticias
+              - https://www.zoologico.com.br/robots.txt
+            direct_endpoint_candidates: 0
+            selector_candidate_count: 0
+            disable_reason: javascript_required_no_browser_fallback
+
+  - id: national-zoological-garden
+    slug: national-zoological-garden
+    name: National Zoological Garden
+    city: Pretoria
+    groups: [core30, global_top10]
+    country_code: ZA
+    language: en
+    enabled: true
+    source_status: partial
+    website_url: https://www.pretoriazoo.org/
+    list_provenance:
+      - source: data/zoofan_phase0_zoo_list_v0_1.md
+        version: Phase0 v0.1
+        sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+        authority: user_designated_authoritative_membership_list
+        expanded_count: 73
+        source_line: 44
+        scope: core30
+        membership: global_top10
+        checked_at: "2026-08-14"
+    metadata:
+      official_host: www.pretoriazoo.org
+      tier: Core
+      phase_bucket: core30
+      phase_subgroup: global_top10
+      roster_region_bucket: Global
+      source_research:
+        artifact: reports/source-research/core-global.json
+        schema_version: core-global-source-research.v1
+        adapter_artifact: reports/source-research/core-global-adapters.json
+        adapter_schema_version: core-global-adapters.v1
+        checked_at: "2026-08-14"
+        research_source_status: partial
+        adapter_status: unsupported
+        js_required: false
+        js_observed: WordPress_SSR_plus_RSS_WP_REST_API
+        robots_status: allow
+        status_reason: "The official Pretoria Zoo/SANBI site identifies the National Zoological Garden and exposes first-party RSS and WordPress JSON, but both verified article sets use root-level slugs with no stable news/article path. The broad root-slug URL rule is not safe for this importer, so both sources remain disabled pending a narrower verified path or source-specific URL policy."
+        gaps: [rss_limited_to_five_latest_items, root_slug_article_paths_not_narrow_enough]
+        evidence_urls:
+          - https://www.pretoriazoo.org/
+          - https://www.sanbi.org/gardens/zoo/
+          - https://www.pretoriazoo.org/homepage/newsroom/
+          - https://www.pretoriazoo.org/feed/
+          - https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories
+          - https://www.pretoriazoo.org/sitemap.xml
+          - https://www.pretoriazoo.org/robots.txt
+        adapter_proposal:
+          kind: rss
+          source_urls:
+            - https://www.pretoriazoo.org/feed/
+            - https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories
+          config_notes: "The official RSS and REST API are retained as evidence, but their observed links are root slugs with no stable news/article path. Keep both disabled; do not use the broad root-slug rule."
+    sources:
+      - id: national-zoological-garden-rss
+        name: newsroom-rss
+        language: en
+        kind: rss
+        source_status: unsupported
+        enabled: false
+        url: https://www.pretoriazoo.org/feed/
+        config:
+          official_host: www.pretoriazoo.org
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: unsupported
+            adapter_status: unsupported
+            checked_at: "2026-08-14"
+            robots_url: https://www.pretoriazoo.org/robots.txt
+            robots_status: allow
+            javascript_required: false
+            evidence_urls:
+              - https://www.pretoriazoo.org/feed/
+              - https://www.pretoriazoo.org/robots.txt
+            direct_endpoint_candidates: 5
+            selector_candidate_count: null
+            probe_only: true
+            disable_reason: root_slug_article_paths_not_narrow_enough
+      - id: national-zoological-garden-wp-api
+        name: wordpress-news-backfill
+        language: en
+        kind: json_api
+        source_status: unsupported
+        enabled: false
+        url: https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories
+        config:
+          official_host: www.pretoriazoo.org
+          title_path: title.rendered
+          url_path: link
+          date_path: date
+          updated_at_path: modified
+          summary_path: content.rendered
+          max_items: 10
+          research:
+            artifact: reports/source-research/core-global-adapters.json
+            source_status: unsupported
+            adapter_status: unsupported
+            checked_at: "2026-08-14"
+            robots_url: https://www.pretoriazoo.org/robots.txt
+            robots_status: allow
+            javascript_required: false
+            evidence_urls:
+              - https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories
+              - https://www.pretoriazoo.org/robots.txt
+            direct_endpoint_candidates: 10
+            selector_candidate_count: null
+            probe_only: true
+            items_path: root_array
+            pagination_max_pages: 2
+            disable_reason: root_slug_article_paths_not_narrow_enough

@@ -1,0 +1,2971 @@
+{
+  "acceptance": {
+    "criteria": [
+      {
+        "detail": "The configured zoo registry is readable.",
+        "id": "configuration_loaded",
+        "label": "Configuration loaded",
+        "passed": true
+      },
+      {
+        "detail": "73 of 73 configured zoos are present.",
+        "id": "configured_zoos_projected",
+        "label": "Configured zoos projected",
+        "passed": true
+      },
+      {
+        "detail": "All configured source kinds are known; explicit unsupported entries are external limitations.",
+        "id": "supported_adapters",
+        "label": "Source adapters supported",
+        "passed": true
+      },
+      {
+        "detail": "A latest crawl run is available.",
+        "id": "run_evidence",
+        "label": "Crawl run evidence",
+        "passed": true
+      },
+      {
+        "detail": "63 of 63 enabled source checks are registered; 44 of 44 article-capable executable sources and 19 of 19 health-only registry_only sources are covered.",
+        "id": "source_coverage",
+        "label": "Enabled source coverage",
+        "passed": true
+      },
+      {
+        "detail": "73 of 73 enabled zoos have exactly one latest-run result.",
+        "id": "latest_run_zoo_result_coverage",
+        "label": "Latest run has exactly one result per enabled zoo",
+        "passed": true
+      },
+      {
+        "detail": "The configured entries carry a matching authoritative expanded-roster provenance.",
+        "id": "configured_registry_scope",
+        "label": "Acceptance scope is the configured registry",
+        "passed": true
+      },
+      {
+        "detail": "No blocking source/run failures were recorded. 66 external limitation failure reason(s) remain visible as non-blocking evidence.",
+        "id": "no_run_failures",
+        "label": "No run failures",
+        "passed": true
+      },
+      {
+        "detail": "No blocking article-quality findings were recorded; long_title remains a warning.",
+        "id": "article_quality_rules",
+        "label": "Article quality rules",
+        "passed": true
+      },
+      {
+        "detail": "0 duplicate content identities and 0 duplicate normalized URLs.",
+        "id": "deduplication_integrity",
+        "label": "Deduplication integrity",
+        "passed": true
+      },
+      {
+        "detail": "All projected article URLs are valid and official for their configured zoo.",
+        "id": "article_url_safety",
+        "label": "Article URL policy evidence",
+        "passed": true
+      },
+      {
+        "detail": "Only selected, escaped evidence fields are projected.",
+        "id": "safe_projection",
+        "label": "Raw HTML and unselected metadata excluded",
+        "passed": true
+      },
+      {
+        "detail": "JSON, Markdown, CSV and HTML are generated from one projection contract.",
+        "id": "cross_format_contract",
+        "label": "Cross-format report contract",
+        "passed": true
+      }
+    ],
+    "end_criteria_met": true,
+    "external_limited": true,
+    "passed": true,
+    "status": "PASS"
+  },
+  "articles": [
+    {
+      "author": "Burgers' Zoo",
+      "body_summary": "Eagle‑owl expert Gejo Wassink rings and weighs four eagle‑owl chicks that hatched from a wild nest inside the Arnhem zoo",
+      "canonical_url": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+      "content_length": 2151,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:16.388964+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:16.388014+00:00",
+          "discovered_url": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+          "discovered_url_raw": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+          "id": "99252771a7c748be8d24d7118e68915b",
+          "last_discovered_at": "2026-08-14T09:10:15.237761+00:00",
+          "source_id": "core-europe-burgers-zoo-sitemap-news-en"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:16.387689+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/0b499cba8f284e88a868d0bd2d474ef4"
+      },
+      "evidence_path": "sqlite://articles/0b499cba8f284e88a868d0bd2d474ef4",
+      "first_discovered_at": "2026-08-14T09:08:16.388014+00:00",
+      "http_status": 200,
+      "id": "0b499cba8f284e88a868d0bd2d474ef4",
+      "image_url": "https://www.burgerszoo.com/media/z2dgxlgq/vier-wilde-oehoejongen-4.jpg?height=624&v=1dcece62b137180&width=1248",
+      "language": "en-US",
+      "last_discovered_at": "2026-08-14T09:10:15.237761+00:00",
+      "last_fetched_at": "2026-08-14T09:08:16.387689+00:00",
+      "normalized_url": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+      "source_ids": [
+        "core-europe-burgers-zoo-sitemap-news-en"
+      ],
+      "source_names": [
+        "news-sitemap"
+      ],
+      "source_url_raw": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+      "storage_updated_at": "2026-08-14T09:08:16.388964+00:00",
+      "summary": "Eagle‑owl expert Gejo Wassink rings and weighs four eagle‑owl chicks that hatched from a wild nest inside the Arnhem zoo",
+      "title": "Wild eagle-owls select Burgers' Zoo as breeding ground",
+      "url": "https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "burgers-zoo",
+      "zoo_ids": [
+        "burgers-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "From now on, four gorillas can be seen again. The group, consisting of three females and a silverback, is temporarily housed at Diergaarde Blijdorp.",
+      "canonical_url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+      "content_length": 1953,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:11.560697+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:11.560052+00:00",
+          "discovered_url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+          "discovered_url_raw": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+          "id": "c9ed7316b85d4df78da983fab66558d8",
+          "last_discovered_at": "2026-08-14T09:10:12.737649+00:00",
+          "source_id": "core-europe-diergaarde-blijdorp-sitemap-media-en"
+        },
+        {
+          "discovered_at": "2026-08-14T09:08:12.756269+00:00",
+          "discovered_url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+          "discovered_url_raw": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+          "id": "b988482c590b46bdb9f3439c1f6ff38b",
+          "last_discovered_at": "2026-08-14T09:10:14.027280+00:00",
+          "source_id": "core-europe-diergaarde-blijdorp-media-en"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:11.559934+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/1f49388413b347b3bcc96c2698250c46"
+      },
+      "evidence_path": "sqlite://articles/1f49388413b347b3bcc96c2698250c46",
+      "first_discovered_at": "2026-08-14T09:08:11.560052+00:00",
+      "http_status": 200,
+      "id": "1f49388413b347b3bcc96c2698250c46",
+      "image_url": "https://images.prismic.io/blijdorp/aiqDwqlQnVZVEM-Q_ShirleyKroos-Gorillagroep.jpg?auto=format%2Ccompress&h=1260&rect=0%2C91%2C1280%2C672&w=2400",
+      "language": "en",
+      "last_discovered_at": "2026-08-14T09:10:14.027280+00:00",
+      "last_fetched_at": "2026-08-14T09:08:11.559934+00:00",
+      "normalized_url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+      "source_ids": [
+        "core-europe-diergaarde-blijdorp-sitemap-media-en",
+        "core-europe-diergaarde-blijdorp-media-en"
+      ],
+      "source_names": [
+        "media-sitemap",
+        "media"
+      ],
+      "source_url_raw": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+      "storage_updated_at": "2026-08-14T09:08:11.560697+00:00",
+      "summary": "From now on, four gorillas can be seen again. The group, consisting of three females and a silverback, is temporarily housed at Diergaarde Blijdorp.",
+      "title": "New group of gorillas",
+      "url": "https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "diergaarde-blijdorp",
+      "zoo_ids": [
+        "diergaarde-blijdorp"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "news Back Charging Your Electric Vehicle at Pairi Daiza 05.08.2024 Visits & practical advice Equipped with solar panels, the parking areas at Pairi Daiza have charging points with a power of 11 kW. These are located exclusively in Parking 2 (for day visitors) and Parking 3 (for guests staying in the Park). A personal…",
+      "canonical_url": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+      "content_length": 781,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:07.132742+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:07.130791+00:00",
+          "discovered_url": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+          "discovered_url_raw": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+          "id": "72d59cf1b85449e4a7ef614b9afefccc",
+          "last_discovered_at": "2026-08-14T09:10:09.882030+00:00",
+          "source_id": "core-europe-pairi-daiza-sitemap-news-en"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:07.130620+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/d645249bf1fd4bfbbb7c88a161a301be"
+      },
+      "evidence_path": "sqlite://articles/d645249bf1fd4bfbbb7c88a161a301be",
+      "first_discovered_at": "2026-08-14T09:08:07.130791+00:00",
+      "http_status": 200,
+      "id": "d645249bf1fd4bfbbb7c88a161a301be",
+      "image_url": "https://cms.pairidaiza.eu/thumbor/tjPp0nLvgM7zeCrELckSBcK0xYk=/fit-in/1024x/filters:quality(92)/--/uploads/2024/04/sharing.png",
+      "language": "en",
+      "last_discovered_at": "2026-08-14T09:10:09.882030+00:00",
+      "last_fetched_at": "2026-08-14T09:08:07.130620+00:00",
+      "normalized_url": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+      "source_ids": [
+        "core-europe-pairi-daiza-sitemap-news-en"
+      ],
+      "source_names": [
+        "news-sitemap"
+      ],
+      "source_url_raw": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+      "storage_updated_at": "2026-08-14T09:08:07.132742+00:00",
+      "summary": "news Back Charging Your Electric Vehicle at Pairi Daiza 05.08.2024 Visits & practical advice Equipped with solar panels, the parking areas at Pairi Daiza have charging points with a power of 11 kW. These are located exclusively in Parking 2 (for day visitors) and Parking 3 (for guests staying in the Park). A personal…",
+      "title": "News charging points | Pairi Daiza",
+      "url": "https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "pairi-daiza",
+      "zoo_ids": [
+        "pairi-daiza"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "A southern ground-hornbill chick can exceptionally be seen by visitors at Prague Zoo. The rearing of this majestic African bird usually takes place in the off-exhibit areas, but this year the keepers decided to let the chick out unusually early....",
+      "canonical_url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+      "content_length": 4263,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:56.244921+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:56.244549+00:00",
+          "discovered_url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+          "discovered_url_raw": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+          "id": "3ba169cbbc6a4767b0687e1c92d077c6",
+          "last_discovered_at": "2026-08-14T09:10:03.304662+00:00",
+          "source_id": "core-europe-prague-zoo-news-en"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:56.244397+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/9d210126a5324b56a7abeed1f64e75f3"
+      },
+      "evidence_path": "sqlite://articles/9d210126a5324b56a7abeed1f64e75f3",
+      "first_discovered_at": "2026-08-14T09:07:56.244549+00:00",
+      "http_status": 200,
+      "id": "9d210126a5324b56a7abeed1f64e75f3",
+      "image_url": "https://www.zoopraha.cz/images/Aktualne/Foto_1_Z09_6813_web.jpg",
+      "language": "en-GB",
+      "last_discovered_at": "2026-08-14T09:10:03.304662+00:00",
+      "last_fetched_at": "2026-08-14T09:07:56.244397+00:00",
+      "normalized_url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+      "source_ids": [
+        "core-europe-prague-zoo-news-en"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+      "storage_updated_at": "2026-08-14T09:07:56.244921+00:00",
+      "summary": "A southern ground-hornbill chick can exceptionally be seen by visitors at Prague Zoo. The rearing of this majestic African bird usually takes place in the off-exhibit areas, but this year the keepers decided to let the chick out unusually early....",
+      "title": "Southern Ground-hornbill Chick: Exceptionally on View to Visitors This Year",
+      "url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "prague-zoo",
+      "zoo_ids": [
+        "prague-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Od pátku 26.5. do neděle 11. 6. jsou v areálu Zoo Praha vystaveny tři vozy Mercedes-Benz. Model CLA je k vidění u bernešek. GLA se usídlilo v Dětské zoo a Mercedes-Benz třídy A zaparkoval u lemurů. Právě s tímto modelem je spojena soutěž o...",
+      "canonical_url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+      "content_length": 589,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:54.291927+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:54.291325+00:00",
+          "discovered_url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+          "discovered_url_raw": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+          "id": "b6d8c390b41f46e68e53072f26da66c7",
+          "last_discovered_at": "2026-08-14T09:10:02.563341+00:00",
+          "source_id": "core-europe-prague-zoo-sitemap-cs"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:54.291217+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/7c9ff76f588c447a9f0e734a1046a94f"
+      },
+      "evidence_path": "sqlite://articles/7c9ff76f588c447a9f0e734a1046a94f",
+      "first_discovered_at": "2026-08-14T09:07:54.291325+00:00",
+      "http_status": 200,
+      "id": "7c9ff76f588c447a9f0e734a1046a94f",
+      "image_url": "https://www.zoopraha.cz/images/Aktualne/DSC_8800_export.jpg",
+      "language": "cs-CZ",
+      "last_discovered_at": "2026-08-14T09:10:02.563341+00:00",
+      "last_fetched_at": "2026-08-14T09:07:54.291217+00:00",
+      "normalized_url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+      "source_ids": [
+        "core-europe-prague-zoo-sitemap-cs"
+      ],
+      "source_names": [
+        "news-sitemap-cs-fallback"
+      ],
+      "source_url_raw": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+      "storage_updated_at": "2026-08-14T09:07:54.291927+00:00",
+      "summary": "Od pátku 26.5. do neděle 11. 6. jsou v areálu Zoo Praha vystaveny tři vozy Mercedes-Benz. Model CLA je k vidění u bernešek. GLA se usídlilo v Dětské zoo a Mercedes-Benz třídy A zaparkoval u lemurů. Právě s tímto modelem je spojena soutěž o...",
+      "title": "Adoptujte si „medvěda“",
+      "url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "prague-zoo",
+      "zoo_ids": [
+        "prague-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Meet Rana: Rare babirusa piglet born at Chester Zoo Rana's arrival offers hope for a species found on just four Indonesian islands and increasingly threatened in the wild by habitat loss and African swine fever. Tags Animal news August 12, 2026 We've welcomed a rare babirusa piglet at Chester Zoo, giving hope to a spe…",
+      "canonical_url": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+      "content_length": 4536,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:45.620152+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:45.619843+00:00",
+          "discovered_url": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+          "discovered_url_raw": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+          "id": "0be1f8bfe36b4a028ba448040f352771",
+          "last_discovered_at": "2026-08-14T09:09:55.474145+00:00",
+          "source_id": "core-europe-chester-zoo-news-archive"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:45.619720+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/e2d3bf7b74464af589b2b4ffcb606352"
+      },
+      "evidence_path": "sqlite://articles/e2d3bf7b74464af589b2b4ffcb606352",
+      "first_discovered_at": "2026-08-14T09:07:45.619843+00:00",
+      "http_status": 200,
+      "id": "e2d3bf7b74464af589b2b4ffcb606352",
+      "image_url": "http://localhost:8080/media/wgcnsthl/babirusa_piglet_202617.jpg?width=1200",
+      "language": "en",
+      "last_discovered_at": "2026-08-14T09:09:55.474145+00:00",
+      "last_fetched_at": "2026-08-14T09:07:45.619720+00:00",
+      "normalized_url": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+      "source_ids": [
+        "core-europe-chester-zoo-news-archive"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+      "storage_updated_at": "2026-08-14T09:07:45.620152+00:00",
+      "summary": "Meet Rana: Rare babirusa piglet born at Chester Zoo Rana's arrival offers hope for a species found on just four Indonesian islands and increasingly threatened in the wild by habitat loss and African swine fever. Tags Animal news August 12, 2026 We've welcomed a rare babirusa piglet at Chester Zoo, giving hope to a spe…",
+      "title": "Meet Rana: Rare babirusa piglet born at Chester Zoo",
+      "url": "https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "chester-zoo",
+      "zoo_ids": [
+        "chester-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Im Kölner Zoo wachsen fünf junge Schwarzhalsschwäne auf. Sie schlüpften Mitte März und entwickeln sich sehr gut.",
+      "canonical_url": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+      "content_length": 2191,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:04.281174+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:04.278665+00:00",
+          "discovered_url": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+          "discovered_url_raw": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+          "id": "fd870057ce3944fba40c152f288a6720",
+          "last_discovered_at": "2026-08-14T09:09:22.732635+00:00",
+          "source_id": "koeln-zoo-news-sitemap"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:04.278381+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/0c15664338244c21894297f776bf99c1"
+      },
+      "evidence_path": "sqlite://articles/0c15664338244c21894297f776bf99c1",
+      "first_discovered_at": "2026-08-14T09:07:04.278665+00:00",
+      "http_status": 200,
+      "id": "0c15664338244c21894297f776bf99c1",
+      "image_url": "https://koelnerzoo.de/wordpress/wp-content/uploads/2026/06/Rolf-Schlosser_2-1024x683.webp",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:09:22.732635+00:00",
+      "last_fetched_at": "2026-08-14T09:07:04.278381+00:00",
+      "normalized_url": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+      "parse_status": "partial",
+      "published_at": null,
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+      "source_ids": [
+        "koeln-zoo-news-sitemap"
+      ],
+      "source_names": [
+        "news-sitemap"
+      ],
+      "source_url_raw": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+      "storage_updated_at": "2026-08-14T09:07:04.281174+00:00",
+      "summary": "Im Kölner Zoo wachsen fünf junge Schwarzhalsschwäne auf. Sie schlüpften Mitte März und entwickeln sich sehr gut.",
+      "title": "Das gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft",
+      "url": "https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "koeln-zoo",
+      "zoo_ids": [
+        "koeln-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Er der en pandaunge på vej i ZOO? Mads Frost Bertelsen forklarer, hvorfor det er svært at afgøre, om pandahunnen er drægtig, og hvad ZOO holder øje med.",
+      "canonical_url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+      "content_length": 306,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:22.903247+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:22.902963+00:00",
+          "discovered_url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+          "discovered_url_raw": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+          "id": "dc33f24efc3745998d38ff7fa87088d7",
+          "last_discovered_at": "2026-08-14T09:10:18.950249+00:00",
+          "source_id": "core-europe-copenhagen-zoo-news-da"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:22.902850+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/efa4c71ca7cb4bf8ac09bd0a63b12278"
+      },
+      "evidence_path": "sqlite://articles/efa4c71ca7cb4bf8ac09bd0a63b12278",
+      "first_discovered_at": "2026-08-14T09:08:22.902963+00:00",
+      "http_status": 200,
+      "id": "efa4c71ca7cb4bf8ac09bd0a63b12278",
+      "image_url": "https://www.zoo.dk/images/ogimage.webp",
+      "language": "da",
+      "last_discovered_at": "2026-08-14T09:10:18.950249+00:00",
+      "last_fetched_at": "2026-08-14T09:08:22.902850+00:00",
+      "normalized_url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+      "parse_status": "success",
+      "published_at": "2026-08-14T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+      "source_ids": [
+        "core-europe-copenhagen-zoo-news-da"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+      "storage_updated_at": "2026-08-14T09:08:22.903247+00:00",
+      "summary": "Er der en pandaunge på vej i ZOO? Mads Frost Bertelsen forklarer, hvorfor det er svært at afgøre, om pandahunnen er drægtig, og hvad ZOO holder øje med.",
+      "title": "Er der en pandaunge på vej? | Zoologisk Have København",
+      "url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "copenhagen-zoo",
+      "zoo_ids": [
+        "copenhagen-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Gleich drei Jungtiere bei den vom Aussterben bedrohten Somali-Wildeseln",
+      "canonical_url": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+      "content_length": 2690,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:09.474813+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:09.474350+00:00",
+          "discovered_url": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+          "discovered_url_raw": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+          "id": "1da7320df7b3461f9312bb0b57642192",
+          "last_discovered_at": "2026-08-14T09:09:26.604177+00:00",
+          "source_id": "tierpark-berlin-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:09.474224+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/adb364e96ff843b482cd69b4648b8b18"
+      },
+      "evidence_path": "sqlite://articles/adb364e96ff843b482cd69b4648b8b18",
+      "first_discovered_at": "2026-08-14T09:07:09.474350+00:00",
+      "http_status": 200,
+      "id": "adb364e96ff843b482cd69b4648b8b18",
+      "image_url": "https://www.tierpark-berlin.de/fileadmin/_processed_/9/f/csm_IMG_7653_dbc3ff9311.jpg",
+      "language": "de-DE",
+      "last_discovered_at": "2026-08-14T09:09:26.604177+00:00",
+      "last_fetched_at": "2026-08-14T09:07:09.474224+00:00",
+      "normalized_url": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+      "parse_status": "success",
+      "published_at": "2026-08-13T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+      "source_ids": [
+        "tierpark-berlin-news"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+      "storage_updated_at": "2026-08-14T09:07:09.474813+00:00",
+      "summary": "Gleich drei Jungtiere bei den vom Aussterben bedrohten Somali-Wildeseln",
+      "title": "Dreifaches Eselglück im Tierpark Berlin",
+      "url": "https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "tierpark-berlin",
+      "zoo_ids": [
+        "tierpark-berlin"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Der älteste Zoo der Welt liegt mitten in der kaiserlichen Sommerresidenz Schönbrunn in Wien. In einer einzigartigen Verbindung von Kultur und Natur entdeckt man den vielleicht schönsten Zoo der Welt. Mehr als 500, zum Teil bedrohte Tierarten, haben hier ein Zuhause und einen Überlebensraum für ihre Art gefunden.",
+      "canonical_url": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "content_length": 2211,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:01.455495+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:01.454368+00:00",
+          "discovered_url": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+          "discovered_url_raw": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+          "id": "9fa441762b8f4aa2aa772e2374a31c84",
+          "last_discovered_at": "2026-08-14T09:10:06.283574+00:00",
+          "source_id": "core-europe-tiergarten-schonbrunn-news-de"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:01.454244+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/9f445786bf63438c8c2e682b9b616611"
+      },
+      "evidence_path": "sqlite://articles/9f445786bf63438c8c2e682b9b616611",
+      "first_discovered_at": "2026-08-14T09:08:01.454368+00:00",
+      "http_status": 200,
+      "id": "9f445786bf63438c8c2e682b9b616611",
+      "image_url": "https://www.zoovienna.at/media/_versions_/hotnews/fb_schmetterlingskartierung_wnpa_27052026_tgs_zupanc_05_animal_detail_935.jpg",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:10:06.283574+00:00",
+      "last_fetched_at": "2026-08-14T09:08:01.454244+00:00",
+      "normalized_url": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "parse_status": "partial",
+      "published_at": "2026-08-13T00:00:00+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "long_title",
+          "detail": "title has 121 characters",
+          "label": "Article title is unusually long",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "source_ids": [
+        "core-europe-tiergarten-schonbrunn-news-de"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "storage_updated_at": "2026-08-14T09:08:01.455495+00:00",
+      "summary": "Der älteste Zoo der Welt liegt mitten in der kaiserlichen Sommerresidenz Schönbrunn in Wien. In einer einzigartigen Verbindung von Kultur und Natur entdeckt man den vielleicht schönsten Zoo der Welt. Mehr als 500, zum Teil bedrohte Tierarten, haben hier ein Zuhause und einen Überlebensraum für ihre Art gefunden.",
+      "title": "Große Vielfalt mit kleinen Flügeln: 134 Schmetterlingsarten im Tiergarten Schönbrunn nachgewiesen – Tiergarten Schönbrunn",
+      "url": "https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "warning_codes": [
+        "long_title"
+      ],
+      "warnings": [
+        {
+          "code": "long_title",
+          "detail": "title has 121 characters",
+          "label": "Article title is unusually long",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "tiergarten-schonbrunn",
+      "zoo_ids": [
+        "tiergarten-schonbrunn"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Der älteste Zoo der Welt liegt mitten in der kaiserlichen Sommerresidenz Schönbrunn in Wien. In einer einzigartigen Verbindung von Kultur und Natur entdeckt man den vielleicht schönsten Zoo der Welt. Mehr als 500, zum Teil bedrohte Tierarten, haben hier ein Zuhause und einen Überlebensraum für ihre Art gefunden.",
+      "canonical_url": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "content_length": 876,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:03.476900+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:03.476451+00:00",
+          "discovered_url": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+          "discovered_url_raw": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+          "id": "40a9360797934f7ea444c13eff9c8873",
+          "last_discovered_at": "2026-08-14T09:10:07.440308+00:00",
+          "source_id": "core-europe-tiergarten-schonbrunn-press-de"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:03.476330+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/ff6eb9aa1dea49d9a367a924736c42a2"
+      },
+      "evidence_path": "sqlite://articles/ff6eb9aa1dea49d9a367a924736c42a2",
+      "first_discovered_at": "2026-08-14T09:08:03.476451+00:00",
+      "http_status": 200,
+      "id": "ff6eb9aa1dea49d9a367a924736c42a2",
+      "image_url": "https://www.zoovienna.at/static/img/logo_fallback.png",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:10:07.440308+00:00",
+      "last_fetched_at": "2026-08-14T09:08:03.476330+00:00",
+      "normalized_url": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "parse_status": "partial",
+      "published_at": "2026-08-13T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "source_ids": [
+        "core-europe-tiergarten-schonbrunn-press-de"
+      ],
+      "source_names": [
+        "press"
+      ],
+      "source_url_raw": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "storage_updated_at": "2026-08-14T09:08:03.476900+00:00",
+      "summary": "Der älteste Zoo der Welt liegt mitten in der kaiserlichen Sommerresidenz Schönbrunn in Wien. In einer einzigartigen Verbindung von Kultur und Natur entdeckt man den vielleicht schönsten Zoo der Welt. Mehr als 500, zum Teil bedrohte Tierarten, haben hier ein Zuhause und einen Überlebensraum für ihre Art gefunden.",
+      "title": "Presse – Tiergarten Schönbrunn",
+      "url": "https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "tiergarten-schonbrunn",
+      "zoo_ids": [
+        "tiergarten-schonbrunn"
+      ]
+    },
+    {
+      "author": "ipayano@wcs.org",
+      "body_summary": "BRONX, NY, August 12, 2026—A polar bear spends nearly a day walking across a remote Arctic island, crushing and consuming eggs, and destroying almost an entire colony of seabird nests. While reported elsewhere in the Arctic, until recently, such scenes were almost unheard of in Alaska. To",
+      "canonical_url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+      "content_length": 4429,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:37.679957+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:37.679071+00:00",
+          "discovered_url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+          "discovered_url_raw": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+          "id": "159a9f0953bf4f34b0581acf93aea111",
+          "last_discovered_at": "2026-08-14T09:10:28.965574+00:00",
+          "source_id": "bronx-zoo-wcs-rss"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:37.678962+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/d0d5787da028431b9b618075554561f0"
+      },
+      "evidence_path": "sqlite://articles/d0d5787da028431b9b618075554561f0",
+      "first_discovered_at": "2026-08-14T09:08:37.679071+00:00",
+      "http_status": 200,
+      "id": "d0d5787da028431b9b618075554561f0",
+      "image_url": null,
+      "language": "en-US",
+      "last_discovered_at": "2026-08-14T09:10:28.965574+00:00",
+      "last_fetched_at": "2026-08-14T09:08:37.678962+00:00",
+      "normalized_url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+      "parse_status": "partial",
+      "published_at": "2026-08-12T15:56:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+      "source_ids": [
+        "bronx-zoo-wcs-rss"
+      ],
+      "source_names": [
+        "wcs-newsroom-rss"
+      ],
+      "source_url_raw": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+      "storage_updated_at": "2026-08-14T09:08:37.679957+00:00",
+      "summary": "BRONX, NY, August 12, 2026—A polar bear spends nearly a day walking across a remote Arctic island, crushing and consuming eggs, and destroying almost an entire colony of seabird nests. While reported elsewhere in the Arctic, until recently, such scenes were almost unheard of in Alaska. To",
+      "title": "As Arctic Sea Ice Shrinks, Polar Bears Spend More Time on Land—and More Time Consuming Seabird Eggs",
+      "url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "bronx-zoo",
+      "zoo_ids": [
+        "bronx-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "12.08.2026 Die Kunst, ein Blatt zu sein Die Riesenblattschrecke hat ihre gesamte Existenz darauf aufgebaut unsichtbar zu sein, indem sie ein Blatt nahezu perfekt imitiert. Im Insektenwald des Zoos können noch weitere faszinierende Naturkünstler entdeckt und bestaunt werden. Als Zoodirektor darf man keine Lieblingstier…",
+      "canonical_url": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+      "content_length": 3698,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:28.826770+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:28.826265+00:00",
+          "discovered_url": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+          "discovered_url_raw": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+          "id": "a5ea9e54898d427e998f1d29501f6f0a",
+          "last_discovered_at": "2026-08-14T09:10:23.687283+00:00",
+          "source_id": "core-europe-zoo-zurich-zoonews-de"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:28.826129+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/8845696882824c438bcd7ad24ba7ef4c"
+      },
+      "evidence_path": "sqlite://articles/8845696882824c438bcd7ad24ba7ef4c",
+      "first_discovered_at": "2026-08-14T09:08:28.826265+00:00",
+      "http_status": 200,
+      "id": "8845696882824c438bcd7ad24ba7ef4c",
+      "image_url": "https://zoo-live.rokka.io/twitter_card_large/fa3cddded81294302b52bca58e62fe7f75cb47b4/riesenblattschrecke-j25-8860-zz-1.jpg?h=e309cdcb&itok=gsZD4gBM",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:10:23.687283+00:00",
+      "last_fetched_at": "2026-08-14T09:08:28.826129+00:00",
+      "normalized_url": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+      "parse_status": "success",
+      "published_at": "2026-08-12T13:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+      "source_ids": [
+        "core-europe-zoo-zurich-zoonews-de"
+      ],
+      "source_names": [
+        "zoonews"
+      ],
+      "source_url_raw": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+      "storage_updated_at": "2026-08-14T09:08:28.826770+00:00",
+      "summary": "12.08.2026 Die Kunst, ein Blatt zu sein Die Riesenblattschrecke hat ihre gesamte Existenz darauf aufgebaut unsichtbar zu sein, indem sie ein Blatt nahezu perfekt imitiert. Im Insektenwald des Zoos können noch weitere faszinierende Naturkünstler entdeckt und bestaunt werden. Als Zoodirektor darf man keine Lieblingstier…",
+      "title": "Die Kunst, ein Blatt zu sein | Zoo Zürich",
+      "url": "https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "zoo-zurich",
+      "zoo_ids": [
+        "zoo-zurich"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Neue Studie zeigt Wirkung von Zoobildung | Zoo und Tierpark Berlin erreichen jährlich zehntausende Schüler*innen mit Bildungsangeboten",
+      "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+      "content_length": 4008,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:00.103055+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:00.102556+00:00",
+          "discovered_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+          "discovered_url_raw": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+          "id": "0f2e25e817f84090b9b6a3a63c4810d1",
+          "last_discovered_at": "2026-08-14T09:09:20.150812+00:00",
+          "source_id": "zoo-berlin-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:00.102329+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/8d8ff72f341b4dbf94a8e0c0a9abd57d"
+      },
+      "evidence_path": "sqlite://articles/8d8ff72f341b4dbf94a8e0c0a9abd57d",
+      "first_discovered_at": "2026-08-14T09:07:00.102556+00:00",
+      "http_status": 200,
+      "id": "8d8ff72f341b4dbf94a8e0c0a9abd57d",
+      "image_url": "https://www.zoo-berlin.de/fileadmin/_processed_/9/9/csm_Naturlehrpfad_2_TierparkBerlin_ff3c56eee3.jpg",
+      "language": "de-DE",
+      "last_discovered_at": "2026-08-14T09:09:20.150812+00:00",
+      "last_fetched_at": "2026-08-14T09:07:00.102329+00:00",
+      "normalized_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+      "parse_status": "success",
+      "published_at": "2026-08-12T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+      "source_ids": [
+        "zoo-berlin-news"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+      "storage_updated_at": "2026-08-14T09:07:00.103055+00:00",
+      "summary": "Neue Studie zeigt Wirkung von Zoobildung | Zoo und Tierpark Berlin erreichen jährlich zehntausende Schüler*innen mit Bildungsangeboten",
+      "title": "Naturverbundenheit beginnt mit einer Begegnung",
+      "url": "https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "zoo-berlin",
+      "zoo_ids": [
+        "zoo-berlin"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Detail -",
+      "canonical_url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+      "content_length": 3271,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:34.997333+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:34.997071+00:00",
+          "discovered_url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+          "discovered_url_raw": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+          "id": "c4da0e438e51497e879bab9abad40022",
+          "last_discovered_at": "2026-08-14T09:09:48.836965+00:00",
+          "source_id": "tierpark-fossilium-bochum-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:34.996950+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/bcc02ed5e65843b297def059208afe2e"
+      },
+      "evidence_path": "sqlite://articles/bcc02ed5e65843b297def059208afe2e",
+      "first_discovered_at": "2026-08-14T09:07:34.997071+00:00",
+      "http_status": 200,
+      "id": "bcc02ed5e65843b297def059208afe2e",
+      "image_url": "https://ais.netzfactor.net/api/web/frontend/file/resized/3492/width/600",
+      "language": "de-DE",
+      "last_discovered_at": "2026-08-14T09:09:48.836965+00:00",
+      "last_fetched_at": "2026-08-14T09:07:34.996950+00:00",
+      "normalized_url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+      "parse_status": "success",
+      "published_at": "2026-08-11T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+      "source_ids": [
+        "tierpark-fossilium-bochum-news"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+      "storage_updated_at": "2026-08-14T09:07:34.997333+00:00",
+      "summary": "Detail -",
+      "title": "Lernen, staunen, entdecken",
+      "url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "tierpark-fossilium-bochum",
+      "zoo_ids": [
+        "tierpark-fossilium-bochum"
+      ]
+    },
+    {
+      "author": "Burgers' Zoo",
+      "body_summary": "Royal Burgers’ Zoo is developing the world’s largest seagrass aquarium, with a volume of over 50,000 litres. This vulnerable marine ecosystem is highly dependent on light levels, water movement, water quality, seabed conditions and the biological and chemical balance. Biologists and aquarists at Burgers’ Ocean, the Ar…",
+      "canonical_url": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+      "content_length": 2498,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:18.439834+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:18.438557+00:00",
+          "discovered_url": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+          "discovered_url_raw": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+          "id": "ec722ddd02fd409d909d7e003ecc0813",
+          "last_discovered_at": "2026-08-14T09:10:16.314340+00:00",
+          "source_id": "core-europe-burgers-zoo-news-en"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:18.438427+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/013aa20738b04fd4a58bfbfa20c6dcd7"
+      },
+      "evidence_path": "sqlite://articles/013aa20738b04fd4a58bfbfa20c6dcd7",
+      "first_discovered_at": "2026-08-14T09:08:18.438557+00:00",
+      "http_status": 200,
+      "id": "013aa20738b04fd4a58bfbfa20c6dcd7",
+      "image_url": "https://www.burgerszoo.com/media/e1wbpzvy/wetenschappelijk-onderzoek-met-quadranten-op-de-bodem-van-het-zeegrasbassin-1.jpg?height=624&v=1dd25839933b870&width=1248",
+      "language": "en-US",
+      "last_discovered_at": "2026-08-14T09:10:16.314340+00:00",
+      "last_fetched_at": "2026-08-14T09:08:18.438427+00:00",
+      "normalized_url": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+      "parse_status": "partial",
+      "published_at": "2026-08-06T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+      "source_ids": [
+        "core-europe-burgers-zoo-news-en"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+      "storage_updated_at": "2026-08-14T09:08:18.439834+00:00",
+      "summary": "Royal Burgers’ Zoo is developing the world’s largest seagrass aquarium, with a volume of over 50,000 litres. This vulnerable marine ecosystem is highly dependent on light levels, water movement, water quality, seabed conditions and the biological and chemical balance. Biologists and aquarists at Burgers’ Ocean, the Ar…",
+      "title": "Burgers' Zoo developing world's largest seagrass aquarium",
+      "url": "https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "burgers-zoo",
+      "zoo_ids": [
+        "burgers-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Während der bayerischen Sommerferien steht der Fahrdienst für Menschen mit Behinderung oder Hilfebedarf an drei Tagen pro Woche am Haupteingang des Tiergartens Nürnberg bereit. Die rollstuhlgerechten Fahrzeuge bringen die Fahrgäste von dort zum Eingang des Klimawaldpfades und zurück. Dort können die Gäste steigungsfre…",
+      "canonical_url": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+      "content_length": 227,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:23.187804+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:23.187504+00:00",
+          "discovered_url": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+          "discovered_url_raw": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+          "id": "72a9c31754324bdd986657d52f22454b",
+          "last_discovered_at": "2026-08-14T09:09:39.480638+00:00",
+          "source_id": "tiergarten-nuernberg-news"
+        },
+        {
+          "discovered_at": "2026-08-14T09:07:25.234162+00:00",
+          "discovered_url": "https://tiergarten.nuernberg.de/presse/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+          "discovered_url_raw": "https://tiergarten.nuernberg.de/presse/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+          "id": "0aea38f70ead49d7b6868bce37fe9c56",
+          "last_discovered_at": "2026-08-14T09:09:41.585726+00:00",
+          "source_id": "tiergarten-nuernberg-press"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:09:41.585615+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/fc19dac4d48042979f29c07b7dd7f0f3"
+      },
+      "evidence_path": "sqlite://articles/fc19dac4d48042979f29c07b7dd7f0f3",
+      "first_discovered_at": "2026-08-14T09:07:23.187504+00:00",
+      "http_status": 200,
+      "id": "fc19dac4d48042979f29c07b7dd7f0f3",
+      "image_url": "https://tiergarten.nuernberg.de/fileadmin/_processed_/7/7/csm_Klimawaldpfad_TGN_AnnaB%C3%B6hm1_acee7e01ec.jpg",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:09:41.585726+00:00",
+      "last_fetched_at": "2026-08-14T09:09:41.585615+00:00",
+      "normalized_url": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+      "parse_status": "success",
+      "published_at": "2026-08-01T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+      "source_ids": [
+        "tiergarten-nuernberg-news",
+        "tiergarten-nuernberg-press"
+      ],
+      "source_names": [
+        "news",
+        "press"
+      ],
+      "source_url_raw": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+      "storage_updated_at": "2026-08-14T09:07:25.234555+00:00",
+      "summary": "Während der bayerischen Sommerferien steht der Fahrdienst für Menschen mit Behinderung oder Hilfebedarf an drei Tagen pro Woche am Haupteingang des Tiergartens Nürnberg bereit. Die rollstuhlgerechten Fahrzeuge bringen die Fahrgäste von dort zum Eingang des Klimawaldpfades und zurück. Dort können die Gäste steigungsfre…",
+      "title": "Fahrdienst zum Klimawaldpfad im Tiergarten während der Sommerferien",
+      "url": "https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "tiergarten-nuernberg",
+      "zoo_ids": [
+        "tiergarten-nuernberg"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "UC San Diego Health surgeons and wildlife health experts at the San Diego Zoo Safari Park team up to perform the world's first reported mastoidectomy on a gorilla",
+      "canonical_url": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+      "content_length": 5403,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:34.685593+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:34.685352+00:00",
+          "discovered_url": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+          "discovered_url_raw": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+          "id": "d16f12924917423a8369edaf10d8d95d",
+          "last_discovered_at": "2026-08-14T09:10:26.918989+00:00",
+          "source_id": "san-diego-zoo-story-hub"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:34.685242+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/60e5508a3c904ebaa9005629e7ddda1f"
+      },
+      "evidence_path": "sqlite://articles/60e5508a3c904ebaa9005629e7ddda1f",
+      "first_discovered_at": "2026-08-14T09:08:34.685352+00:00",
+      "http_status": 200,
+      "id": "60e5508a3c904ebaa9005629e7ddda1f",
+      "image_url": "https://sandiegozoowildlifealliance.org/themes/custom/park_stable/images/sdzwa-green.svg",
+      "language": "en",
+      "last_discovered_at": "2026-08-14T09:10:26.918989+00:00",
+      "last_fetched_at": "2026-08-14T09:08:34.685242+00:00",
+      "normalized_url": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+      "parse_status": "success",
+      "published_at": "2026-07-30T18:01:38+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+      "source_ids": [
+        "san-diego-zoo-story-hub"
+      ],
+      "source_names": [
+        "story-hub-news"
+      ],
+      "source_url_raw": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+      "storage_updated_at": "2026-08-14T09:08:34.685593+00:00",
+      "summary": "UC San Diego Health surgeons and wildlife health experts at the San Diego Zoo Safari Park team up to perform the world's first reported mastoidectomy on a gorilla",
+      "title": "First-of-its-Kind Surgery Performed on Western Lowland Gorilla at the San Diego Zoo Safari Park",
+      "url": "https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "san-diego-zoo",
+      "zoo_ids": [
+        "san-diego-zoo"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "29.07.2026 Nachwuchs bei den Gorillas Am Montagvormittag hat es in der seit einem Jahr neuen Gorillagruppe des Zoo Zürich erstmals Nachwuchs gegeben. Für die Mutter des Jungtiers war es die erste Geburt. Der bisherige Verlauf der neuen Situation in der Gorillagruppe ist positiv und alle Gruppenmitglieder verhalten sic…",
+      "canonical_url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+      "content_length": 5683,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:30.792085+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:30.791757+00:00",
+          "discovered_url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+          "discovered_url_raw": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+          "id": "b0103c25d08d4eae8e38e81b47ce29d6",
+          "last_discovered_at": "2026-08-14T09:10:24.426337+00:00",
+          "source_id": "core-europe-zoo-zurich-media-de"
+        },
+        {
+          "discovered_at": "2026-08-14T09:08:32.128728+00:00",
+          "discovered_url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+          "discovered_url_raw": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+          "id": "bd335ba835d44ba6a8949b43c3e4c0bf",
+          "last_discovered_at": "2026-08-14T09:10:25.293942+00:00",
+          "source_id": "core-europe-zoo-zurich-media-archive-de"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:30.791625+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/25517025b9e1402aad98969c9f898691"
+      },
+      "evidence_path": "sqlite://articles/25517025b9e1402aad98969c9f898691",
+      "first_discovered_at": "2026-08-14T09:08:30.791757+00:00",
+      "http_status": 200,
+      "id": "25517025b9e1402aad98969c9f898691",
+      "image_url": "https://zoo-live.rokka.io/twitter_card_large/01f9a15636841d83542c0aef72b7fbb5d39162cd/tbe8451.jpg?h=76a7fba3&itok=e2X6hGsn",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:10:25.293942+00:00",
+      "last_fetched_at": "2026-08-14T09:08:30.791625+00:00",
+      "normalized_url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+      "parse_status": "success",
+      "published_at": "2026-07-29T06:30:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+      "source_ids": [
+        "core-europe-zoo-zurich-media-de",
+        "core-europe-zoo-zurich-media-archive-de"
+      ],
+      "source_names": [
+        "media",
+        "media-archive"
+      ],
+      "source_url_raw": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+      "storage_updated_at": "2026-08-14T09:08:30.792085+00:00",
+      "summary": "29.07.2026 Nachwuchs bei den Gorillas Am Montagvormittag hat es in der seit einem Jahr neuen Gorillagruppe des Zoo Zürich erstmals Nachwuchs gegeben. Für die Mutter des Jungtiers war es die erste Geburt. Der bisherige Verlauf der neuen Situation in der Gorillagruppe ist positiv und alle Gruppenmitglieder verhalten sic…",
+      "title": "Nachwuchs bei den Gorillas | Zoo Zürich",
+      "url": "https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "zoo-zurich",
+      "zoo_ids": [
+        "zoo-zurich"
+      ]
+    },
+    {
+      "author": "Stichting Apenheul",
+      "body_summary": "Spot jij de zes jongen in het doodshoofdapengebied? Als bezoeker loop je los tussen deze apen, dus misschien zie je ze wel van heel dichtbij! De dierverzorgers en gidsen in het gebied helpen je ook graag om ze te ontdekken. Het losloopgebied van de doodshoofdapen is dit jaar vernieuwd en je kunt nu nog meer beleven! N…",
+      "canonical_url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+      "content_length": 417,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:09:02.565736+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:09:02.565183+00:00",
+          "discovered_url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+          "discovered_url_raw": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+          "id": "7da69d3c97854b6a92d647ce50553e4c",
+          "last_discovered_at": "2026-08-14T09:10:46.600188+00:00",
+          "source_id": "apenheul-news-rss"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:09:02.564993+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/0fb3225b60cc4dfab92ff9e029f2bd95"
+      },
+      "evidence_path": "sqlite://articles/0fb3225b60cc4dfab92ff9e029f2bd95",
+      "first_discovered_at": "2026-08-14T09:09:02.565183+00:00",
+      "http_status": 200,
+      "id": "0fb3225b60cc4dfab92ff9e029f2bd95",
+      "image_url": "https://www.apenheul.nl/media/zfyhdo4g/apenheul.svg?v=1dbb84ea6e3d2f0",
+      "language": "nl",
+      "last_discovered_at": "2026-08-14T09:10:46.600188+00:00",
+      "last_fetched_at": "2026-08-14T09:09:02.564993+00:00",
+      "normalized_url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+      "parse_status": "partial",
+      "published_at": "2026-07-28T13:19:09+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+      "source_ids": [
+        "apenheul-news-rss"
+      ],
+      "source_names": [
+        "news-rss"
+      ],
+      "source_url_raw": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+      "storage_updated_at": "2026-08-14T09:09:02.565736+00:00",
+      "summary": "Spot jij de zes jongen in het doodshoofdapengebied? Als bezoeker loop je los tussen deze apen, dus misschien zie je ze wel van heel dichtbij! De dierverzorgers en gidsen in het gebied helpen je ook graag om ze te ontdekken. Het losloopgebied van de doodshoofdapen is dit jaar vernieuwd en je kunt nu nog meer beleven! N…",
+      "title": "Zes doodshoofdaapjes geboren",
+      "url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "apenheul",
+      "zoo_ids": [
+        "apenheul"
+      ]
+    },
+    {
+      "author": "Lena Geith",
+      "body_summary": "Große Freude in der ZOOM Erlebniswelt: Bei den Kronenmakis in der Erlebniswelt Afrika hat das 6jährige Weibchen Lilibet am vergangenen Dienstag, 7. Juli 2026 Zwillinge zur Welt gebracht.",
+      "canonical_url": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+      "content_length": 1353,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:32.575440+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:32.574832+00:00",
+          "discovered_url": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+          "discovered_url_raw": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+          "id": "cccff2c157844299b3292ed4c099baf0",
+          "last_discovered_at": "2026-08-14T09:09:46.958474+00:00",
+          "source_id": "zoom-erlebniswelt-press"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:32.574720+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/e6b91d7f9493462cb87a376bbcdc1d8a"
+      },
+      "evidence_path": "sqlite://articles/e6b91d7f9493462cb87a376bbcdc1d8a",
+      "first_discovered_at": "2026-08-14T09:07:32.574832+00:00",
+      "http_status": 200,
+      "id": "e6b91d7f9493462cb87a376bbcdc1d8a",
+      "image_url": "https://www.zoom-erlebniswelt.de/website/images/Nachwuchs-Kronenmakis_ZOOM-Erlebniswelt.jpg",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:09:46.958474+00:00",
+      "last_fetched_at": "2026-08-14T09:07:32.574720+00:00",
+      "normalized_url": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+      "parse_status": "success",
+      "published_at": "2026-07-27T11:56:08+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+      "source_ids": [
+        "zoom-erlebniswelt-press"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+      "storage_updated_at": "2026-08-14T09:07:32.575440+00:00",
+      "summary": "Große Freude in der ZOOM Erlebniswelt: Bei den Kronenmakis in der Erlebniswelt Afrika hat das 6jährige Weibchen Lilibet am vergangenen Dienstag, 7. Juli 2026 Zwillinge zur Welt gebracht.",
+      "title": "Tag der Menschenaffen in der ZOOM Erlebniswelt",
+      "url": "https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "zoom-erlebniswelt",
+      "zoo_ids": [
+        "zoom-erlebniswelt"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Tier-, Natur- und Artenschutz: lebendig, anschaulich, greifbar",
+      "canonical_url": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+      "content_length": 2020,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:43.259856+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:43.259334+00:00",
+          "discovered_url": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+          "discovered_url_raw": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+          "id": "c56cb7fc5b8b4808a5c737b00e8d2c99",
+          "last_discovered_at": "2026-08-14T09:09:54.033272+00:00",
+          "source_id": "adlerwarte-berlebeck-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:43.259211+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/07469cfba3804f59868aa3643763625b"
+      },
+      "evidence_path": "sqlite://articles/07469cfba3804f59868aa3643763625b",
+      "first_discovered_at": "2026-08-14T09:07:43.259334+00:00",
+      "http_status": 200,
+      "id": "07469cfba3804f59868aa3643763625b",
+      "image_url": "https://www.detmold-adlerwarte.de/fileadmin/fliegende-zooschule/Button_Adlerwarte.png",
+      "language": "de-DE",
+      "last_discovered_at": "2026-08-14T09:09:54.033272+00:00",
+      "last_fetched_at": "2026-08-14T09:07:43.259211+00:00",
+      "normalized_url": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+      "parse_status": "success",
+      "published_at": "2026-07-15T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+      "source_ids": [
+        "adlerwarte-berlebeck-news"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+      "storage_updated_at": "2026-08-14T09:07:43.259856+00:00",
+      "summary": "Tier-, Natur- und Artenschutz: lebendig, anschaulich, greifbar",
+      "title": "Ferienprogramm FLIEGENDE ZOOSCHULE",
+      "url": "https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "adlerwarte-berlebeck",
+      "zoo_ids": [
+        "adlerwarte-berlebeck"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Abschied von den Turen im Zoo Frankfurt 14.07.2026 Der Zoo Frankfurt musste in den letzten Tagen aus Seuchenschutzgründen die Haltung seiner Westkaukasischen Steinböcke, auch Ture genannt, beenden. Die Gruppe hatte sich mit dem Paratuberkulose-Erreger infiziert. Infektionen mit diesem Bakterium sind nicht behandelbar…",
+      "canonical_url": "https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+      "content_length": 2375,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:14.920025+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:14.919376+00:00",
+          "discovered_url": "https://www.zoo-frankfurt.de/de/presse/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+          "discovered_url_raw": "https://www.zoo-frankfurt.de/de/presse/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+          "id": "0c1c69e906f846bf8ac6c26b00a841d2",
+          "last_discovered_at": "2026-08-14T09:09:32.162306+00:00",
+          "source_id": "zoo-frankfurt-press-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:09:32.162122+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/5b748d6d59704d50b321805ba3cc4597"
+      },
+      "evidence_path": "sqlite://articles/5b748d6d59704d50b321805ba3cc4597",
+      "first_discovered_at": "2026-08-14T09:07:14.919376+00:00",
+      "http_status": 200,
+      "id": "5b748d6d59704d50b321805ba3cc4597",
+      "image_url": "https://www.zoo-frankfurt.de/Tierbilder/11291/image-thumb__11291__news-gallery_image/Ture%20Foto%20Zoo%20Frankfurt.864ab221.jpg",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:09:32.162306+00:00",
+      "last_fetched_at": "2026-08-14T09:09:32.162122+00:00",
+      "normalized_url": "https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+      "parse_status": "success",
+      "published_at": "2026-07-14T00:00:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+      "source_ids": [
+        "zoo-frankfurt-press-news"
+      ],
+      "source_names": [
+        "press-news"
+      ],
+      "source_url_raw": "https://www.zoo-frankfurt.de/de/presse/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+      "storage_updated_at": "2026-08-14T09:07:14.920025+00:00",
+      "summary": "Abschied von den Turen im Zoo Frankfurt 14.07.2026 Der Zoo Frankfurt musste in den letzten Tagen aus Seuchenschutzgründen die Haltung seiner Westkaukasischen Steinböcke, auch Ture genannt, beenden. Die Gruppe hatte sich mit dem Paratuberkulose-Erreger infiziert. Infektionen mit diesem Bakterium sind nicht behandelbar…",
+      "title": "Abschied von den Turen im Zoo Frankfurt",
+      "url": "https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "zoo-frankfurt",
+      "zoo_ids": [
+        "zoo-frankfurt"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Heute sind gleich zwei neue Tierarten bei uns im NaturZoo eingezogen. Zuerst kam eine junge Martinique-Baumvogelspinne zu uns. Sie zieht in das ehemalige Terrarium der Cyanblauen Vogelspinne in der ZooSchule. Dort wird sie schon bald ein dichtes Netz gesponnen haben. Als adulte Spinne wird sie rötliche Beine und einen…",
+      "canonical_url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+      "content_length": 661,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:40.983547+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:40.983323+00:00",
+          "discovered_url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+          "discovered_url_raw": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+          "id": "249539af273e4eaaa037ef4c70412ff8",
+          "last_discovered_at": "2026-08-14T09:09:52.689128+00:00",
+          "source_id": "naturzoo-rheine-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:40.983216+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/d2831421e30644f3ae4548a857839164"
+      },
+      "evidence_path": "sqlite://articles/d2831421e30644f3ae4548a857839164",
+      "first_discovered_at": "2026-08-14T09:07:40.983323+00:00",
+      "http_status": 200,
+      "id": "d2831421e30644f3ae4548a857839164",
+      "image_url": "https://www.naturzoo.de/fileadmin/co_theme/Default/Media/Editorial/images/fotos/Gila-Monster.png",
+      "language": "de-DE",
+      "last_discovered_at": "2026-08-14T09:09:52.689128+00:00",
+      "last_fetched_at": "2026-08-14T09:07:40.983216+00:00",
+      "normalized_url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+      "parse_status": "success",
+      "published_at": "2026-05-29T08:55:00+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+      "source_ids": [
+        "naturzoo-rheine-news"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+      "storage_updated_at": "2026-08-14T09:07:40.983547+00:00",
+      "summary": "Heute sind gleich zwei neue Tierarten bei uns im NaturZoo eingezogen. Zuerst kam eine junge Martinique-Baumvogelspinne zu uns. Sie zieht in das ehemalige Terrarium der Cyanblauen Vogelspinne in der ZooSchule. Dort wird sie schon bald ein dichtes Netz gesponnen haben. Als adulte Spinne wird sie rötliche Beine und einen…",
+      "title": "Bunt, giftig und neu",
+      "url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "naturzoo-rheine",
+      "zoo_ids": [
+        "naturzoo-rheine"
+      ]
+    },
+    {
+      "author": "Thom",
+      "body_summary": "Beste bezoeker, Met veel enthousiasme hebben wij toegeleefd naar onze open dag die gepland stond aanstaande zaterdag 27 september 2025. De open dag is met een enorm enthousiasme door jullie ontvangen en dit heeft er helaas ook toe geleid dat de Gemeente Weert, o.a. vanwege de bezoekersaantallen, zeer recent heeft besl…",
+      "canonical_url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+      "content_length": 1531,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:49.960665+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:49.959011+00:00",
+          "discovered_url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+          "discovered_url_raw": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+          "id": "f82f902e11c0499da37d8b90beb2eba1",
+          "last_discovered_at": "2026-08-14T09:10:39.935225+00:00",
+          "source_id": "brook-valley-zoo-news-rss"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:49.958901+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/0373296c2c3e448cb57b43250932d666"
+      },
+      "evidence_path": "sqlite://articles/0373296c2c3e448cb57b43250932d666",
+      "first_discovered_at": "2026-08-14T09:08:49.959011+00:00",
+      "http_status": 200,
+      "id": "0373296c2c3e448cb57b43250932d666",
+      "image_url": "https://secure.gravatar.com/avatar/5acb0ce288b819bd8faa588386d86f6a947a3f642b8f883ae9ab649891310e58?d=mm&r=g&s=96",
+      "language": "nl-NL",
+      "last_discovered_at": "2026-08-14T09:10:39.935225+00:00",
+      "last_fetched_at": "2026-08-14T09:08:49.958901+00:00",
+      "normalized_url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+      "parse_status": "success",
+      "published_at": "2025-09-22T10:37:46+00:00",
+      "quality_warning_count": 0,
+      "quality_warnings": [],
+      "safe_url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+      "source_ids": [
+        "brook-valley-zoo-news-rss"
+      ],
+      "source_names": [
+        "news-rss"
+      ],
+      "source_url_raw": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+      "storage_updated_at": "2026-08-14T09:08:49.960665+00:00",
+      "summary": "Beste bezoeker, Met veel enthousiasme hebben wij toegeleefd naar onze open dag die gepland stond aanstaande zaterdag 27 september 2025. De open dag is met een enorm enthousiasme door jullie ontvangen en dit heeft er helaas ook toe geleid dat de Gemeente Weert, o.a. vanwege de bezoekersaantallen, zeer recent heeft besl…",
+      "title": "Belangrijke wijziging: Open dag verplaatst naar 25 oktober 2025 - Brook Valley Zoo",
+      "url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+      "warning_codes": [],
+      "warnings": [],
+      "zoo_id": "brook-valley-zoo",
+      "zoo_ids": [
+        "brook-valley-zoo"
+      ]
+    },
+    {
+      "author": "Philipp Schroeder",
+      "body_summary": "VdZ-Jahrestagung und Zoo- und Wildtier-Forum",
+      "canonical_url": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+      "content_length": 5928,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:07:38.303600+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:07:38.302663+00:00",
+          "discovered_url": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+          "discovered_url_raw": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+          "id": "b11f1718a9034813a52e763029905f39",
+          "last_discovered_at": "2026-08-14T09:09:50.941398+00:00",
+          "source_id": "aquazoo-loebbecke-museum-news"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:07:38.302553+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/1903911bd6bc4188880984896ced35e2"
+      },
+      "evidence_path": "sqlite://articles/1903911bd6bc4188880984896ced35e2",
+      "first_discovered_at": "2026-08-14T09:07:38.302663+00:00",
+      "http_status": 200,
+      "id": "1903911bd6bc4188880984896ced35e2",
+      "image_url": "https://aquazoo-duesseldorf.de/media/2025/6/23/a8688643-27f5-406b-a974-a14700679b21/Saeugetiere_Przewalskipferd.jpg",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:09:50.941398+00:00",
+      "last_fetched_at": "2026-08-14T09:07:38.302553+00:00",
+      "normalized_url": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+      "parse_status": "success",
+      "published_at": "2025-06-23T09:51:00+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+      "source_ids": [
+        "aquazoo-loebbecke-museum-news"
+      ],
+      "source_names": [
+        "news"
+      ],
+      "source_url_raw": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+      "storage_updated_at": "2026-08-14T09:07:38.303600+00:00",
+      "summary": "VdZ-Jahrestagung und Zoo- und Wildtier-Forum",
+      "title": "Dem Staatsziel Artenschutz verpflichtet: Wie Zoos die Biodiversität retten",
+      "url": "https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten",
+      "warning_codes": [
+        "over_old"
+      ],
+      "warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "aquazoo-loebbecke-museum",
+      "zoo_ids": [
+        "aquazoo-loebbecke-museum"
+      ]
+    },
+    {
+      "author": "admin",
+      "body_summary": "Wij hebben nog ruimte voor enkele goede vrijwilligers. Kom jij ons team versterken? We zoeken mensen die betrouwbaar zijn, verantwoordelijkheidsgevoel hebben en die voor lange tijd minimaal 1 dag in de week beschikbaar zijn. Er is van alles waar je je mee mag bezig houden, zoals reparaties en kluswerkzaamheden, gastvr…",
+      "canonical_url": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+      "content_length": 861,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:54.948800+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:54.947938+00:00",
+          "discovered_url": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+          "discovered_url_raw": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+          "id": "028044b5d3ed497f91a44b3ade1c7b5b",
+          "last_discovered_at": "2026-08-14T09:10:42.835866+00:00",
+          "source_id": "onze-beestenboel-news-rss"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:54.947734+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/2d37e6c8d57945f3bee926221e742e5a"
+      },
+      "evidence_path": "sqlite://articles/2d37e6c8d57945f3bee926221e742e5a",
+      "first_discovered_at": "2026-08-14T09:08:54.947938+00:00",
+      "http_status": 200,
+      "id": "2d37e6c8d57945f3bee926221e742e5a",
+      "image_url": "https://www.beestenboelvenlo.nl/wp-content/uploads/2024/06/vrijwilligers-Fedor-200x300.jpg",
+      "language": "nl-NL",
+      "last_discovered_at": "2026-08-14T09:10:42.835866+00:00",
+      "last_fetched_at": "2026-08-14T09:08:54.947734+00:00",
+      "normalized_url": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+      "parse_status": "partial",
+      "published_at": "2024-10-26T18:07:25+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+      "source_ids": [
+        "onze-beestenboel-news-rss"
+      ],
+      "source_names": [
+        "news-rss"
+      ],
+      "source_url_raw": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+      "storage_updated_at": "2026-08-14T09:08:54.948800+00:00",
+      "summary": "Wij hebben nog ruimte voor enkele goede vrijwilligers. Kom jij ons team versterken? We zoeken mensen die betrouwbaar zijn, verantwoordelijkheidsgevoel hebben en die voor lange tijd minimaal 1 dag in de week beschikbaar zijn. Er is van alles waar je je mee mag bezig houden, zoals reparaties en kluswerkzaamheden, gastvr…",
+      "title": "Vrijwilligers gezocht",
+      "url": "https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht",
+      "warning_codes": [
+        "over_old"
+      ],
+      "warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "onze-beestenboel",
+      "zoo_ids": [
+        "onze-beestenboel"
+      ]
+    },
+    {
+      "author": "Dierenrijck-admin",
+      "body_summary": "Dat is de laatst geboren bewoner van het DierenRijck een jong ‘vorwerk kippen’.Helaas is er maar 1 over gebleven van de broedtijd, te zien met mama. Twee nieuwe kwartels (mannetjes). Devogels zijn te zien in de volière, ze zijn familie van de fazant.Deze 2 mannetjes hebben een lengte van 18cm en een gewicht van rond 9…",
+      "canonical_url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+      "content_length": 866,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:59.765089+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:59.764493+00:00",
+          "discovered_url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+          "discovered_url_raw": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+          "id": "943d8e2f117544399e867725bf4f606a",
+          "last_discovered_at": "2026-08-14T09:10:45.058593+00:00",
+          "source_id": "het-dierenrijck-news-rss"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:59.764351+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/ec52904d52924a72a9401d69cc3f31c7"
+      },
+      "evidence_path": "sqlite://articles/ec52904d52924a72a9401d69cc3f31c7",
+      "first_discovered_at": "2026-08-14T09:08:59.764493+00:00",
+      "http_status": 200,
+      "id": "ec52904d52924a72a9401d69cc3f31c7",
+      "image_url": "https://dierenrijck.nl/wp-content/uploads/2024/07/foto1.png",
+      "language": "nl-NL",
+      "last_discovered_at": "2026-08-14T09:10:45.058593+00:00",
+      "last_fetched_at": "2026-08-14T09:08:59.764351+00:00",
+      "normalized_url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+      "parse_status": "success",
+      "published_at": "2024-07-17T00:00:00+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+      "source_ids": [
+        "het-dierenrijck-news-rss"
+      ],
+      "source_names": [
+        "news-rss"
+      ],
+      "source_url_raw": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+      "storage_updated_at": "2026-08-14T09:08:59.765089+00:00",
+      "summary": "Dat is de laatst geboren bewoner van het DierenRijck een jong ‘vorwerk kippen’.Helaas is er maar 1 over gebleven van de broedtijd, te zien met mama. Twee nieuwe kwartels (mannetjes). Devogels zijn te zien in de volière, ze zijn familie van de fazant.Deze 2 mannetjes hebben een lengte van 18cm en een gewicht van rond 9…",
+      "title": "Kippen en siësta 13 juli 2024",
+      "url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+      "warning_codes": [
+        "over_old"
+      ],
+      "warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "het-dierenrijck",
+      "zoo_ids": [
+        "het-dierenrijck"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "Det har været et meget positivt år for dyrebestanden i Zoologisk Have. Hver år optæller København ZOO de dyr, der bor i Haven på toppen af Valby Bakke. Optællingen for 2022 efterlader et særdeles positivt ”afkast”, ifølge årsrapport. -En af den moderne zoologiske haves opgaver er at sikre bæredygtige bestande af dyr,…",
+      "canonical_url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+      "content_length": 2555,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:20.770688+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:20.770380+00:00",
+          "discovered_url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+          "discovered_url_raw": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+          "id": "db3ff0c74cb047188d8ae89be96e6151",
+          "last_discovered_at": "2026-08-14T09:10:18.020548+00:00",
+          "source_id": "core-europe-copenhagen-zoo-sitemap-news-da"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:20.770271+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/b67b594dacaf422c98baec7845ce85f4"
+      },
+      "evidence_path": "sqlite://articles/b67b594dacaf422c98baec7845ce85f4",
+      "first_discovered_at": "2026-08-14T09:08:20.770380+00:00",
+      "http_status": 200,
+      "id": "b67b594dacaf422c98baec7845ce85f4",
+      "image_url": "https://www.zoo.dk/images/ogimage.webp",
+      "language": "da",
+      "last_discovered_at": "2026-08-14T09:10:18.020548+00:00",
+      "last_fetched_at": "2026-08-14T09:08:20.770271+00:00",
+      "normalized_url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+      "parse_status": "success",
+      "published_at": "2023-01-25T00:00:00+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+      "source_ids": [
+        "core-europe-copenhagen-zoo-sitemap-news-da"
+      ],
+      "source_names": [
+        "news-sitemap"
+      ],
+      "source_url_raw": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+      "storage_updated_at": "2026-08-14T09:08:20.770688+00:00",
+      "summary": "Det har været et meget positivt år for dyrebestanden i Zoologisk Have. Hver år optæller København ZOO de dyr, der bor i Haven på toppen af Valby Bakke. Optællingen for 2022 efterlader et særdeles positivt ”afkast”, ifølge årsrapport. -En af den moderne zoologiske haves opgaver er at sikre bæredygtige bestande af dyr,…",
+      "title": "Årets store optælling er netop slut: København ZOO har produceret mere end 119.000 dyr i 2022",
+      "url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022",
+      "warning_codes": [
+        "over_old"
+      ],
+      "warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "copenhagen-zoo",
+      "zoo_ids": [
+        "copenhagen-zoo"
+      ]
+    },
+    {
+      "author": "adminpaay",
+      "body_summary": "Watusi kalf geboren door adminpaay | jul 26, 2021 | Nieuws Watusi kalf geboren Dierenpark De Paay heeft er een grote baby bij: een Watusirundkalf. Prachtig om te zien en daarnaast een bijzonder rund. De enorme horens zijn indrukwekkend. Het Watusirund (ook wel Watutsirund of Watoetsirund genoemd) is een rund afkomstig…",
+      "canonical_url": "https://depaay.nl/2021/07/26/126",
+      "content_length": 798,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:09:07.454381+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:09:07.453415+00:00",
+          "discovered_url": "https://depaay.nl/2021/07/26/126",
+          "discovered_url_raw": "https://depaay.nl/2021/07/26/126",
+          "id": "8ef01543e6b342f0af54f0ccf146c178",
+          "last_discovered_at": "2026-08-14T09:10:49.347712+00:00",
+          "source_id": "de-paay-news-rss"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://depaay.nl/2021/07/26/126",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:09:07.453295+00:00",
+        "parse_status": "partial",
+        "path": "sqlite://articles/cfbdb6e14dcf4f4d9c287fd3f899a5f5"
+      },
+      "evidence_path": "sqlite://articles/cfbdb6e14dcf4f4d9c287fd3f899a5f5",
+      "first_discovered_at": "2026-08-14T09:09:07.453415+00:00",
+      "http_status": 200,
+      "id": "cfbdb6e14dcf4f4d9c287fd3f899a5f5",
+      "image_url": "https://depaay.nl/wp-content/uploads/2021/07/Watusi-kalf-29-03-2015-1026x675.jpg",
+      "language": "nl-NL",
+      "last_discovered_at": "2026-08-14T09:10:49.347712+00:00",
+      "last_fetched_at": "2026-08-14T09:09:07.453295+00:00",
+      "normalized_url": "https://depaay.nl/2021/07/26/126",
+      "parse_status": "partial",
+      "published_at": "2021-07-26T19:07:17+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://depaay.nl/2021/07/26/126",
+      "source_ids": [
+        "de-paay-news-rss"
+      ],
+      "source_names": [
+        "news-rss"
+      ],
+      "source_url_raw": "https://depaay.nl/2021/07/26/126",
+      "storage_updated_at": "2026-08-14T09:09:07.454381+00:00",
+      "summary": "Watusi kalf geboren door adminpaay | jul 26, 2021 | Nieuws Watusi kalf geboren Dierenpark De Paay heeft er een grote baby bij: een Watusirundkalf. Prachtig om te zien en daarnaast een bijzonder rund. De enorme horens zijn indrukwekkend. Het Watusirund (ook wel Watutsirund of Watoetsirund genoemd) is een rund afkomstig…",
+      "title": "Watusi kalf geboren",
+      "url": "https://depaay.nl/2021/07/26/126",
+      "warning_codes": [
+        "over_old"
+      ],
+      "warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "uilen-en-dierenpark-de-paay",
+      "zoo_ids": [
+        "uilen-en-dierenpark-de-paay"
+      ]
+    },
+    {
+      "author": null,
+      "body_summary": "In einem Jahr, an Ostern 2020, eröffnet der Zoo Zürich die neue Lewa Savanne.",
+      "canonical_url": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+      "content_length": 3012,
+      "crawl_status": "success",
+      "created_at": "2026-08-14T09:08:26.467000+00:00",
+      "discoveries": [
+        {
+          "discovered_at": "2026-08-14T09:08:26.466287+00:00",
+          "discovered_url": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+          "discovered_url_raw": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+          "id": "2ffa3fbf145849b2a20515f6b630e465",
+          "last_discovered_at": "2026-08-14T09:10:22.505326+00:00",
+          "source_id": "core-europe-zoo-zurich-sitemap-zoonews-de"
+        }
+      ],
+      "evidence": {
+        "canonical_url": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+        "http_status": 200,
+        "last_fetched_at": "2026-08-14T09:08:26.466169+00:00",
+        "parse_status": "success",
+        "path": "sqlite://articles/509316483a6343c7b169763a3e39a44c"
+      },
+      "evidence_path": "sqlite://articles/509316483a6343c7b169763a3e39a44c",
+      "first_discovered_at": "2026-08-14T09:08:26.466287+00:00",
+      "http_status": 200,
+      "id": "509316483a6343c7b169763a3e39a44c",
+      "image_url": "https://zoo-live.rokka.io/twitter_card_large/98fbf5e035730b62c920292ea0f63041949d2a1d/2244-0020320.jpg?itok=xB2tbUuM",
+      "language": "de",
+      "last_discovered_at": "2026-08-14T09:10:22.505326+00:00",
+      "last_fetched_at": "2026-08-14T09:08:26.466169+00:00",
+      "normalized_url": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+      "parse_status": "success",
+      "published_at": "2019-03-20T10:00:00+00:00",
+      "quality_warning_count": 1,
+      "quality_warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "safe_url": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+      "source_ids": [
+        "core-europe-zoo-zurich-sitemap-zoonews-de"
+      ],
+      "source_names": [
+        "zoonews-sitemap"
+      ],
+      "source_url_raw": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+      "storage_updated_at": "2026-08-14T09:08:26.467000+00:00",
+      "summary": "In einem Jahr, an Ostern 2020, eröffnet der Zoo Zürich die neue Lewa Savanne.",
+      "title": "Noch ein Jahr bis Lewa | Zoo Zürich",
+      "url": "https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa",
+      "warning_codes": [
+        "over_old"
+      ],
+      "warnings": [
+        {
+          "code": "over_old",
+          "label": "Publication date is unusually old",
+          "severity": "warning"
+        }
+      ],
+      "zoo_id": "zoo-zurich",
+      "zoo_ids": [
+        "zoo-zurich"
+      ]
+    }
+  ],
+  "code_state_fingerprint": "5c60facfecce4460d7f896bffa727d6507fbd143009cf728369483ecb8e8f0da",
+  "completion_classifications": {
+    "BLOCKED": 2,
+    "FAILED": 0,
+    "JAVASCRIPT_REQUIRED": 0,
+    "PARTIALLY_SUPPORTED": 0,
+    "ROBOTS_DISALLOWED": 19,
+    "SOURCE_NOT_FOUND": 11,
+    "SUPPORTED": 25,
+    "SUPPORTED_NO_CURRENT_NEWS": 12,
+    "UNSUPPORTED": 4
+  },
+  "counts": {
+    "articles": 31,
+    "duplicate_identity_count": 0,
+    "duplicate_url_count": 0,
+    "failures": 74,
+    "source_article_associations": 34,
+    "sources": 116,
+    "total_enabled": 73,
+    "unique_articles": 31,
+    "warnings": 60,
+    "zoos": 73
+  },
+  "generated_at": "2026-08-14T09:40:40.968736+00:00",
+  "generation_id": "c49257ece8394a83ae072175f9c05483",
+  "git_commit": "ec65921",
+  "git_dirty": true,
+  "schema_version": 1,
+  "scope": {
+    "authoritative_roster": {
+      "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+      "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+      "version": "Phase0 v0.1"
+    },
+    "authoritative_roster_available": true,
+    "authoritative_roster_provenance": {
+      "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+      "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+      "version": "Phase0 v0.1"
+    },
+    "configured_count": 73,
+    "configured_group_membership_count": 146,
+    "configured_membership_count": 73,
+    "configured_zoo_count": 73,
+    "configured_zoos": 73,
+    "enabled_zoo_count": 73,
+    "enabled_zoos": 73,
+    "expanded_count": 73,
+    "expanded_membership_count": 73,
+    "expanded_roster_available": true,
+    "expanded_roster_count": 73,
+    "expanded_roster_status": "available",
+    "expanded_zoo_count": 73,
+    "expanded_zoos": 73,
+    "kind": "authoritative_expanded_roster",
+    "label": "Authoritative Phase0 v0.1 roster",
+    "limitation": null,
+    "roster_path": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_provenance": {
+      "aachener-tierpark-euregiozoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 56,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "adlerwarte-berlebeck": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 74,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "affen-und-vogelpark-eckenhagen": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 67,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "allwetterzoo-muenster": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 55,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "apenheul": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 83,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "aquazoo-loebbecke-museum": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 58,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "biotopwildpark-anholter-schweiz": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 69,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "bird-park-de-lorkeershoeve": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 89,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "bronx-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 36,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "brook-valley-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 78,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "burgers-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 31,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "chester-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 25,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "copenhagen-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 32,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "dierenpark-de-bontekoe": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 91,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "dierenpark-t-goor": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 86,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "diergaarde-blijdorp": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 30,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "erlebnis-zoo-hannover": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 22,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "gaiazoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 75,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "gruener-zoo-wuppertal": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 52,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "heimat-tierpark-olderdissen": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 65,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "hertenspoor-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 81,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "het-dierenrijck": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 80,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "hochwildpark-rheinland": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 72,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "hof-van-eckberge": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 84,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "kasteelpark-born": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 76,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "kleindierwandelpark-hedel": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 87,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "koeln-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 18,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "mini-animal-park-deventer": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 92,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "mini-zoo-venray": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 82,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "mondo-verde": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 77,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "national-zoological-garden": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 44,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "naturwildpark-granat": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 70,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "naturzoo-rheine": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 59,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "onze-beestenboel": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 79,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "pairi-daiza": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 29,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "prague-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 27,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "safariland-stukenbrock": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 66,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "san-diego-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 35,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "sao-paulo-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 43,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "sea-life-oberhausen": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 63,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "singapore-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 39,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "smithsonians-national-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 37,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "taipei-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 41,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "taman-indonesia": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 88,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "taronga-zoo-sydney": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 42,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "ten-kates-dierenpark": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 90,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "terrazoo-rheinberg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 62,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-kleve": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 60,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-moenchengladbach": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 61,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-nuernberg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 23,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-schonbrunn": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 28,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergehege-kaisergarten": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 64,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-berlin": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 16,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-fossilium-bochum": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 57,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-hagenbeck": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 24,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-hellabrunn": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 21,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "toronto-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 38,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "ueno-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 40,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "uilen-en-dierenpark-de-paay": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 85,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "wildpark-grafenberg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 68,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "wildwald-vosswinkel": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 71,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "wilhelma": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 20,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-berlin": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 15,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-dortmund": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 54,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-duisburg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 50,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-frankfurt": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 19,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-im-brueckenkopfpark": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 73,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-krefeld": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 51,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-leipzig": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 17,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-zurich": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 33,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoom-erlebniswelt": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 53,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zooparc-de-beauval": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 34,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zsl-london-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 26,
+          "version": "Phase0 v0.1"
+        }
+      ]
+    },
+    "roster_sha": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "roster_source": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_version": "Phase0 v0.1"
+  }
+}

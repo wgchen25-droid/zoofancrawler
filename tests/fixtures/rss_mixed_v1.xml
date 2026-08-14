@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Zoo news</title>
+    <item>
+      <title>Jungtier im Regenwald</title>
+      <link>/de/aktuelles/news/artikel/jungtier-im-regenwald/</link>
+      <guid isPermaLink="false">berlin-2025-04-03</guid>
+      <pubDate>Thu, 03 Apr 2025 09:30:00 GMT</pubDate>
+      <description>Ein kurzer Auszug.</description>
+    </item>
+    <item>
+      <title>Lokale Datumsschreibweise</title>
+      <link>news/artikel/lokales-datum</link>
+      <pubDate>7. März 2025</pubDate>
+    </item>
+    <item>
+      <title>Ungültige Datumsangabe</title>
+      <link>/de/aktuelles/news/artikel/ohne-datum</link>
+      <pubDate>noch nicht veröffentlicht</pubDate>
+    </item>
+    <item>
+      <title>Ohne Link</title>
+      <description>Kein Kandidat ohne URL.</description>
+    </item>
+  </channel>
+</rss>

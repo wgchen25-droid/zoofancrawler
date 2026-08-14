@@ -1,0 +1,1051 @@
+{
+  "schema_version": "regional-source-adapters.v1",
+  "checked_at": "2026-08-14",
+  "scope": {
+    "region": "Dutch Border",
+    "country_code": "NL",
+    "groups": ["regional_lab", "dutch_border"],
+    "roster_file": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "authority": "User-confirmed authoritative Phase 0 roster"
+  },
+  "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+  "roster_sha256_method": "SHA-256 of the complete authoritative roster file bytes: 92 LF-terminated lines and 5220 bytes, including headings and the final LF.",
+  "method": {
+    "primary_sources_only": true,
+    "source_rule": "Only official zoo/operator or official municipal/institution URLs may be executable sources. Third-party and search URLs are not source plans.",
+    "url_policy": "Every enabled plan must retain the official_host boundary, allow/exclude URL policy, robots fail-closed checks, and bounded discovery. No plan enables a browser or a cross-domain fallback.",
+    "candidate_count_definition": "accepted_candidate_count is the number of unique direct parser candidates after the listed allow/exclude rules; parsed_candidate_count is the raw parser count before those rules. Counts are observations at checked_at, not guarantees of future freshness.",
+    "probe_count_definition": "observed_probes are evidence-only records; their broad root-slug accepted counts are excluded from primary-source accepted_candidates and never authorize a crawler source.",
+    "max_pages_rule": "Archive plans are single-page (max_pages=1); no plan exceeds the requested bound of 2. RSS plans do not paginate, but carry max_pages=1 for a uniform bounded plan.",
+    "five_gap_rows": ["mini-zoo-venray", "dierenpark-t-goor", "kleindierwandelpark-hedel", "dierenpark-de-bontekoe", "mini-animal-park-deventer"]
+  },
+  "counts": {
+    "roster_rows": 18,
+    "unique_stable_ids": 18,
+    "plan_status_counts": {
+      "ready": 5,
+      "ready_stale": 2,
+      "ready_http_only": 1,
+      "ready_archive_rss_unverified": 1,
+    "unsupported": 3,
+      "registry_only": 4,
+      "source_not_found": 2
+    },
+    "five_gap_rows": 5,
+    "primary_source_records": 16,
+    "direct_observation_source_records": 15,
+    "enabled_source_records": 9,
+    "disabled_source_records": 7,
+    "direct_candidate_totals": {
+      "parsed_candidates": 505,
+      "accepted_candidates": 120,
+      "enabled_plan_accepted_candidates": 111,
+      "verified_live_retest_accepted_candidates": 4,
+      "disabled_root_slug_observed_candidates": 20,
+      "other_disabled_plan_accepted_candidates": 9,
+      "kasteelpark_canonicalizable_candidates": 144
+    },
+    "archive_plans": 3,
+    "rss_plans": 11,
+    "registry_only_rows": 4,
+    "registry_only_source_records": 2,
+    "source_not_found_rows": 2
+  },
+  "rows": [
+    {
+      "stable_id": "gaiazoo",
+      "roster_name": "GaiaZOO",
+      "country_code": "NL",
+      "city": "Kerkrade",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Priority",
+      "official_website_url": "https://www.gaiazoo.nl/",
+      "official_host": "www.gaiazoo.nl",
+      "plan_status": "ready",
+      "sources": [
+        {
+          "source_id": "gaiazoo-news-rss",
+          "kind": "rss",
+          "url": "https://www.gaiazoo.nl/category/nieuws/feed/",
+          "official_host": "www.gaiazoo.nl",
+          "enabled": true,
+          "status": "ready",
+          "config": {
+            "official_host": "www.gaiazoo.nl",
+            "article_content_selector": "section#content.content-wrapper",
+            "article_content_exclude_selector": [".spacing-wrapper", ".page-detail", ".post-highlights-block", "style"],
+            "allow_regex": ["^https://www\\.gaiazoo\\.nl/nieuws/[^/?#]+/?$"],
+            "navigation_patterns": ["/(?:ticket|shop|restaurant|contact|privacy|terms|jobs?)(?:/|$)"],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 10,
+            "accepted_candidate_count": 0,
+            "unique_candidate_count": 0,
+            "observation_note": "The feed probe emitted root-slug URLs; none matched the preserved anchored /nieuws/<slug> policy.",
+            "checked_at": "2026-08-14"
+          },
+          "notes": "Preserved legacy source. It is enabled only with the anchored /nieuws/<slug> identity rule used by the current main config; the root-slug probe is a separate disabled observation."
+        },
+        {
+          "source_id": "gaiazoo-news-archive",
+          "kind": "archive",
+          "url": "https://www.gaiazoo.nl/nieuws-vlogs/",
+          "official_host": "www.gaiazoo.nl",
+          "enabled": true,
+          "status": "ready",
+          "config": {
+            "official_host": "www.gaiazoo.nl",
+            "article_selector": "article.card",
+            "link_selector": "a[href]",
+            "title_selector": ".card-title",
+            "date_selector": ".date",
+            "article_content_selector": "section#content.content-wrapper",
+            "article_content_exclude_selector": [".spacing-wrapper", ".page-detail", ".post-highlights-block", "style"],
+            "allow_regex": ["^https://www\\.gaiazoo\\.nl/nieuws/[^/?#]+/?$"],
+            "max_pages": 2
+          },
+          "notes": "Preserved legacy source. The current main config enables it only under the same anchored /nieuws/<slug> identity rule; no new live-success count is asserted here."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "gaiazoo-sitemap",
+          "kind": "sitemap",
+          "url": "https://www.gaiazoo.nl/sitemap_index.xml",
+          "official_host": "www.gaiazoo.nl",
+          "enabled": true,
+          "status": "registry_only",
+          "config": {
+            "official_host": "www.gaiazoo.nl",
+            "role": "health_check_only"
+          }
+        },
+        {
+          "source_id": "gaiazoo-press",
+          "kind": "registry_only",
+          "url": "https://www.gaiazoo.nl/pers/",
+          "official_host": "www.gaiazoo.nl",
+          "enabled": true,
+          "status": "registry_only",
+          "config": {
+            "official_host": "www.gaiazoo.nl"
+          }
+        }
+      ],
+      "observed_probes": [
+        {
+          "source_id": "gaiazoo-root-slug-feed-probe",
+          "kind": "rss",
+          "url": "https://www.gaiazoo.nl/category/nieuws/feed/",
+          "official_host": "www.gaiazoo.nl",
+          "enabled": false,
+          "status": "unsupported",
+          "config": {
+            "official_host": "www.gaiazoo.nl",
+            "allow_regex": [],
+            "exclude_regex": [],
+            "max_pages": 1,
+            "role": "probe_only_root_slug_shape",
+            "observed_path_shape": "^https://www\\.gaiazoo\\.nl/[^/?#]+/?$"
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 10,
+            "accepted_candidate_count": 10,
+            "unique_candidate_count": 10,
+            "observation_policy": "former_broad_root_slug_probe_only",
+            "checked_at": "2026-08-14"
+          },
+          "notes": "Probe-only evidence. Its former broad root-slug acceptance is not an executable source and must not be merged into gaiazoo-news-rss."
+        }
+      ]
+    },
+    {
+      "stable_id": "kasteelpark-born",
+      "roster_name": "Kasteelpark Born",
+      "country_code": "NL",
+      "city": "Born",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://kasteelparkborn.nl/dierenpark/",
+      "official_host": "kasteelparkborn.nl",
+      "plan_status": "unsupported",
+      "sources": [
+        {
+          "source_id": "kasteelpark-born-news-archive",
+          "kind": "archive",
+          "url": "https://kasteelparkborn.nl/het-park/nieuws/",
+          "official_host": "kasteelparkborn.nl",
+          "enabled": false,
+          "status": "unsupported",
+          "config": {
+            "official_host": "kasteelparkborn.nl",
+            "article_selector": "li.clearfix",
+            "link_selector": "a.button",
+            "title_selector": ".info > strong",
+            "date_selector": ".info > span.date",
+            "pagination_selector": null,
+            "allow_regex": ["^https://kasteelparkborn\\.nl/het-park/nieuws/\\d{4}/\\d{2}/\\d{2}/[^/?#]+/?$"],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "text/html",
+            "parsed_candidate_count": 144,
+            "accepted_candidate_count": 0,
+            "unique_candidate_count": 0,
+            "canonicalizable_candidate_count": 144,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The selectors identify 144 dated cards, but the official page emits hrefs such as 'het-park/nieuws/2026/08/...'. The generic parser resolves those against the archive URL into a duplicated path. Keep disabled until an adapter performs the deterministic origin-root rewrite to /het-park/nieuws/YYYY/MM/DD/slug/; do not fetch the malformed duplicate URLs."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "kasteelpark-born-sitemap",
+          "kind": "sitemap",
+          "url": "https://kasteelparkborn.nl/sitemap.xml",
+          "official_host": "kasteelparkborn.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "mondo-verde",
+      "roster_name": "Mondo Verde",
+      "country_code": "NL",
+      "city": "Landgraaf",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.wereldtuinenmondoverde.nl/nl/",
+      "official_host": "www.wereldtuinenmondoverde.nl",
+      "plan_status": "unsupported",
+      "sources": [
+        {
+          "source_id": "mondo-verde-news-rss",
+          "kind": "rss",
+          "url": "https://www.wereldtuinenmondoverde.nl/nl/feed/",
+          "official_host": "www.wereldtuinenmondoverde.nl",
+          "enabled": false,
+          "status": "unsupported",
+          "config": {
+            "official_host": "www.wereldtuinenmondoverde.nl",
+            "allow_regex": [],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 10,
+            "accepted_candidate_count": 0,
+            "unique_candidate_count": 0,
+            "observation_policy": "safe_disabled_plan_no_acceptance",
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The official Dutch feed was observed, but its root-slug URLs lack a verified article/news identity pattern. This disabled plan accepts nothing; the broad root-slug observation is isolated under the distinct probe below. The unrelated mondoverde.nl plant company remains unauthorized."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "mondo-verde-post-sitemap",
+          "kind": "sitemap",
+          "url": "https://www.wereldtuinenmondoverde.nl/nl/wp-sitemap-posts-post-1.xml",
+          "official_host": "www.wereldtuinenmondoverde.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ],
+      "observed_probes": [
+        {
+          "source_id": "mondo-verde-root-slug-feed-probe",
+          "kind": "rss",
+          "url": "https://www.wereldtuinenmondoverde.nl/nl/feed/",
+          "official_host": "www.wereldtuinenmondoverde.nl",
+          "enabled": false,
+          "status": "unsupported",
+          "config": {
+            "official_host": "www.wereldtuinenmondoverde.nl",
+            "allow_regex": [],
+            "exclude_regex": [],
+            "max_pages": 1,
+            "role": "probe_only_root_slug_shape",
+            "observed_path_shape": "^https://www\\.wereldtuinenmondoverde\\.nl/nl/[^/?#]+/?$"
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 10,
+            "accepted_candidate_count": 10,
+            "unique_candidate_count": 10,
+            "observation_policy": "former_broad_root_slug_probe_only",
+            "checked_at": "2026-08-14"
+          },
+          "notes": "Probe-only evidence. The broad /nl/<slug> shape must never be promoted to the disabled primary source or treated as article identity."
+        }
+      ]
+    },
+    {
+      "stable_id": "brook-valley-zoo",
+      "roster_name": "Brook Valley Zoo",
+      "country_code": "NL",
+      "city": "Stramproy",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://brookvalleyzoo.com/",
+      "official_host": "brookvalleyzoo.com",
+      "plan_status": "ready",
+      "recommended": true,
+      "sources": [
+        {
+          "source_id": "brook-valley-zoo-news-rss",
+          "kind": "rss",
+          "url": "https://brookvalleyzoo.com/feed/",
+          "official_host": "brookvalleyzoo.com",
+          "enabled": true,
+          "status": "ready",
+          "recommended": true,
+          "success_claim": true,
+          "config": {
+            "official_host": "brookvalleyzoo.com",
+            "article_content_selector": ".elementor-widget-theme-post-content",
+            "allow_regex": ["^https://brookvalleyzoo\\.com/nieuws/[^/?#]+/?$"],
+            "exclude_regex": ["^https://brookvalleyzoo\\.com/nieuws/(?:feed|category|tag)(?:/|$)"],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 1,
+            "accepted_candidate_count": 1,
+            "unique_candidate_count": 1,
+            "article_fetch_status": "success",
+            "article_fetch_http_status": 200,
+            "article_fetch_count": 1,
+            "article_content_chars": 1531,
+            "article_parse_status": "success",
+            "checked_at": "2026-08-14"
+          },
+          "bounded_live_evidence": {
+            "evidence_artifact": "/tmp/zoofan-phase0.9Jx9xK/retest/pass1-brook-valley-zoo.json",
+            "retest_evidence_artifacts": [
+              "/tmp/zoofan-phase0.9Jx9xK/retest/pass1-brook-valley-zoo.json",
+              "/tmp/zoofan-phase0.9Jx9xK/retest/pass2-brook-valley-zoo.json",
+              "/tmp/zoofan-phase0.9Jx9xK/retest/source-results.tsv",
+              "/tmp/zoofan-phase0.9Jx9xK/retest/article-evidence.json"
+            ],
+            "evidence_path": "sqlite://sources/brook-valley-zoo-news-rss",
+            "checked_at": "2026-08-14T07:51:13.312011+00:00",
+            "http_status": 200,
+            "discovered_candidate_count": 1,
+            "fetched_article_count": 1,
+            "parsed_article_count": 1,
+            "stored_article_count": 1,
+            "already_known_pass2_count": 1,
+            "article_url": "https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025",
+            "article_content_chars": 1531,
+            "article_parse_status": "success",
+            "run_evidence": {
+              "pass1": {"run_id": "a52b0d16b1b04e9ea917d7f888e37008", "status": "completed", "discovered": 1, "fetched": 1, "stored": 1, "already_known": 0, "errors": []},
+              "pass2": {"run_id": "6f58334b44ae482e8c1dba05ac7aa655", "status": "completed", "discovered": 1, "fetched": 0, "stored": 0, "already_known": 1, "errors": []}
+            },
+            "remediation_status": "verified_live",
+            "proposed_article_content_selector": ".elementor-widget-theme-post-content",
+            "success_claim": true,
+            "previous_failure_evidence": {
+              "evidence_artifact": "/tmp/zoofan-phase0.9Jx9xK/reports/latest/run-summary.json",
+              "checked_at": "2026-08-14T07:13:07.983662+00:00",
+              "failure_class": "content_parse_error",
+              "failure_detail": "article content selector missing"
+            }
+          },
+          "notes": "RSS discovery is narrow and stale (last build 2025-10-22), but the exact Elementor selector passed two bounded live runs: one clean 1531-character article stored, then already-known on the second run, with no source errors or contamination. Keep the narrow /nieuws/ policy; this source is ready, enabled, recommended, and verified."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "brook-valley-zoo-sitemap",
+          "kind": "sitemap",
+          "url": "https://brookvalleyzoo.com/sitemap_index.xml",
+          "official_host": "brookvalleyzoo.com",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "onze-beestenboel",
+      "roster_name": "Onze Beestenboel",
+      "country_code": "NL",
+      "city": "Venlo",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": "https://www.beestenboelvenlo.nl/",
+      "official_host": "www.beestenboelvenlo.nl",
+      "plan_status": "ready_stale",
+      "sources": [
+        {
+          "source_id": "onze-beestenboel-news-rss",
+          "kind": "rss",
+          "url": "https://www.beestenboelvenlo.nl/category/nieuwsberichten/feed/",
+          "official_host": "www.beestenboelvenlo.nl",
+          "enabled": true,
+          "status": "ready_stale",
+          "config": {
+            "official_host": "www.beestenboelvenlo.nl",
+            "allow_regex": ["^https://www\\.beestenboelvenlo\\.nl/nieuwsberichten/[^/?#]+/?$"],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 10,
+            "accepted_candidate_count": 10,
+            "unique_candidate_count": 10,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The category feed exposes first-party /nieuwsberichten/ article URLs; its last build was 2024-10-27."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "onze-beestenboel-sitemap",
+          "kind": "sitemap",
+          "url": "https://www.beestenboelvenlo.nl/sitemap.xml",
+          "official_host": "www.beestenboelvenlo.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "het-dierenrijck",
+      "roster_name": "Het DierenRijck",
+      "country_code": "NL",
+      "city": "Reuver",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": "https://dierenrijck.nl/",
+      "official_host": "dierenrijck.nl",
+      "plan_status": "ready",
+      "recommended": true,
+      "sources": [
+        {
+          "source_id": "het-dierenrijck-news-rss",
+          "kind": "rss",
+          "url": "https://dierenrijck.nl/category/nieuwedieren/feed/",
+          "official_host": "dierenrijck.nl",
+          "enabled": true,
+          "status": "ready",
+          "recommended": true,
+          "success_claim": true,
+          "config": {
+            "official_host": "dierenrijck.nl",
+            "article_content_selector": "#content .detail-content .bizberg_cocntent_wrapper",
+            "article_content_exclude_selector": [".bizberg_post_date", ".blog-title", ".bizberg_user_comment_wrapper"],
+            "article_date_selector": ".bizberg_post_date",
+            "article_date_pattern": "^(?P<day>\\d{1,2})\\s+(?P<month>januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\\s+(?P<year>\\d{4})$",
+            "article_date_policy": "strict Dutch dateline",
+            "allow_regex": ["^https://dierenrijck\\.nl/\\d{4}/\\d{2}/\\d{2}/[^/?#]+/?$"],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 2,
+            "accepted_candidate_count": 2,
+            "unique_candidate_count": 2,
+            "article_fetch_status": "success",
+            "article_fetch_http_status": 200,
+            "article_fetch_count": 1,
+            "article_content_chars": 866,
+            "article_parse_status": "success",
+            "checked_at": "2026-08-14"
+          },
+          "bounded_live_evidence": {
+            "evidence_artifact": "/tmp/zoofan-phase0.9Jx9xK/retest/pass1-het-dierenrijck.json",
+            "retest_evidence_artifacts": [
+              "/tmp/zoofan-phase0.9Jx9xK/retest/pass1-het-dierenrijck.json",
+              "/tmp/zoofan-phase0.9Jx9xK/retest/pass2-het-dierenrijck.json",
+              "/tmp/zoofan-phase0.9Jx9xK/retest/source-results.tsv",
+              "/tmp/zoofan-phase0.9Jx9xK/retest/article-evidence.json"
+            ],
+            "evidence_path": "sqlite://sources/het-dierenrijck-news-rss",
+            "checked_at": "2026-08-14T07:51:19.054654+00:00",
+            "http_status": 200,
+            "discovered_candidate_count": 2,
+            "fetched_article_count": 1,
+            "parsed_article_count": 1,
+            "stored_article_count": 1,
+            "already_known_pass2_count": 1,
+            "article_url": "https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024",
+            "article_content_chars": 866,
+            "article_parse_status": "success",
+            "run_evidence": {
+              "pass1": {"run_id": "fad84784b9cd4b1dacccb4b54aaaf113", "status": "completed", "discovered": 2, "fetched": 1, "stored": 1, "already_known": 0, "errors": []},
+              "pass2": {"run_id": "0ede4f8c597543ec9192e8a700de9d63", "status": "completed", "discovered": 2, "fetched": 0, "stored": 0, "already_known": 1, "errors": []}
+            },
+            "remediation_status": "verified_live",
+            "proposed_article_content_selector": "#content .detail-content .bizberg_cocntent_wrapper",
+            "proposed_article_content_exclude_selectors": [".bizberg_post_date", ".blog-title", ".bizberg_user_comment_wrapper"],
+            "proposed_article_date_selector": ".bizberg_post_date",
+            "date_policy": "strict Dutch dateline",
+            "success_claim": true,
+            "previous_failure_evidence": {
+              "evidence_artifact": "/tmp/zoofan-phase0.9Jx9xK/reports/latest/run-summary.json",
+              "checked_at": "2026-08-14T07:13:15.521362+00:00",
+              "failure_class": "content_parse_error",
+              "failure_detail": "article content selector missing"
+            }
+          },
+          "notes": "The narrow new-animals category feed exposes two dated WordPress article URLs. The exact Bizberg content selector, three exclusions, and strict Dutch dateline passed two bounded live runs: one clean 866-character article dated 17 juli 2024 stored, then already-known on the second run, with no source errors or contamination. This source is ready, enabled, recommended, and verified."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "het-dierenrijck-sitemap",
+          "kind": "sitemap",
+          "url": "https://dierenrijck.nl/wp-sitemap.xml",
+          "official_host": "dierenrijck.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "hertenspoor-zoo",
+      "roster_name": "Hertenspoor Zoo",
+      "country_code": "NL",
+      "city": "Echt",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": "http://www.dierenpark-echt.nl/",
+      "official_host": "www.dierenpark-echt.nl",
+      "plan_status": "ready_http_only",
+      "sources": [
+        {
+          "source_id": "hertenspoor-news-rss",
+          "kind": "rss",
+          "url": "http://www.dierenpark-echt.nl/feed/",
+          "official_host": "www.dierenpark-echt.nl",
+          "enabled": false,
+          "status": "ready_http_only",
+          "config": {
+            "official_host": "www.dierenpark-echt.nl",
+            "allow_regex": ["^http://www\\.dierenpark-echt\\.nl/[^/?#]+/?$"],
+            "exclude_regex": ["^http://www\\.dierenpark-echt\\.nl/(?:feed|category|contactgegevens|openingstijden|route|prijzen|parkeren|privacy|algemene-voorwaarden)(?:/|$)"],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 10,
+            "accepted_candidate_count": 9,
+            "unique_candidate_count": 9,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The official HTTP WordPress feed is usable but HTTPS currently serves a Webreus placeholder. Keep disabled until HTTP robots/redirect policy is rechecked; one static Openingstijden URL was excluded."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "hertenspoor-sitemap",
+          "kind": "sitemap",
+          "url": "http://www.dierenpark-echt.nl/sitemap_index.xml",
+          "official_host": "www.dierenpark-echt.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "mini-zoo-venray",
+      "roster_name": "Mini ZOO Venray",
+      "country_code": "NL",
+      "city": "Venray",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": null,
+      "official_host": null,
+      "plan_status": "source_not_found",
+      "sources": [],
+      "fallback_sources": [],
+      "evidence_urls": [],
+      "notes": "No primary official site, operator identity, municipal page matching this exact row, news/feed, sitemap, or API was verified. Retain the roster row; do not promote directory discovery hints to a source."
+    },
+    {
+      "stable_id": "apenheul",
+      "roster_name": "Apenheul",
+      "country_code": "NL",
+      "city": "Apeldoorn",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Priority",
+      "official_website_url": "https://www.apenheul.nl/",
+      "official_host": "www.apenheul.nl",
+      "plan_status": "ready",
+      "recommended": true,
+      "sources": [
+        {
+          "source_id": "apenheul-news-rss",
+          "kind": "rss",
+          "url": "https://www.apenheul.nl/rss/",
+          "official_host": "www.apenheul.nl",
+          "enabled": true,
+          "status": "ready",
+          "recommended": true,
+          "success_claim": true,
+          "config": {
+            "official_host": "www.apenheul.nl",
+            "allow_regex": ["^https://www\\.apenheul\\.nl/nieuws/\\d{4}/\\d{2}/[^/?#]+/?$"],
+            "exclude_regex": [],
+            "max_pages": 1,
+            "article_content_selector": "#main > section.rte.container",
+            "article_date_strategy": "rss_candidate_date_fallback"
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 280,
+            "accepted_candidate_count": 60,
+            "unique_candidate_count": 60,
+            "checked_at": "2026-08-14",
+            "article_content_selector": "#main > section.rte.container",
+            "article_fetch_status": "success",
+            "article_fetch_http_status": 200,
+            "article_fetch_count": 1,
+            "article_content_chars": 417,
+            "article_parse_status": "partial",
+            "article_quality_warning_count": 0,
+            "article_date_strategy": "rss_candidate_date_fallback",
+            "article_date_fallback_preserved": true
+          },
+          "bounded_live_evidence": {
+            "evidence_artifacts": [
+              "/tmp/zoofan-live-retest.c8xlNs/apenheul-pass1.json",
+              "/tmp/zoofan-live-retest.c8xlNs/apenheul-pass2.json",
+              "/tmp/zoofan-live-retest.c8xlNs/apenheul-pass1.log",
+              "/tmp/zoofan-live-retest.c8xlNs/apenheul-pass2.log"
+            ],
+            "source_id": "apenheul-news-rss",
+            "checked_at": "2026-08-14T08:45:22.283786+00:00",
+            "http_status": 200,
+            "discovered_candidate_count": 60,
+            "accepted_candidate_count": 60,
+            "fetched_article_count": 1,
+            "parsed_article_count": 1,
+            "stored_article_count": 1,
+            "already_known_pass2_count": 1,
+            "article_url": "https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren",
+            "article_title": "Zes doodshoofdaapjes geboren",
+            "article_published_at": "2026-07-28T13:19:09+00:00",
+            "article_content_chars": 417,
+            "article_parse_status": "partial",
+            "article_quality_warning_count": 0,
+            "article_date_strategy": "rss_candidate_date_fallback",
+            "article_date_fallback_preserved": true,
+            "run_evidence": {
+              "pass1": {
+                "run_id": "5d7e382bb7544a828c223d8443be7cfd",
+                "status": "completed",
+                "discovered": 60,
+                "fetched": 1,
+                "stored": 1,
+                "inserted": 1,
+                "updated": 0,
+                "already_known": 0,
+                "errors": []
+              },
+              "pass2": {
+                "run_id": "760abc453bd041238efaed5a03d3c348",
+                "status": "completed",
+                "discovered": 60,
+                "fetched": 0,
+                "stored": 0,
+                "inserted": 0,
+                "updated": 0,
+                "already_known": 1,
+                "errors": []
+              }
+            },
+            "navigation_errors": 0,
+            "content_errors": 0,
+            "date_errors": 0,
+            "success_claim": true
+          },
+          "notes": "The official RSS is broad (280 items) and includes jobs, events, thank-you pages, and other navigation. Allow only the dated /nieuws/YYYY/MM/ article path. The exact #main > section.rte.container content selector passed two bounded live runs; RSS candidate date fallback remains the date source."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "apenheul-sitemap",
+          "kind": "sitemap",
+          "url": "https://www.apenheul.nl/sitemap.xml",
+          "official_host": "www.apenheul.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "hof-van-eckberge",
+      "roster_name": "Hof van Eckberge",
+      "country_code": "NL",
+      "city": "Eibergen",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.hofvaneckberge.nl/",
+      "official_host": "www.hofvaneckberge.nl",
+      "plan_status": "ready",
+      "sources": [
+        {
+          "source_id": "hof-van-eckberge-news-rss",
+          "kind": "rss",
+          "url": "https://www.hofvaneckberge.nl/nieuws-uit-het-park?format=feed&type=rss",
+          "official_host": "www.hofvaneckberge.nl",
+          "enabled": true,
+          "status": "ready",
+          "config": {
+            "official_host": "www.hofvaneckberge.nl",
+            "allow_regex": ["^https://www\\.hofvaneckberge\\.nl/nieuws-uit-het-park/\\d+-[^/?#]+/?$"],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 20,
+            "accepted_candidate_count": 20,
+            "unique_candidate_count": 20,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "Use the scoped Joomla menu-item RSS. The site-wide query feed returned a 404 XML error; the scoped feed exposes numeric article slugs."
+        }
+      ],
+      "fallback_sources": []
+    },
+    {
+      "stable_id": "uilen-en-dierenpark-de-paay",
+      "roster_name": "Uilen- en Dierenpark De Paay",
+      "country_code": "NL",
+      "city": "Beesd",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://depaay.nl/",
+      "official_host": "depaay.nl",
+      "plan_status": "ready_stale",
+      "sources": [
+        {
+          "source_id": "de-paay-news-rss",
+          "kind": "rss",
+          "url": "https://depaay.nl/category/nieuws/feed/",
+          "official_host": "depaay.nl",
+          "enabled": true,
+          "status": "ready_stale",
+          "config": {
+            "official_host": "depaay.nl",
+            "allow_regex": ["^https://depaay\\.nl/\\d{4}/\\d{2}/\\d{2}/[^/?#]+/?$"],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 2,
+            "accepted_candidate_count": 2,
+            "unique_candidate_count": 2,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The official category feed is valid but stale: two items, with the latest feed build in 2023 and latest visible posts from 2021."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "de-paay-sitemap",
+          "kind": "sitemap",
+          "url": "https://depaay.nl/wp-sitemap.xml",
+          "official_host": "depaay.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "dierenpark-t-goor",
+      "roster_name": "Dierenpark 't Goor",
+      "country_code": "NL",
+      "city": "Brummen",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.dierenparkhetgoor.nl/",
+      "official_host": "www.dierenparkhetgoor.nl",
+      "plan_status": "registry_only",
+      "sources": [
+        {
+          "source_id": "dierenpark-t-goor-registry",
+          "kind": "registry_only",
+          "url": "https://www.dierenparkhetgoor.nl/",
+          "official_host": "www.dierenparkhetgoor.nl",
+          "enabled": false,
+          "status": "registry_only",
+          "config": {
+            "official_host": "www.dierenparkhetgoor.nl",
+            "role": "identity_only",
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 403,
+            "candidate_count": null,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "Official indexed identity pages are known, but direct HTTPS research requests were blocked by Cloudflare and no official news/feed/sitemap endpoint was verified."
+        }
+      ],
+      "fallback_sources": [],
+      "evidence_urls": [
+        "https://www.dierenparkhetgoor.nl/contact/",
+        "https://www.dierenparkhetgoor.nl/dieren-en-het-park/",
+        "https://www.dierenparkhetgoor.nl/anbi-en-stichting/",
+        "https://www.brummen.nl/fileadmin/brummen/Documenten/Gemeentethuis/GemeenteThuis_week_41_2020.pdf"
+      ],
+      "notes": "This is one of the five explicit gaps. Keep registry-only until the official host passes direct robots/fetch checks; do not use the OSM-derived listing as a source."
+    },
+    {
+      "stable_id": "kleindierwandelpark-hedel",
+      "roster_name": "Kleindierwandelpark Hedel",
+      "country_code": "NL",
+      "city": "Hedel",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": null,
+      "official_host": null,
+      "plan_status": "registry_only",
+      "sources": [],
+      "fallback_sources": [],
+      "evidence_urls": [
+        "https://www.maasdriel.nl/inwoner-en-ondernemer/sport-cultuur-en-recreatie/kasteel-hedel",
+        "https://www.maasdriel.nl/inwoner-en-ondernemer/openbare-ruimte-en-verkeer/onderhoud-openbaar-groen"
+      ],
+      "notes": "One of the five explicit gaps. Third-party social mirrors are discovery hints only and are not source plans."
+    },
+    {
+      "stable_id": "taman-indonesia",
+      "roster_name": "Taman Indonesia",
+      "country_code": "NL",
+      "city": "Kallenkote",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.taman-indonesia.nl/",
+      "official_host": "www.taman-indonesia.nl",
+      "plan_status": "ready_archive_rss_unverified",
+      "sources": [
+        {
+          "source_id": "taman-indonesia-news-archive",
+          "kind": "archive",
+          "url": "https://www.taman-indonesia.nl/Nieuws",
+          "official_host": "www.taman-indonesia.nl",
+          "enabled": true,
+          "status": "ready",
+          "config": {
+            "official_host": "www.taman-indonesia.nl",
+            "article_selector": "div#content-content > div.agenda-item.bruin",
+            "link_selector": "a[href^=\"Nieuws/\"]",
+            "title_selector": "h6",
+            "date_selector": null,
+            "pagination_selector": null,
+            "allow_regex": ["^https://www\\.taman-indonesia\\.nl/Nieuws/[^/?#]+/?$"],
+            "exclude_regex": ["^https://www\\.taman-indonesia\\.nl/(?:Nieuws|Agenda|Exposities|Webshop|Bezoekersinformatie|Contact)(?:/|$)"],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "text/html",
+            "parsed_candidate_count": 16,
+            "accepted_candidate_count": 16,
+            "unique_candidate_count": 16,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The official server-rendered news page has 16 scoped news cards; no date element is exposed in the card, so article-page metadata must supply dates."
+        },
+        {
+          "source_id": "taman-indonesia-news-rss-unsupported",
+          "kind": "rss",
+          "url": "https://www.taman-indonesia.nl/taman-indonesia-Nieuws.rss",
+          "official_host": "www.taman-indonesia.nl",
+          "enabled": false,
+          "status": "unsupported",
+          "config": {
+            "official_host": "www.taman-indonesia.nl",
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "text/html",
+            "parsed_candidate_count": 0,
+            "accepted_candidate_count": 0,
+            "checked_at": "2026-08-14",
+            "parse_error": "The endpoint returned the HTML site shell, not RSS/XML."
+          },
+          "notes": "Do not enable this URL as RSS until the official operator restores a valid XML feed. The archive above is the conservative executable source."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "taman-indonesia-sitemap",
+          "kind": "sitemap",
+          "url": "https://www.taman-indonesia.nl/sitemap.xml",
+          "official_host": "www.taman-indonesia.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ]
+    },
+    {
+      "stable_id": "bird-park-de-lorkeershoeve",
+      "roster_name": "Bird Park De Lorkeershoeve",
+      "country_code": "NL",
+      "city": null,
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": "https://www.vogelparkdelorkeershoeve.nl/",
+      "official_host": "www.vogelparkdelorkeershoeve.nl",
+      "plan_status": "registry_only",
+      "sources": [
+        {
+          "source_id": "bird-park-de-lorkeershoeve-news-registry",
+          "kind": "registry_only",
+          "url": "https://www.vogelparkdelorkeershoeve.nl/nieuws.html",
+          "official_host": "www.vogelparkdelorkeershoeve.nl",
+          "enabled": false,
+          "status": "registry_only",
+          "config": {
+            "official_host": "www.vogelparkdelorkeershoeve.nl",
+            "role": "identity_only",
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "text/html",
+            "parsed_candidate_count": 0,
+            "accepted_candidate_count": 0,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The official static page contains no article/detail anchors; it directs visitors to Facebook for updates. Keep the exact blank roster city and do not treat the social page as a crawl source."
+        }
+      ],
+      "fallback_sources": [],
+      "evidence_urls": [
+        "https://www.vogelparkdelorkeershoeve.nl/"
+      ]
+    },
+    {
+      "stable_id": "ten-kates-dierenpark",
+      "roster_name": "Ten Kate's Dierenpark",
+      "country_code": "NL",
+      "city": null,
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": "https://www.dierenparktenkate.nl/",
+      "official_host": "www.dierenparktenkate.nl",
+      "plan_status": "unsupported",
+      "sources": [
+        {
+          "source_id": "ten-kates-dierenpark-news-rss",
+          "kind": "rss",
+          "url": "https://www.dierenparktenkate.nl/feed/",
+          "official_host": "www.dierenparktenkate.nl",
+          "enabled": false,
+          "status": "unsupported",
+          "config": {
+            "official_host": "www.dierenparktenkate.nl",
+            "allow_regex": [],
+            "exclude_regex": [],
+            "max_pages": 1
+          },
+          "direct_observation": {
+            "http_status": 200,
+            "content_type": "application/rss+xml",
+            "parsed_candidate_count": 0,
+            "accepted_candidate_count": 0,
+            "checked_at": "2026-08-14"
+          },
+          "notes": "The official RSS is valid but empty/stale (last build 2023-01-24). Do not use the page sitemap as a news source without a future article classification check."
+        }
+      ],
+      "fallback_sources": [
+        {
+          "source_id": "ten-kates-dierenpark-sitemap",
+          "kind": "sitemap",
+          "url": "https://www.dierenparktenkate.nl/wp-sitemap.xml",
+          "official_host": "www.dierenparktenkate.nl",
+          "enabled": false,
+          "status": "discovery_only"
+        }
+      ],
+      "evidence_urls": [
+        "https://www.dierenparktenkate.nl/contact/"
+      ],
+      "notes": "The official site verifies the operator and gives Nieuwleusen as the address, but the roster city is intentionally blank and remains blank."
+    },
+    {
+      "stable_id": "dierenpark-de-bontekoe",
+      "roster_name": "Dierenpark De Bontekoe",
+      "country_code": "NL",
+      "city": null,
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": null,
+      "official_host": null,
+      "plan_status": "registry_only",
+      "sources": [],
+      "fallback_sources": [],
+      "evidence_urls": [
+        "https://www.borne.nl/file/jaarstukken-gemeente-borne-2021pdf",
+        "https://www.borne.nl/file/beheerkwaliteitsplan2018-2023pdf"
+      ],
+      "notes": "One of the five explicit gaps. Preserve the blank city and do not infer Borne as the roster city."
+    },
+    {
+      "stable_id": "mini-animal-park-deventer",
+      "roster_name": "Mini animal park Deventer",
+      "country_code": "NL",
+      "city": "Deventer",
+      "region": "Dutch Border",
+      "groups": ["regional_lab", "dutch_border"],
+      "tier": "Directory",
+      "official_website_url": null,
+      "official_host": null,
+      "plan_status": "source_not_found",
+      "sources": [],
+      "fallback_sources": [],
+      "evidence_urls": [
+        "https://www.deventer.nl/fileadmin/deventer_website/Sporten-spelen/Speelruimteplan_Deventer_-_augustus_2023.pdf"
+      ],
+      "notes": "The official municipal play-space plan labels a Mini animal park, but no operator, standalone site, article source, feed, sitemap, or API was verified. The municipal PDF is identity/location evidence only."
+    }
+  ]
+}

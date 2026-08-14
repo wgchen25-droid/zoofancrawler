@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc> /news/sitemap-drift </loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url><loc>/news/sitemap-drift-two</loc><image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><image:loc>/media/two.jpg</image:loc></image:image></url>
+</urlset>

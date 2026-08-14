@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Brook Valley Zoo nieuws</title>
+    <link>https://brookvalleyzoo.com/</link>
+    <item>
+      <title>Nieuwe bewoner in Brook Valley Zoo</title>
+      <link>/nieuws/nieuwe-bewoner/?utm_source=feed</link>
+      <guid>fixture-new-resident</guid>
+      <pubDate>Thu, 03 Apr 2025 09:30:00 GMT</pubDate>
+      <description>Een nieuwe bewoner is aangekomen.</description>
+    </item>
+    <item>
+      <title>Feed index</title>
+      <link>https://brookvalleyzoo.com/nieuws/feed/</link>
+      <pubDate>Thu, 03 Apr 2025 09:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Categorie index</title>
+      <link>https://brookvalleyzoo.com/nieuws/category/park/</link>
+      <pubDate>Thu, 03 Apr 2025 09:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Externe website</title>
+      <link>https://outside.example/nieuws/external/</link>
+      <pubDate>Thu, 03 Apr 2025 09:30:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

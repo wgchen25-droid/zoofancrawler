@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <meta property="og:title" content="Sanitized story">
+    <link rel="canonical" href="/stories/sanitized-story">
+  </head>
+  <body>
+    <article>
+      <p>Safe text remains.</p>
+      <svg onload="alert(1)"><a xlink:href="javascript:alert(2)">SVG payload</a></svg>
+      <meta http-equiv="refresh" content="0;url=javascript:alert(3)">
+      <base href="javascript:alert(4)">
+      <link rel="stylesheet" href="javascript:alert(5)">
+      <form action="javascript:alert(6)"><input formaction="javascript:alert(7)"></form>
+      <a href="javascript:alert(8)" onclick="alert(9)" style="background:url(javascript:alert(10))" xlink:href="javascript:alert(11)">Bad link</a>
+      <img src="data:text/html;base64,PHNjcmlwdD5hbGVydCgxMik8L3NjcmlwdD4=" srcset="javascript:alert(13)" onerror="alert(14)">
+      <a href="/stories/safe">Safe link</a>
+      <img src="/images/safe.jpg" alt="Safe image">
+    </article>
+  </body>
+</html>

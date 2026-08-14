@@ -1,0 +1,35 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "a-1",
+        "headline": "New rainforest resident",
+        "links": {"html": "/news/rainforest-resident"},
+        "publishedAt": "2025-04-03T09:30:00Z",
+        "summary": "A new resident arrived."
+      },
+      {
+        "id": "a-no-date",
+        "headline": "Date to be announced",
+        "links": {"html": "/news/date-to-be-announced"},
+        "publishedAt": "not-a-date"
+      },
+      {
+        "id": "a-duplicate",
+        "headline": "Duplicate tracking URL",
+        "links": {"html": "https://official.example/news/rainforest-resident?utm_source=api"},
+        "publishedAt": "2025-04-03"
+      },
+      {
+        "id": "noise",
+        "headline": "Navigation without an article URL",
+        "links": {"html": "https://official.example/"}
+      },
+      {
+        "id": "external",
+        "headline": "Third-party noise",
+        "links": {"html": "https://outside.example/news/not-official"}
+      }
+    ]
+  }
+}

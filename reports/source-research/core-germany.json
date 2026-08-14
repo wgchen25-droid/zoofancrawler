@@ -1,0 +1,865 @@
+{
+  "schema_version": "source-research.v1",
+  "checked_at": "2026-08-14",
+  "scope": "Core 30 / Germany 10",
+  "roster_file": "data/zoofan_phase0_zoo_list_v0_1.md",
+  "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+  "selection_rule": "The ten rows under the Core 30 heading whose Region column is Germany.",
+  "group_inference": {
+    "groups": [
+      "core30",
+      "germany_top10"
+    ],
+    "cross_memberships": [],
+    "note": "core30 is the Core 30 heading; germany_top10 is the Germany 10 subdivision stated in the roster note. No other membership is inferred from institutions, affiliations, or web pages."
+  },
+  "status_definitions": {
+    "success": "At least one official source page or endpoint was reachable and robots-readable at check time.",
+    "javascript_required": "The official listing page explicitly requires JavaScript or exposes no usable article listing without the client-rendered page.",
+    "robots_disallowed": "The official page is reachable, but robots.txt could not be read as a valid robots file; fail-closed crawling must not proceed.",
+    "partial": "An official endpoint is reachable but is not a reliable standalone article source (for example, a broad or empty feed).",
+    "registry_only": "An official news/press information page is reachable but no stable article-list discovery contract was evidenced.",
+    "discovery_only": "Official source evidence is retained for review, but no bounded executable adapter plan is declared; the record is not recommended for crawling."
+  },
+  "counts": {
+    "roster_rows": 10,
+    "unique_stable_ids": 10,
+    "official_websites_reachable": 10,
+    "official_news_press_or_blog_found": 10,
+    "completion_classification": {
+      "SUPPORTED": 7,
+      "JAVASCRIPT_REQUIRED": 2,
+      "ROBOTS_DISALLOWED": 1,
+      "SOURCE_NOT_FOUND": 0
+    },
+    "crawl_ready_without_extra_runtime_constraint": 7,
+    "javascript_required_zoos": 2,
+    "robots_unavailable_fail_closed_zoos": 1,
+    "source_records": 24,
+    "source_records_recommended": 10,
+    "source_gaps": 0
+  },
+  "gaps": [
+    {
+      "type": "javascript_required",
+      "zoo_ids": [
+        "wilhelma",
+        "erlebnis-zoo-hannover"
+      ],
+      "impact": "Wilhelma displays an explicit JavaScript-required notice; Hannover serves a Next.js client-rendered listing whose no-JS response has no article anchors. Use a custom/browser-capable adapter only if the project later permits it; do not silently treat these pages as static archives."
+    },
+    {
+      "type": "robots_unavailable",
+      "zoo_ids": [
+        "tierpark-hagenbeck"
+      ],
+      "impact": "https://www.hagenbeck.de/robots.txt returned the site's HTML 404 page (HTTP 200 after redirect), not a robots document. Fail closed until a valid robots endpoint is confirmed."
+    },
+    {
+      "type": "non_dedicated_feed",
+      "zoo_ids": [
+        "koeln-zoo"
+      ],
+      "impact": "The official WordPress RSS feed is reachable but contains broad site pages; the category/neuigkeiten feed was empty at check time. The aktuellartical REST API is retained as discovery evidence only because no bounded executable plan is declared; prefer the post-type sitemap."
+    },
+    {
+      "type": "discovery_only",
+      "source_ids": [
+        "zoo-berlin-panda-blog",
+        "koeln-zoo-news-api"
+      ],
+      "impact": "Both official endpoints were directly observed and are retained as discovery evidence, but neither has a bounded executable adapter plan in this artifact. They are not recommended source records and must not be imported as executable sources."
+    }
+  ],
+  "zoos": [
+    {
+      "id": "zoo-berlin",
+      "slug": "zoo-berlin",
+      "name": "Zoo Berlin",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Berlin",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoo-berlin.de/",
+      "official_host": "www.zoo-berlin.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.zoo-berlin.de/de",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://www.zoo-berlin.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.zoo-berlin.de/robots.txt",
+        "status": "allow",
+        "evidence": "User-agent * only disallows /stiftung-rebrush/; the listed news and press paths are not disallowed."
+      },
+      "sources": [
+        {
+          "id": "zoo-berlin-news",
+          "role": "news",
+          "url": "https://www.zoo-berlin.de/de/aktuelles/news",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-berlin.de/de/aktuelles/news",
+          "recommended": true,
+          "evidence_urls": ["https://www.zoo-berlin.de/de/aktuelles/news"],
+          "notes": "Server-rendered article cards; article links use /de/aktuelles/news/artikel/ and pagination uses tx_news_pi1 currentPage."
+        },
+        {
+          "id": "zoo-berlin-press",
+          "role": "press",
+          "url": "https://www.zoo-berlin.de/de/aktuelles/presse",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-berlin.de/de/aktuelles/presse",
+          "recommended": false,
+          "evidence_urls": ["https://www.zoo-berlin.de/de/aktuelles/presse"],
+          "execution": "health_only",
+          "notes": "Official press page retained as registry/health evidence. The current config preserves registry_only and this report declares no executable selectors or pagination plan."
+        },
+        {
+          "id": "zoo-berlin-panda-blog",
+          "role": "blog",
+          "url": "https://www.zoo-berlin.de/de/aktuelles/panda-blog",
+          "kind": "archive",
+          "adapter_proposal": null,
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-berlin.de/de/aktuelles/panda-blog",
+          "recommended": false,
+          "evidence_urls": ["https://www.zoo-berlin.de/de/aktuelles/panda-blog"],
+          "execution": "discovery_only",
+          "notes": "Dedicated official Panda-Blog archive retained as discovery evidence; no bounded selector, pagination, or max-page plan is declared, so it is not recommended for executable import."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.zoo-berlin.de/",
+        "https://www.zoo-berlin.de/robots.txt",
+        "https://www.zoo-berlin.de/de/aktuelles/news",
+        "https://www.zoo-berlin.de/de/aktuelles/presse",
+        "https://www.zoo-berlin.de/de/aktuelles/panda-blog"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "tierpark-berlin",
+      "slug": "tierpark-berlin",
+      "name": "Tierpark Berlin",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Berlin",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.tierpark-berlin.de/",
+      "official_host": "www.tierpark-berlin.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.tierpark-berlin.de/de",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://www.tierpark-berlin.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.tierpark-berlin.de/robots.txt",
+        "status": "allow",
+        "evidence": "User-agent * only disallows /stiftung-rebrush/; the listed news and press paths are not disallowed."
+      },
+      "sources": [
+        {
+          "id": "tierpark-berlin-news",
+          "role": "news",
+          "url": "https://www.tierpark-berlin.de/de/aktuelles/news",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.tierpark-berlin.de/de/aktuelles/news",
+          "recommended": true,
+          "evidence_urls": ["https://www.tierpark-berlin.de/de/aktuelles/news"],
+          "notes": "Server-rendered article cards; article links use /de/aktuelles/news/artikel/ and pagination uses tx_news_pi1 currentPage."
+        },
+        {
+          "id": "tierpark-berlin-press",
+          "role": "press",
+          "url": "https://www.tierpark-berlin.de/de/aktuelles/presse",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.tierpark-berlin.de/de/aktuelles/presse",
+          "recommended": false,
+          "evidence_urls": ["https://www.tierpark-berlin.de/de/aktuelles/presse"],
+          "execution": "health_only",
+          "notes": "Official press page retained as registry/health evidence. Dated entries are visible, but no stable article-list contract was evidenced and no executable selectors are proposed."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.tierpark-berlin.de/",
+        "https://www.tierpark-berlin.de/robots.txt",
+        "https://www.tierpark-berlin.de/de/aktuelles/news",
+        "https://www.tierpark-berlin.de/de/aktuelles/presse"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "zoo-leipzig",
+      "slug": "zoo-leipzig",
+      "name": "Zoo Leipzig",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Leipzig",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoo-leipzig.de/",
+      "official_host": "www.zoo-leipzig.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.zoo-leipzig.de/",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://www.zoo-leipzig.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.zoo-leipzig.de/robots.txt",
+        "status": "allow",
+        "evidence": "Allow /; only TYPO3, non-realurl, form, and selected asset paths are disallowed. The news archive and type/news sitemap are not disallowed."
+      },
+      "sources": [
+        {
+          "id": "zoo-leipzig-news",
+          "role": "news",
+          "url": "https://www.zoo-leipzig.de/aktuelles/neuigkeiten/",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-leipzig.de/aktuelles/neuigkeiten/",
+          "recommended": true,
+          "evidence_urls": ["https://www.zoo-leipzig.de/aktuelles/neuigkeiten/"],
+          "notes": "Server-rendered TYPO3 news listing with article links under /artikel/."
+        },
+        {
+          "id": "zoo-leipzig-news-sitemap",
+          "role": "news",
+          "url": "https://www.zoo-leipzig.de/type/news/sitemap.xml",
+          "kind": "sitemap",
+          "adapter_proposal": "sitemap",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-leipzig.de/type/news/sitemap.xml",
+          "recommended": true,
+          "evidence_urls": [
+            "https://www.zoo-leipzig.de/robots.txt",
+            "https://www.zoo-leipzig.de/sitemap.xml",
+            "https://www.zoo-leipzig.de/type/news/sitemap.xml"
+          ],
+          "notes": "Official sitemap index child dedicated to news; loc values are official /artikel/ URLs."
+        },
+        {
+          "id": "zoo-leipzig-press",
+          "role": "press",
+          "url": "https://www.zoo-leipzig.de/presse/",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-leipzig.de/presse/",
+          "recommended": false,
+          "evidence_urls": ["https://www.zoo-leipzig.de/presse/"],
+          "notes": "Official press information, factsheets, downloads, and selected static pages; no current press-release listing contract was evidenced."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.zoo-leipzig.de/",
+        "https://www.zoo-leipzig.de/robots.txt",
+        "https://www.zoo-leipzig.de/aktuelles/neuigkeiten/",
+        "https://www.zoo-leipzig.de/presse/",
+        "https://www.zoo-leipzig.de/sitemap.xml",
+        "https://www.zoo-leipzig.de/type/news/sitemap.xml"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "koeln-zoo",
+      "slug": "koeln-zoo",
+      "name": "Kölner Zoo",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Cologne",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://koelnerzoo.de/",
+      "official_host": "koelnerzoo.de",
+      "website_http_status": 200,
+      "website_final_url": "https://koelnerzoo.de/",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://koelnerzoo.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://koelnerzoo.de/robots.txt",
+        "status": "allow",
+        "evidence": "Disallows WordPress admin and one generated upload-list file; the /aktuellartical/, /wp-json/, /wp-sitemap/, and /presse/ paths are not disallowed."
+      },
+      "sources": [
+        {
+          "id": "koeln-zoo-news-sitemap",
+          "role": "news",
+          "url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml",
+          "kind": "sitemap",
+          "adapter_proposal": "sitemap",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml",
+          "recommended": true,
+          "evidence_urls": [
+            "https://koelnerzoo.de/robots.txt",
+            "https://koelnerzoo.de/wp-sitemap.xml",
+            "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml"
+          ],
+          "notes": "Official WordPress post-type sitemap with article URLs under /aktuellartical/."
+        },
+        {
+          "id": "koeln-zoo-news-api",
+          "role": "news",
+          "url": "https://koelnerzoo.de/wp-json/wp/v2/aktuellartical",
+          "kind": "json_api",
+          "adapter_proposal": null,
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://koelnerzoo.de/wp-json/wp/v2/aktuellartical",
+          "recommended": false,
+          "evidence_urls": ["https://koelnerzoo.de/wp-json/wp/v2/aktuellartical"],
+          "execution": "discovery_only",
+          "notes": "Official WordPress REST endpoint is retained as discovery evidence; no bounded JSON field, URL-policy, pagination, or max-page plan is declared in this artifact, so it is not recommended and is absent from the adapter plans."
+        },
+        {
+          "id": "koeln-zoo-news-archive",
+          "role": "news",
+          "url": "https://koelnerzoo.de/aktuell/",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://koelnerzoo.de/aktuell/",
+          "recommended": false,
+          "evidence_urls": ["https://koelnerzoo.de/aktuell/"],
+          "execution": "health_only",
+          "notes": "Reachable server-rendered WordPress/Bricks page retained as registry/health evidence; current cards use dynamic data-field popup content and do not expose stable article hrefs in raw HTML."
+        },
+        {
+          "id": "koeln-zoo-press",
+          "role": "press",
+          "url": "https://koelnerzoo.de/presse/",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://koelnerzoo.de/presse/",
+          "recommended": false,
+          "evidence_urls": ["https://koelnerzoo.de/presse/"],
+          "notes": "Official press contact, media-kit, accreditation, and image-download page; no separate press article listing was evidenced."
+        },
+        {
+          "id": "koeln-zoo-rss",
+          "role": "news",
+          "url": "https://koelnerzoo.de/feed/",
+          "kind": "rss",
+          "adapter_proposal": "rss",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "partial",
+          "http_status": 200,
+          "final_url": "https://koelnerzoo.de/feed/",
+          "recommended": false,
+          "evidence_urls": [
+            "https://koelnerzoo.de/feed/",
+            "https://koelnerzoo.de/category/neuigkeiten/feed/"
+          ],
+          "notes": "Main feed is a broad WordPress feed containing generic site pages; the official category/neuigkeiten feed was reachable but empty at check time. Do not use as the primary article source."
+        }
+      ],
+      "evidence_urls": [
+        "https://koelnerzoo.de/",
+        "https://koelnerzoo.de/robots.txt",
+        "https://koelnerzoo.de/aktuell/",
+        "https://koelnerzoo.de/presse/",
+        "https://koelnerzoo.de/wp-sitemap.xml",
+        "https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml",
+        "https://koelnerzoo.de/wp-json/wp/v2/aktuellartical",
+        "https://koelnerzoo.de/feed/",
+        "https://koelnerzoo.de/category/neuigkeiten/feed/"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "zoo-frankfurt",
+      "slug": "zoo-frankfurt",
+      "name": "Zoo Frankfurt",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Frankfurt",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoo-frankfurt.de/",
+      "official_host": "www.zoo-frankfurt.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.zoo-frankfurt.de/de",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://www.zoo-frankfurt.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.zoo-frankfurt.de/robots.txt",
+        "status": "allow",
+        "evidence": "User-agent * has an empty Disallow value; source path is allowed."
+      },
+      "sources": [
+        {
+          "id": "zoo-frankfurt-press-news",
+          "role": "press/news",
+          "url": "https://www.zoo-frankfurt.de/de/presse/aktuell",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.zoo-frankfurt.de/de/presse/aktuell",
+          "recommended": true,
+          "success_claim": true,
+          "evidence_urls": ["https://www.zoo-frankfurt.de/de/presse/aktuell"],
+          "notes": "Official press-service archive is also the current news stream; server-rendered dated cards link under /de/presse/news-detail/. Pagination uses page=N. The safe cross-section URL policy and article-content selector passed both final bounded retest runs.",
+          "remediation": {
+            "status": "verified",
+            "checked_at": "2026-08-14",
+            "evidence_path": "/tmp/zoofan-phase0.9Jx9xK",
+            "observations": {
+              "http_status": 200,
+              "candidate_path": "/de/presse/news-detail/farewell...",
+              "article_content_selector": "div.article",
+              "same_site_canonical_path": "/de/news/news-detail/...",
+              "visible_date": "14.07.2026"
+            },
+            "safe_plan": {
+              "article_content_selector": "div.article",
+              "allow_regex": "^https://www\\.zoo-frankfurt\\.de/de/(?:presse|news)/news-detail/[^/?#]+/?$"
+            },
+            "success_claim": true,
+            "retest_run_ids": [
+              "ec1df691fae04461a894a34823a8c0a8",
+              "709e9d1d2a4f49829cf1a82112e2da7f"
+            ],
+            "retest_runs": [
+              {
+                "run_id": "ec1df691fae04461a894a34823a8c0a8",
+                "discovered": 20,
+                "fetched": 1,
+                "parsed": 1,
+                "inserted": 0,
+                "updated": 0,
+                "errors": 0
+              },
+              {
+                "run_id": "709e9d1d2a4f49829cf1a82112e2da7f",
+                "discovered": 20,
+                "fetched": 1,
+                "parsed": 1,
+                "inserted": 0,
+                "updated": 0,
+                "errors": 0
+              }
+            ],
+            "raw_only_variation_excluded": true,
+            "business_updated_at_stable": true,
+            "retest_result": "Both clean retests passed; raw-only variation no longer counts as a business update."
+          }
+        }
+      ],
+      "evidence_urls": [
+        "https://www.zoo-frankfurt.de/",
+        "https://www.zoo-frankfurt.de/robots.txt",
+        "https://www.zoo-frankfurt.de/de/presse/aktuell"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "wilhelma",
+      "slug": "wilhelma",
+      "name": "Wilhelma",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Stuttgart",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.wilhelma.de/",
+      "official_host": "www.wilhelma.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.wilhelma.de/",
+      "language": "de",
+      "requires_javascript": true,
+      "source_status": "javascript_required",
+      "completion_classification": "JAVASCRIPT_REQUIRED",
+      "robots": {
+        "url": "https://www.wilhelma.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.wilhelma.de/robots.txt",
+        "status": "allow",
+        "evidence": "Only /typo3/ is disallowed; the news/press page and sitemap are not disallowed."
+      },
+      "sources": [
+        {
+          "id": "wilhelma-news-press",
+          "role": "news/press",
+          "url": "https://www.wilhelma.de/aktuelles/aktuelles/news-presse",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": true,
+          "source_status": "javascript_required",
+          "http_status": 200,
+          "final_url": "https://www.wilhelma.de/aktuelles/aktuelles/news-presse",
+          "recommended": false,
+          "evidence_urls": [
+            "https://www.wilhelma.de/aktuelles/aktuelles/news-presse",
+            "https://www.wilhelma.de/sitemap.xml"
+          ],
+          "execution": "unsupported",
+          "notes": "Official combined News & Presse listing explicitly requires JavaScript. Retain registry_only evidence with no browser/rendering bypass or executable selectors."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.wilhelma.de/",
+        "https://www.wilhelma.de/robots.txt",
+        "https://www.wilhelma.de/sitemap.xml",
+        "https://www.wilhelma.de/aktuelles/aktuelles/news-presse"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "tierpark-hellabrunn",
+      "slug": "tierpark-hellabrunn",
+      "name": "Tierpark Hellabrunn",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Munich",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.hellabrunn.de/",
+      "official_host": "www.hellabrunn.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.hellabrunn.de/",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://www.hellabrunn.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.hellabrunn.de/robots.txt",
+        "status": "allow",
+        "evidence": "Allow /; only TYPO3/admin, parameter, and selected asset paths are disallowed. News, press, and sitemap paths are allowed."
+      },
+      "sources": [
+        {
+          "id": "tierpark-hellabrunn-news",
+          "role": "news",
+          "url": "https://www.hellabrunn.de/der-tierpark/aktuelles/neues-aus-hellabrunn",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.hellabrunn.de/der-tierpark/aktuelles/neues-aus-hellabrunn",
+          "recommended": true,
+          "evidence_urls": ["https://www.hellabrunn.de/der-tierpark/aktuelles/neues-aus-hellabrunn"],
+          "notes": "Server-rendered TYPO3 news list with headline/date/teaser and /newsdetailseite/ article links; pagination is /seite-N."
+        },
+        {
+          "id": "tierpark-hellabrunn-press",
+          "role": "press",
+          "url": "https://www.hellabrunn.de/presse",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://www.hellabrunn.de/presse",
+          "recommended": true,
+          "evidence_urls": ["https://www.hellabrunn.de/presse"],
+          "notes": "Official press-release archive with dated entries, journalist downloads, and /newsdetailseite-1/ links."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.hellabrunn.de/",
+        "https://www.hellabrunn.de/robots.txt",
+        "https://www.hellabrunn.de/sitemap.xml",
+        "https://www.hellabrunn.de/der-tierpark/aktuelles/neues-aus-hellabrunn",
+        "https://www.hellabrunn.de/presse"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "erlebnis-zoo-hannover",
+      "slug": "erlebnis-zoo-hannover",
+      "name": "Erlebnis-Zoo Hannover",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Hannover",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoo-hannover.de/",
+      "official_host": "www.zoo-hannover.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.zoo-hannover.de/",
+      "language": "de",
+      "requires_javascript": true,
+      "source_status": "javascript_required",
+      "completion_classification": "JAVASCRIPT_REQUIRED",
+      "robots": {
+        "url": "https://www.zoo-hannover.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.zoo-hannover.de/robots.txt",
+        "status": "allow",
+        "evidence": "Allow / and declares https://www.zoo-hannover.de/sitemap.xml; no source path is disallowed."
+      },
+      "sources": [
+        {
+          "id": "erlebnis-zoo-hannover-news",
+          "role": "news",
+          "url": "https://www.zoo-hannover.de/news",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": true,
+          "source_status": "javascript_required",
+          "http_status": 200,
+          "final_url": "https://www.zoo-hannover.de/news",
+          "recommended": false,
+          "evidence_urls": [
+            "https://www.zoo-hannover.de/news",
+            "https://www.zoo-hannover.de/sitemap.xml"
+          ],
+          "execution": "unsupported",
+          "notes": "Official Next.js page is client-rendered; no-JS HTML exposes no stable article anchors. Retain registry_only evidence with javascript_required status; no custom adapter name or browser/rendering bypass is approved."
+        },
+        {
+          "id": "erlebnis-zoo-hannover-press",
+          "role": "press",
+          "url": "https://www.zoo-hannover.de/pressemitteilungen",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": true,
+          "source_status": "javascript_required",
+          "http_status": 200,
+          "final_url": "https://www.zoo-hannover.de/pressemitteilungen",
+          "recommended": false,
+          "evidence_urls": ["https://www.zoo-hannover.de/pressemitteilungen"],
+          "execution": "unsupported",
+          "notes": "Official press page is client-rendered; no-JS response has no stable current article anchors. Retain registry_only evidence with javascript_required status; no custom adapter name or browser/rendering bypass is approved."
+        },
+        {
+          "id": "erlebnis-zoo-hannover-blog",
+          "role": "blog",
+          "url": "https://www.zoo-hannover.de/blog",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": true,
+          "source_status": "javascript_required",
+          "http_status": 200,
+          "final_url": "https://www.zoo-hannover.de/blog",
+          "recommended": false,
+          "evidence_urls": ["https://www.zoo-hannover.de/blog"],
+          "execution": "unsupported",
+          "notes": "Official Zoo-Blog page is client-rendered and no-JS HTML exposes no stable article links. Retain registry_only evidence with javascript_required status; no custom adapter name or browser/rendering bypass is approved."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.zoo-hannover.de/",
+        "https://www.zoo-hannover.de/robots.txt",
+        "https://www.zoo-hannover.de/sitemap.xml",
+        "https://www.zoo-hannover.de/news",
+        "https://www.zoo-hannover.de/pressemitteilungen",
+        "https://www.zoo-hannover.de/blog"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "tiergarten-nuernberg",
+      "slug": "tiergarten-nuernberg",
+      "name": "Tiergarten Nürnberg",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Nuremberg",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://tiergarten.nuernberg.de/",
+      "official_host": "tiergarten.nuernberg.de",
+      "website_http_status": 200,
+      "website_final_url": "https://tiergarten.nuernberg.de/startseite",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "success",
+      "completion_classification": "SUPPORTED",
+      "robots": {
+        "url": "https://tiergarten.nuernberg.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://tiergarten.nuernberg.de/robots.txt",
+        "status": "allow",
+        "evidence": "Only TYPO3/admin paths are disallowed; current and press paths are not disallowed."
+      },
+      "sources": [
+        {
+          "id": "tiergarten-nuernberg-news",
+          "role": "news",
+          "url": "https://tiergarten.nuernberg.de/entdecken/aktuell",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://tiergarten.nuernberg.de/entdecken/aktuell",
+          "recommended": true,
+          "evidence_urls": ["https://tiergarten.nuernberg.de/entdecken/aktuell"],
+          "notes": "Server-rendered current-news list with dated cards, /entdecken/aktuell/detail/news/ links, and year archive paths."
+        },
+        {
+          "id": "tiergarten-nuernberg-press",
+          "role": "press",
+          "url": "https://tiergarten.nuernberg.de/presse",
+          "kind": "archive",
+          "adapter_proposal": "archive",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "success",
+          "http_status": 200,
+          "final_url": "https://tiergarten.nuernberg.de/presse",
+          "recommended": true,
+          "evidence_urls": ["https://tiergarten.nuernberg.de/presse"],
+          "notes": "Official press listing is server-rendered and uses /presse/detail/news/ article links plus year archive paths."
+        }
+      ],
+      "evidence_urls": [
+        "https://tiergarten.nuernberg.de/",
+        "https://tiergarten.nuernberg.de/robots.txt",
+        "https://tiergarten.nuernberg.de/entdecken/aktuell",
+        "https://tiergarten.nuernberg.de/presse"
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "id": "tierpark-hagenbeck",
+      "slug": "tierpark-hagenbeck",
+      "name": "Tierpark Hagenbeck",
+      "region": "Germany",
+      "country_code": "DE",
+      "city": "Hamburg",
+      "groups": ["core30", "germany_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.hagenbeck.de/",
+      "official_host": "www.hagenbeck.de",
+      "website_http_status": 200,
+      "website_final_url": "https://www.hagenbeck.de/de/",
+      "language": "de",
+      "requires_javascript": false,
+      "source_status": "robots_disallowed",
+      "completion_classification": "ROBOTS_DISALLOWED",
+      "robots": {
+        "url": "https://www.hagenbeck.de/robots.txt",
+        "http_status": 200,
+        "final_url": "https://www.hagenbeck.de/404.php",
+        "status": "unavailable_fail_closed",
+        "evidence": "The robots URL redirects to the site's HTML 404 page rather than returning a robots document. News and press pages themselves return 200 static HTML, but cannot be crawled under fail-closed robots policy."
+      },
+      "sources": [
+        {
+          "id": "tierpark-hagenbeck-news",
+          "role": "news",
+          "url": "https://www.hagenbeck.de/de/tierpark/tierpark/news_aktuelles.php",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "robots_disallowed",
+          "http_status": 200,
+          "final_url": "https://www.hagenbeck.de/de/tierpark/tierpark/news_aktuelles.php",
+          "recommended": false,
+          "evidence_urls": [
+            "https://www.hagenbeck.de/de/tierpark/tierpark/news_aktuelles.php",
+            "https://www.hagenbeck.de/robots.txt"
+          ],
+          "execution": "unsupported",
+          "notes": "Static official news cards link under /de/_News/, but invalid robots evidence blocks execution fail-closed. Retain registry_only evidence pending a valid robots document."
+        },
+        {
+          "id": "tierpark-hagenbeck-press",
+          "role": "press",
+          "url": "https://www.hagenbeck.de/de/pressebereich/pressemitteilungen.php",
+          "kind": "registry_only",
+          "adapter_proposal": "registry_only",
+          "language": "de",
+          "requires_javascript": false,
+          "source_status": "robots_disallowed",
+          "http_status": 200,
+          "final_url": "https://www.hagenbeck.de/de/pressebereich/pressemitteilungen.php",
+          "recommended": false,
+          "evidence_urls": [
+            "https://www.hagenbeck.de/de/pressebereich/pressemitteilungen.php",
+            "https://www.hagenbeck.de/robots.txt"
+          ],
+          "execution": "unsupported",
+          "notes": "Static official press-release cards with year filters and /de/pressebereich/pm/ article links, but invalid robots evidence blocks execution fail-closed. Retain registry_only evidence pending a valid robots document."
+        }
+      ],
+      "evidence_urls": [
+        "https://www.hagenbeck.de/",
+        "https://www.hagenbeck.de/robots.txt",
+        "https://www.hagenbeck.de/de/tierpark/tierpark/news_aktuelles.php",
+        "https://www.hagenbeck.de/de/pressebereich/pressemitteilungen.php"
+      ],
+      "checked_at": "2026-08-14"
+    }
+  ]
+}

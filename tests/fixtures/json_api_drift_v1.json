@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "uuid": "drift-1",
+      "title": "Minor schema drift",
+      "link": {"href": "/news/minor-drift"},
+      "createdAt": "7. März 2025",
+      "description": "The API changed only its collection and link shape."
+    },
+    {"uuid": "invalid", "title": "No usable link", "createdAt": "2025-03-08"}
+  ]
+}

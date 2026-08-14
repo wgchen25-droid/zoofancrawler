@@ -1,0 +1,951 @@
+{
+  "schema_version": "core-global-adapters.v1",
+  "report_id": "core-global-adapter-plans",
+  "checked_at": "2026-08-14",
+  "scope": {
+    "region": "Global",
+    "groups": ["core30", "global_top10"],
+    "roster_file": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "authority": "User-confirmed authoritative Phase 0 roster",
+    "rows_expected": 10
+  },
+  "method": {
+    "primary_evidence_only": true,
+    "source_evidence": "Only official zoo, operator, government, municipal, or institutional URLs were used.",
+    "selector_evidence": "Selectors and JSON/XML paths are recorded only where the direct official response exposed and matched them on 2026-08-14.",
+    "candidate_count_semantics": "direct_endpoint_candidates is the raw item/loc/card count from the checked endpoint; selector_candidate_count is the count after the named verified selector or path filter. Counts are observations, not a promise of future volume.",
+    "robots_rule": "A missing or HTTP-404 robots.txt, or a path explicitly disallowed by robots.txt, is fail-closed. Research probe counts for such sources are evidence only and do not authorize crawling.",
+    "pagination_rule": "max_pages/max_sitemaps is included only when the response exposed a page control, next link, or explicit total-page contract; every bound is at most 2."
+  },
+  "status_definitions": {
+    "supported": "A narrow official source and selector/field contract were directly verified and no current robots or runtime blocker was observed.",
+    "partial": "An official source is usable for a limited or shared listing, but a complete zoo-specific contract or historical coverage was not verified.",
+    "robots_disallowed": "The official source or host is known, but missing/invalid robots or a disallowed path prevents crawl execution.",
+    "javascript_required": "The official listing is a client-rendered shell; no server-rendered candidate selector was evidenced.",
+    "unsupported": "The endpoint is reachable, but a safe article identity/canonical URL contract or built-in parser contract was not verified.",
+    "registry_only": "The official page/endpoint is retained as identity or health evidence only and is not proposed for article discovery."
+  },
+  "counts": {
+    "roster_rows": 10,
+    "unique_stable_ids": 10,
+    "source_plans": 20,
+    "source_status_counts": {
+      "supported": 2,
+      "partial": 2,
+      "robots_disallowed": 8,
+      "javascript_required": 2,
+      "unsupported": 3,
+      "registry_only": 3
+    },
+    "rows_with_crawl_ready_source": 2,
+    "rows_with_limited_or_registry_source": 4,
+    "rows_blocked_by_robots": 4,
+    "rows_without_verified_canonical_article_contract": 2,
+    "source_gaps": 0
+  },
+  "rows": [
+    {
+      "stable_id": "san-diego-zoo",
+      "roster_name": "San Diego Zoo",
+      "country_code": "US",
+      "city": "San Diego",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://zoo.sandiegozoo.org/",
+      "official_host": "zoo.sandiegozoo.org",
+      "language": "en",
+      "row_status": "supported",
+      "constraints": [],
+      "sources": [
+        {
+          "source_id": "san-diego-zoo-story-hub",
+          "role": "news_press",
+          "kind": "archive",
+          "url": "https://sandiegozoowildlifealliance.org/story-hub/search-news",
+          "official_host": "sandiegozoowildlifealliance.org",
+          "source_status": "supported",
+          "recommended": true,
+          "robots": {
+            "url": "https://sandiegozoowildlifealliance.org/robots.txt",
+            "status": "allow",
+            "crawl_allowed": true
+          },
+          "runtime": {"javascript_required": false, "observed": "server_rendered_html"},
+          "allow": {
+            "host": "sandiegozoowildlifealliance.org",
+            "path_patterns": ["^/(?:PR|pressroom/news-releases)/[^/?#]+/?$"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/story-hub/", "/admin/"]
+          },
+          "selectors": {
+            "article_selector": "div.newsroom-lists",
+            "link_selector": "div.headline a[href]",
+            "title_selector": "div.headline h3",
+            "date_selector": "div.date time[datetime]",
+            "summary_selector": "div.summary",
+            "pagination_selector": "nav[aria-labelledby=\"pagination-heading\"] a[rel=\"next\"]"
+          },
+          "pagination": {
+            "max_pages": 2,
+            "evidence": "The direct page exposed a rel=next link to /story-hub/search-news?page=1."
+          },
+          "candidate_counts": {
+            "direct_endpoint_candidates": 10,
+            "selector_candidate_count": 10,
+            "selector_unit": "div.newsroom-lists cards"
+          },
+          "evidence_urls": [
+            "https://zoo.sandiegozoo.org/",
+            "https://sandiegozoowildlifealliance.org/story-hub/search-news",
+            "https://sandiegozoowildlifealliance.org/robots.txt"
+          ],
+          "notes": "The ten observed cards used both /pressroom/news-releases/ and /PR/ detail paths; keep both exact prefixes. The Alliance sitemap was not promoted because it contains stale legacy host locations."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "bronx-zoo",
+      "roster_name": "Bronx Zoo",
+      "country_code": "US",
+      "city": "New York",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://bronxzoo.com/",
+      "official_host": "bronxzoo.com",
+      "language": "en",
+      "row_status": "supported",
+      "constraints": ["shared_wcs_feed_requires_identity_filter"],
+      "sources": [
+        {
+          "source_id": "bronx-zoo-wcs-rss",
+          "role": "news_press",
+          "kind": "rss",
+          "url": "https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25",
+          "official_host": "newsroom.wcs.org",
+          "source_status": "supported",
+          "success_claim": true,
+          "recommended": true,
+          "robots": {
+            "url": "https://newsroom.wcs.org/robots.txt",
+            "status": "allow",
+            "crawl_allowed": true
+          },
+          "runtime": {"javascript_required": false, "observed": "RSS_2.0_server_response"},
+          "allow": {
+            "host": "newsroom.wcs.org",
+            "path_prefixes": ["/News-Releases/articleType/ArticleView/"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/DesktopModules/", "/News-Releases/ArticleView/"]
+          },
+          "identity_filter": {
+            "required_text_any": ["Bronx Zoo", "Bronx, NY"],
+            "verified_text_match_count": 8,
+            "note": "The WCS feed is operator-wide (25 RSS items), not a Bronx-only category; eight entries matched the Bronx Zoo/Bronx, NY identity text. Keep only official detail URLs/content that pass this identity filter."
+          },
+          "selectors": {
+            "item": "item",
+            "title": "title",
+            "link": "link",
+            "summary": "description",
+            "published": "pubDate",
+            "article_content_selector": ".article-body"
+          },
+          "candidate_counts": {
+            "direct_endpoint_candidates": 25,
+            "selector_candidate_count": 25,
+            "identity_filter_candidate_count": 8,
+            "selector_unit": "RSS item before Bronx identity filter"
+          },
+          "evidence_urls": [
+            "https://bronxzoo.com/",
+            "https://newsroom.wcs.org/News-Releases.aspx",
+            "https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25",
+            "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+            "https://newsroom.wcs.org/robots.txt"
+          ],
+          "live_diagnostic": {
+            "artifact_dir": "/tmp/zoofan-phase0.9Jx9xK",
+            "run_artifacts": ["global_top10.pass1.json", "global_top10.pass1.log", "global_top10.pass2.json", "global_top10.pass2.log"],
+            "feed_http_status": 200,
+            "operator_feed_candidate_count": 25,
+            "identity_match_count": 8,
+            "article_probe": {
+              "url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+              "http_status": 200,
+              "article_content_selector": ".article-body",
+              "main_root_present": false,
+              "article_root_present": false
+            },
+            "remediation_status": "verified_live_retest",
+            "remediation_note": "The source-scoped selector passed both bounded live retest runs; success_claim is based only on their clean fetch/store and already-known evidence.",
+            "retest": {
+              "run_ids": ["d1dc9a0cfc15474dbcb322d9e73b97ef", "5372992f73a74afda78d0a1573d00790"],
+              "rss_discovered_identity_matches": 8,
+              "first_fetched": 1,
+              "first_stored": 1,
+              "first_content_chars": 4429,
+              "second_already_known": 1,
+              "content_parse_errors": 0,
+              "new_duplicates": 0,
+              "success_claim": true
+            }
+          },
+          "notes": "No WCS sitemap was promoted. The RSS XML exposes title, link, description, and pubDate directly. The operator-wide feed and Bronx identity filter remain distinct; .article-body is the verified source-scoped content selector."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "smithsonians-national-zoo",
+      "roster_name": "Smithsonian's National Zoo",
+      "country_code": "US",
+      "city": "Washington, DC",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://nationalzoo.si.edu/",
+      "official_host": "nationalzoo.si.edu",
+      "language": "en",
+      "row_status": "partial",
+      "constraints": ["historical_archive_robots_disallowed", "latest_listing_only"],
+      "sources": [
+        {
+          "source_id": "smithsonians-national-zoo-current-news",
+          "role": "news_press",
+          "kind": "archive",
+          "url": "https://nationalzoo.si.edu/news",
+          "official_host": "nationalzoo.si.edu",
+          "source_status": "partial",
+          "recommended": true,
+          "robots": {
+            "url": "https://nationalzoo.si.edu/robots.txt",
+            "status": "allow_current_disallow_archive",
+            "crawl_allowed": true,
+            "disallowed_paths": ["/news/archive", "/news/press-release-archive"]
+          },
+          "runtime": {"javascript_required": false, "observed": "server_rendered_html"},
+          "allow": {
+            "host": "nationalzoo.si.edu",
+            "path_prefixes": ["/news/", "/animals/news/"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/news/archive", "/news/press-release-archive", "/news/media-contact-form"]
+          },
+          "selectors": {
+            "article_selector": "#block-views-block-media-release-and-news-block-16 .card, #block-views-block-media-release-and-news-block-15 .card",
+            "link_selector": "div.p-4.pr-8.flex-grow > a[href]",
+            "title_selector": ".card--title",
+            "date_selector": ".card--tagline",
+            "summary_selector": ".card--caption"
+          },
+          "pagination": {
+            "max_pages": 1,
+            "evidence": "The current /news response exposed two eight-card sliders and no next-page control."
+          },
+          "candidate_counts": {
+            "direct_endpoint_candidates": 16,
+            "selector_candidate_count": 16,
+            "selector_unit": "eight latest press cards plus eight latest animal-story cards"
+          },
+          "evidence_urls": [
+            "https://nationalzoo.si.edu/news",
+            "https://nationalzoo.si.edu/news/press-release-archive",
+            "https://nationalzoo.si.edu/robots.txt",
+            "https://nationalzoo.si.edu/sitemap.xml"
+          ],
+          "notes": "The current page is a limited latest-news source. Do not follow the official historical archive links while robots disallows them; no RSS/API contract was verified."
+        },
+        {
+          "source_id": "smithsonians-national-zoo-historical-archive",
+          "role": "press_archive",
+          "kind": "archive",
+          "url": "https://nationalzoo.si.edu/news/press-release-archive",
+          "official_host": "nationalzoo.si.edu",
+          "source_status": "robots_disallowed",
+          "recommended": false,
+          "robots": {
+            "url": "https://nationalzoo.si.edu/robots.txt",
+            "status": "path_disallowed",
+            "crawl_allowed": false,
+            "disallowed_paths": ["/news/press-release-archive", "/news/archive"]
+          },
+          "runtime": {"javascript_required": false, "observed": "server_rendered_html_but_blocked"},
+          "allow": {"host": "nationalzoo.si.edu", "path_prefixes": []},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/news/press-release-archive"]},
+          "selectors": {},
+          "candidate_counts": {
+            "direct_endpoint_candidates": null,
+            "selector_candidate_count": null,
+            "probe_only": true
+          },
+          "evidence_urls": [
+            "https://nationalzoo.si.edu/news/press-release-archive",
+            "https://nationalzoo.si.edu/robots.txt"
+          ],
+          "notes": "Retain as a blocked evidence plan only; no robots bypass or browser fallback."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "toronto-zoo",
+      "roster_name": "Toronto Zoo",
+      "country_code": "CA",
+      "city": "Toronto",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.torontozoo.com/",
+      "official_host": "www.torontozoo.com",
+      "language": "en",
+      "row_status": "robots_disallowed",
+      "constraints": ["robots_txt_missing_http_404"],
+      "sources": [
+        {
+          "source_id": "toronto-zoo-press-2026",
+          "role": "press",
+          "kind": "archive",
+          "url": "https://www.torontozoo.com/mediaroom/press2026",
+          "official_host": "www.torontozoo.com",
+          "source_status": "robots_disallowed",
+          "recommended": false,
+          "robots": {
+            "url": "https://www.torontozoo.com/robots.txt",
+            "status": "missing_http_404",
+            "crawl_allowed": false
+          },
+          "runtime": {"javascript_required": false, "observed": "server_rendered_html_probe_only"},
+          "allow": {
+            "host": "www.torontozoo.com",
+            "path_patterns": ["^/mediaroom/press2026/[^/?#]+$"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/mediaroom/", "/!/", "/tickets/"]
+          },
+          "selectors": {
+            "article_selector": "a.press-item",
+            "link_selector": "a.press-item[href]",
+            "title_selector": ".press-title",
+            "date_selector": ".press-content > span"
+          },
+          "pagination": {
+            "max_pages": 1,
+            "evidence": "The 2026 year archive exposed one server-rendered list; year links are archive navigation, not a next-page control."
+          },
+          "candidate_counts": {
+            "direct_endpoint_candidates": 21,
+            "selector_candidate_count": 21,
+            "selector_unit": "a.press-item"
+          },
+          "evidence_urls": [
+            "https://www.torontozoo.com/",
+            "https://www.torontozoo.com/mediaroom/press2026",
+            "https://www.torontozoo.com/robots.txt"
+          ],
+          "notes": "The HTML contract is verified by probe, but the missing robots document blocks execution. Do not fetch alternate year pages until robots is restored."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "singapore-zoo",
+      "roster_name": "Singapore Zoo",
+      "country_code": "SG",
+      "city": "Singapore",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.mandai.com/en/singapore-zoo.html",
+      "official_host": "www.mandai.com",
+      "language": "en",
+      "row_status": "partial",
+      "constraints": ["operator_wide_media_source", "javascript_required_for_index", "bin_api_robots_disallowed"],
+      "sources": [
+        {
+          "source_id": "singapore-zoo-mandai-media-sitemap",
+          "role": "media_centre",
+          "kind": "sitemap",
+          "url": "https://www.mandai.com/content/wrs/en.sitemap.xml",
+          "official_host": "www.mandai.com",
+          "source_status": "registry_only",
+          "recommended": false,
+          "robots": {
+            "url": "https://www.mandai.com/robots.txt",
+            "status": "allow_sitemap_path",
+            "crawl_allowed": true,
+            "disallowed_paths": ["/bin/", "/api/", "/services/"]
+          },
+          "runtime": {"javascript_required": false, "observed": "XML_sitemap"},
+          "allow": {
+            "host": "www.mandai.com",
+            "path_prefixes": ["/en/about-mandai/media-centre/"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/en/about-mandai/media-centre.html", "/bin/", "/api/", "/services/"]
+          },
+          "selectors": {"loc": "loc"},
+          "pagination": {"max_sitemaps": 1, "evidence": "The direct English sitemap is one verified urlset endpoint."},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 926,
+            "selector_candidate_count": 262,
+            "eligible_article_candidate_count": 261,
+            "selector_unit": "loc; 262 media-centre locations including the index, 261 detail locations"
+          },
+          "evidence_urls": [
+            "https://www.mandai.com/en/singapore-zoo.html",
+            "https://www.mandai.com/content/wrs/en.sitemap.xml",
+            "https://www.mandai.com/robots.txt"
+          ],
+          "notes": "The path filter is verified, but the Mandai Media Centre is operator-wide and the checked response did not expose a verified Singapore-Zoo-only category selector. Keep this as registry/health evidence until identity filtering is evidenced."
+        },
+        {
+          "source_id": "singapore-zoo-mandai-media-index",
+          "role": "media_centre",
+          "kind": "archive",
+          "url": "https://www.mandai.com/en/about-mandai/media-centre.html",
+          "official_host": "www.mandai.com",
+          "source_status": "javascript_required",
+          "recommended": false,
+          "robots": {
+            "url": "https://www.mandai.com/robots.txt",
+            "status": "index_allowed_api_disallowed",
+            "crawl_allowed": true,
+            "disallowed_paths": ["/bin/"]
+          },
+          "runtime": {"javascript_required": true, "observed": "filter.js_shell_without_cards"},
+          "allow": {"host": "www.mandai.com", "path_prefixes": ["/en/about-mandai/media-centre.html"]},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/bin/"]},
+          "selectors": {},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 0,
+            "selector_candidate_count": 0,
+            "selector_unit": "server-rendered article cards",
+            "probe_only": true
+          },
+          "evidence_urls": [
+            "https://www.mandai.com/en/about-mandai/media-centre.html",
+            "https://www.mandai.com/robots.txt"
+          ],
+          "notes": "The page exposes data-load-plugins=filter.js and a /bin/commons/pressRoomBlockDataServlet data-url; no server-rendered article selector is claimed."
+        },
+        {
+          "source_id": "singapore-zoo-mandai-media-api",
+          "role": "media_centre_api",
+          "kind": "json_api",
+          "url": "https://www.mandai.com/bin/commons/pressRoomBlockDataServlet?pagePath=/content/wrs/en/mandai/about-mandai/media-centre/jcr:content/root/responsivegrid/pressroomblock",
+          "official_host": "www.mandai.com",
+          "source_status": "robots_disallowed",
+          "adapter_status": "unsupported",
+          "recommended": false,
+          "robots": {
+            "url": "https://www.mandai.com/robots.txt",
+            "status": "path_disallowed",
+            "crawl_allowed": false,
+            "disallowed_paths": ["/bin/"]
+          },
+          "runtime": {"javascript_required": true, "observed": "direct_probe_http_500"},
+          "allow": {"host": "www.mandai.com", "path_prefixes": []},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/bin/"]},
+          "selectors": {},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 0,
+            "selector_candidate_count": 0,
+            "probe_only": true
+          },
+          "evidence_urls": [
+            "https://www.mandai.com/en/about-mandai/media-centre.html",
+            "https://www.mandai.com/robots.txt"
+          ],
+          "notes": "Do not call the disallowed servlet or add a browser/API bypass; the direct research probe returned HTTP 500 and no JSON item contract was verified."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "ueno-zoo",
+      "roster_name": "Ueno Zoo",
+      "country_code": "JP",
+      "city": "Tokyo",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.tokyo-zoo.net/ueno/index.html",
+      "official_host": "www.tokyo-zoo.net",
+      "language": "ja",
+      "row_status": "robots_disallowed",
+      "constraints": ["robots_txt_missing_http_404"],
+      "sources": [
+        {
+          "source_id": "ueno-zoo-news-ja",
+          "role": "news",
+          "kind": "archive",
+          "url": "https://www.tokyo-zoo.net/ueno/news/index.html",
+          "official_host": "www.tokyo-zoo.net",
+          "source_status": "robots_disallowed",
+          "recommended": false,
+          "robots": {
+            "url": "https://www.tokyo-zoo.net/robots.txt",
+            "status": "missing_http_404",
+            "crawl_allowed": false
+          },
+          "runtime": {"javascript_required": false, "observed": "server_rendered_html_probe_only"},
+          "allow": {
+            "host": "www.tokyo-zoo.net",
+            "path_patterns": ["^/ueno/news/[0-9]+/index\\.html$"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/common/", "/image/", "/en/"]
+          },
+          "selectors": {
+            "article_selector": ".el-news__item[data-category=\"news\"]",
+            "link_selector": "a.el-news__item__inner[href]",
+            "title_selector": ".el-news__item__heading-text",
+            "date_selector": ".el-news__item__date"
+          },
+          "pagination": {
+            "max_pages": 1,
+            "evidence": "The HTML response contained the full filtered item list and a client-side year/tag filter, not a verified next-page URL."
+          },
+          "candidate_counts": {
+            "direct_endpoint_candidates": 76,
+            "selector_candidate_count": 76,
+            "selector_unit": "el-news items with data-category=news"
+          },
+          "evidence_urls": [
+            "https://www.tokyo-zoo.net/ueno/index.html",
+            "https://www.tokyo-zoo.net/ueno/news/index.html",
+            "https://www.tokyo-zoo.net/en/ueno/news/index.html",
+            "https://www.tokyo-zoo.net/robots.txt"
+          ],
+          "notes": "The checked page also exposed 28 event-category items; the verified data-category=news selector intentionally excludes those. Enable only after robots.txt is restored."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "taipei-zoo",
+      "roster_name": "Taipei Zoo",
+      "country_code": "TW",
+      "city": "Taipei",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoo.gov.taipei/",
+      "official_host": "www.zoo.gov.taipei",
+      "language": "zh",
+      "language_tag": "zh-Hant",
+      "row_status": "robots_disallowed",
+      "constraints": ["robots_txt_missing_http_404_on_chinese_and_english_hosts"],
+      "sources": [
+        {
+          "source_id": "taipei-zoo-press-rss",
+          "role": "press",
+          "kind": "rss",
+          "url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E",
+          "official_host": "www.zoo.gov.taipei",
+          "source_status": "robots_disallowed",
+          "recommended": false,
+          "robots": {"url": "https://www.zoo.gov.taipei/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": false, "observed": "RSS_2.0_server_response"},
+          "allow": {
+            "host": "www.zoo.gov.taipei",
+            "path_prefixes": ["/News_Content.aspx"],
+            "query_constraints": {"n": "BD065B2FA7782989", "s": "required"}
+          },
+          "exclude": {"external_hosts": true, "path_prefixes": ["/OpenData.aspx", "/News.aspx"]},
+          "selectors": {"item": "item", "title": "title", "link": "link", "summary": "description", "published": "pubDate"},
+          "candidate_counts": {"direct_endpoint_candidates": 50, "selector_candidate_count": 50, "selector_unit": "RSS item"},
+          "evidence_urls": [
+            "https://www.zoo.gov.taipei/",
+            "https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6",
+            "https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E",
+            "https://www.zoo.gov.taipei/robots.txt"
+          ],
+          "notes": "The RSS item links are first-party News_Content.aspx URLs in the exact BD065B2FA7782989 collection. Probe-only until robots is valid."
+        },
+        {
+          "source_id": "taipei-zoo-press-json",
+          "role": "press",
+          "kind": "json_api",
+          "url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A",
+          "official_host": "www.zoo.gov.taipei",
+          "source_status": "robots_disallowed",
+          "recommended": false,
+          "robots": {"url": "https://www.zoo.gov.taipei/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": false, "observed": "JSON_root_array"},
+          "allow": {
+            "host": "www.zoo.gov.taipei",
+            "path_prefixes": ["/News_Content.aspx"],
+            "query_constraints": {"n": "BD065B2FA7782989", "s": "required"}
+          },
+          "exclude": {"external_hosts": true, "path_prefixes": ["/OpenData.aspx", "/News.aspx"]},
+          "selectors": {
+            "items_path": "$",
+            "title_path": "title",
+            "url_path": "Source",
+            "date_path": "日期時間",
+            "summary_path": "內容"
+          },
+          "candidate_counts": {"direct_endpoint_candidates": 50, "selector_candidate_count": 50, "selector_unit": "JSON root records with Source"},
+          "evidence_urls": [
+            "https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A",
+            "https://www.zoo.gov.taipei/robots.txt"
+          ],
+          "notes": "The official JSON records expose Source, title, 日期時間, and 內容; the same missing robots policy blocks execution."
+        },
+        {
+          "source_id": "taipei-zoo-press-xml",
+          "role": "press",
+          "kind": "unsupported",
+          "url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=1B8CDF622E1AD51D",
+          "official_host": "www.zoo.gov.taipei",
+          "source_status": "unsupported",
+          "recommended": false,
+          "robots": {"url": "https://www.zoo.gov.taipei/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": false, "observed": "XML_data_endpoint"},
+          "allow": {"host": "www.zoo.gov.taipei", "path_prefixes": []},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/OpenData.aspx"]},
+          "selectors": {},
+          "candidate_counts": {"direct_endpoint_candidates": 50, "selector_candidate_count": null, "probe_only": true},
+          "evidence_urls": [
+            "https://www.zoo.gov.taipei/OpenData.aspx?SN=1B8CDF622E1AD51D",
+            "https://www.zoo.gov.taipei/robots.txt"
+          ],
+          "notes": "The XML endpoint is official and duplicates the collection, but no built-in generic XML adapter contract beyond RSS/JSON was verified; retain as evidence only."
+        },
+        {
+          "source_id": "taipei-zoo-press-archive",
+          "role": "press",
+          "kind": "archive",
+          "url": "https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6",
+          "official_host": "www.zoo.gov.taipei",
+          "source_status": "robots_disallowed",
+          "recommended": false,
+          "robots": {"url": "https://www.zoo.gov.taipei/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": false, "observed": "server_rendered_html_probe_only"},
+          "allow": {
+            "host": "www.zoo.gov.taipei",
+            "path_prefixes": ["/News_Content.aspx"],
+            "query_constraints": {"n": "BD065B2FA7782989", "s": "required"}
+          },
+          "exclude": {"external_hosts": true, "path_prefixes": ["/News.aspx", "/OpenData.aspx"]},
+          "selectors": {
+            "article_selector": "#CCMS_Content a[href*=\"News_Content.aspx\"]",
+            "link_selector": "a[href*=\"News_Content.aspx\"]"
+          },
+          "pagination": {"max_pages": 2, "evidence": "The direct first page exposed PageSize=20 links for page=1, page=2, page=3, page=4, and page=164; the plan intentionally caps at 2."},
+          "candidate_counts": {"direct_endpoint_candidates": 20, "selector_candidate_count": 20, "selector_unit": "CCMS_Content News_Content.aspx anchors"},
+          "evidence_urls": [
+            "https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6",
+            "https://www.zoo.gov.taipei/robots.txt"
+          ],
+          "notes": "The listing has a verified narrow link selector, but RSS/JSON are structurally cleaner and all remain blocked by the missing robots document."
+        },
+        {
+          "source_id": "taipei-zoo-sitemap-health",
+          "role": "site_navigation",
+          "kind": "registry_only",
+          "url": "https://www.zoo.gov.taipei/sitemap.xml",
+          "official_host": "www.zoo.gov.taipei",
+          "source_status": "registry_only",
+          "recommended": false,
+          "robots": {"url": "https://www.zoo.gov.taipei/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": false, "observed": "XML_sitemap"},
+          "allow": {"host": "www.zoo.gov.taipei", "path_prefixes": ["/News_Content.aspx"]},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/Content_List.aspx", "/News.aspx", "/News_Photo.aspx"]},
+          "selectors": {"loc": "loc"},
+          "pagination": {"max_sitemaps": 1, "evidence": "One direct urlset endpoint was verified."},
+          "candidate_counts": {"direct_endpoint_candidates": 102, "selector_candidate_count": 0, "selector_unit": "loc after News_Content.aspx allow filter"},
+          "evidence_urls": ["https://www.zoo.gov.taipei/sitemap.xml", "https://www.zoo.gov.taipei/robots.txt"],
+          "notes": "The sitemap contains category/navigation locations but no verified BD065 News_Content article locs; retain as health evidence only."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "taronga-zoo-sydney",
+      "roster_name": "Taronga Zoo Sydney",
+      "country_code": "AU",
+      "city": "Sydney",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.taronga.org.au/",
+      "official_host": "www.taronga.org.au",
+      "language": "en",
+      "row_status": "partial",
+      "constraints": ["shared_sydney_and_dubbo_api_contract_not_verified", "zero_verified_sydney_specific_candidates"],
+      "sources": [
+        {
+          "source_id": "taronga-zoo-sydney-article-api",
+          "role": "news_press",
+          "kind": "json_api",
+          "url": "https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358",
+          "official_host": "www.taronga.org.au",
+          "source_status": "partial",
+          "adapter_status": "unsupported",
+          "recommended": false,
+          "robots": {"url": "https://www.taronga.org.au/robots.txt", "status": "allow", "crawl_allowed": true},
+          "runtime": {"javascript_required": false, "observed": "direct_first_party_JSON; newsroom_shell_uses_JS"},
+          "allow": {
+            "host": "www.taronga.org.au",
+            "path_prefixes": ["/about/newsroom/posts/", "/about/newsroom/media-releases/"]
+          },
+          "exclude": {
+            "external_hosts": true,
+            "path_prefixes": ["/api/", "/dubbo-zoo/"]
+          },
+          "selectors": {
+            "items_path": "result.items",
+            "title_path": "header",
+            "url_path": "link.href",
+            "date_path": "articleDate",
+            "summary_path": "summary"
+          },
+          "pagination": {"max_pages": 2, "evidence": "The JSON response exposed currentPage=1, totalPage=272, hasNextPage=true; the plan caps requests at two pages."},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 9,
+            "selector_candidate_count": 9,
+            "selector_unit": "result.items",
+            "total_items_reported": 2441,
+            "verified_sydney_specific_count": 0
+          },
+          "evidence_urls": [
+            "https://www.taronga.org.au/about/newsroom",
+            "https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358",
+            "https://www.taronga.org.au/robots.txt"
+          ],
+          "notes": "The API fields are verified, but pageId=15358 returns a mixed Taronga newsroom and no Sydney-only query parameter was verified. Do not infer Sydney identity from the first page or add an unverified category parameter."
+        },
+        {
+          "source_id": "taronga-zoo-sydney-news-sitemap",
+          "role": "site_navigation",
+          "kind": "sitemap",
+          "url": "https://www.taronga.org.au/sitemap.xml",
+          "official_host": "www.taronga.org.au",
+          "source_status": "registry_only",
+          "recommended": false,
+          "robots": {"url": "https://www.taronga.org.au/robots.txt", "status": "allow", "crawl_allowed": true},
+          "runtime": {"javascript_required": false, "observed": "XML_sitemap"},
+          "allow": {
+            "host": "www.taronga.org.au",
+            "path_prefixes": ["/about/newsroom/posts/", "/about/newsroom/media-releases/"]
+          },
+          "exclude": {"external_hosts": true, "path_prefixes": ["/api/", "/dubbo-zoo/"]},
+          "selectors": {"loc": "loc"},
+          "pagination": {"max_sitemaps": 1, "evidence": "One direct sitemap endpoint was verified."},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 2830,
+            "selector_candidate_count": 2446,
+            "selector_unit": "loc after /about/newsroom/ filter",
+            "verified_sydney_specific_count": 0
+          },
+          "evidence_urls": ["https://www.taronga.org.au/sitemap.xml", "https://www.taronga.org.au/robots.txt"],
+          "notes": "The sitemap is operator-wide and contains both Sydney and Dubbo newsroom paths; it is navigation/health evidence only until a Sydney-specific filter is verified."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "sao-paulo-zoo",
+      "roster_name": "São Paulo Zoo",
+      "country_code": "BR",
+      "city": "São Paulo",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoologico.com.br/",
+      "official_host": "www.zoologico.com.br",
+      "language": "pt",
+      "language_tag": "pt-BR",
+      "row_status": "robots_disallowed",
+      "constraints": ["robots_txt_missing_http_404_on_both_aliases", "internal_api_items_have_null_link"],
+      "sources": [
+        {
+          "source_id": "sao-paulo-zoo-press-api",
+          "role": "press",
+          "kind": "json_api",
+          "url": "https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC",
+          "official_host": "www.zoologico.com.br",
+          "source_status": "robots_disallowed",
+          "adapter_status": "unsupported",
+          "recommended": false,
+          "robots": {"url": "https://www.zoologico.com.br/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": true, "observed": "NextJS_press_page; direct_JSON_requires_public_headers"},
+          "allow": {"host": "www.zoologico.com.br", "path_prefixes": []},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/v1/press", "/_next/", "/noticias"]},
+          "selectors": {
+            "items_path": "data",
+            "title_path": "title",
+            "url_path": "link",
+            "date_path": "publication_date",
+            "summary_path": "content",
+            "identity_path": "tag"
+          },
+          "pagination": {"max_pages": 2, "evidence": "The response exposed currentPage=1, totalPages=9, hasNextPage=true; the plan caps the untrusted probe at two pages."},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 6,
+            "selector_candidate_count": 6,
+            "selector_unit": "data records",
+            "canonical_url_candidates": 0,
+            "total_items_reported": 53
+          },
+          "evidence_urls": [
+            "https://www.zoologico.com.br/noticias",
+            "https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC",
+            "https://www.zoologico.com.br/robots.txt",
+            "https://zoologico.com.br/robots.txt"
+          ],
+          "notes": "The official JS bundle documents the public headers and JSON paths, but INTERNAL_NEWS records had null link values in the direct response. No article URL may be synthesized from IDs; keep unsupported and robots-blocked."
+        },
+        {
+          "source_id": "sao-paulo-zoo-press-page",
+          "role": "press",
+          "kind": "archive",
+          "url": "https://www.zoologico.com.br/noticias",
+          "official_host": "www.zoologico.com.br",
+          "source_status": "javascript_required",
+          "recommended": false,
+          "robots": {"url": "https://www.zoologico.com.br/robots.txt", "status": "missing_http_404", "crawl_allowed": false},
+          "runtime": {"javascript_required": true, "observed": "NextJS_shell_without_press_article_anchors"},
+          "allow": {"host": "www.zoologico.com.br", "path_prefixes": ["/noticias"]},
+          "exclude": {"external_hosts": true, "path_prefixes": ["/_next/", "/v1/press"]},
+          "selectors": {},
+          "candidate_counts": {"direct_endpoint_candidates": 0, "selector_candidate_count": 0, "probe_only": true},
+          "evidence_urls": ["https://www.zoologico.com.br/noticias", "https://www.zoologico.com.br/robots.txt"],
+          "notes": "The HTML is a Next.js press shell; no static article selector is claimed and no browser fallback is proposed."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "national-zoological-garden",
+      "roster_name": "National Zoological Garden",
+      "country_code": "ZA",
+      "city": "Pretoria",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.pretoriazoo.org/",
+      "official_host": "www.pretoriazoo.org",
+      "language": "en",
+      "row_status": "partial",
+      "constraints": ["rss_is_limited_to_five_latest_items", "root_slug_article_paths_not_narrow_enough"],
+      "sources": [
+        {
+          "source_id": "national-zoological-garden-rss",
+          "role": "news_press",
+          "kind": "rss",
+          "url": "https://www.pretoriazoo.org/feed/",
+          "official_host": "www.pretoriazoo.org",
+          "source_status": "unsupported",
+          "adapter_status": "unsupported",
+          "recommended": false,
+          "robots": {"url": "https://www.pretoriazoo.org/robots.txt", "status": "allow", "crawl_allowed": true},
+          "runtime": {"javascript_required": false, "observed": "WordPress_RSS_2.0"},
+          "allow": {
+            "host": "www.pretoriazoo.org",
+            "path_patterns": []
+          },
+          "exclude": {"external_hosts": true, "path_prefixes": ["/feed/", "/wp-json/", "/wp-admin/", "/sitemap"]},
+          "selectors": {
+            "item": "item",
+            "title": "title",
+            "link": "link",
+            "summary": "description",
+            "content": "content:encoded",
+            "published": "pubDate"
+          },
+          "candidate_counts": {"direct_endpoint_candidates": 5, "selector_candidate_count": null, "selector_unit": "RSS root-slug links; no safe narrow path", "probe_only": true},
+          "evidence_urls": [
+            "https://www.pretoriazoo.org/",
+            "https://www.pretoriazoo.org/homepage/newsroom/",
+            "https://www.pretoriazoo.org/feed/",
+            "https://www.pretoriazoo.org/robots.txt"
+          ],
+          "notes": "The dedicated feed channel is titled National Zoological Garden, Pretoria and exposes five root-slug article links. No stable news/article path was verified, so this source remains disabled; do not use the broad root-slug rule."
+        },
+        {
+          "source_id": "national-zoological-garden-wp-api",
+          "role": "news_backfill",
+          "kind": "json_api",
+          "url": "https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories",
+          "official_host": "www.pretoriazoo.org",
+          "source_status": "unsupported",
+          "adapter_status": "unsupported",
+          "recommended": false,
+          "robots": {"url": "https://www.pretoriazoo.org/robots.txt", "status": "allow", "crawl_allowed": true},
+          "runtime": {"javascript_required": false, "observed": "WordPress_REST_JSON"},
+          "allow": {
+            "host": "www.pretoriazoo.org",
+            "path_patterns": []
+          },
+          "exclude": {"external_hosts": true, "path_prefixes": ["/wp-json/", "/wp-admin/", "/feed/", "/sitemap"]},
+          "selectors": {
+            "items_path": "$",
+            "id_path": "id",
+            "title_path": "title.rendered",
+            "url_path": "link",
+            "date_path": "date",
+            "updated_at_path": "modified",
+            "summary_path": "content.rendered"
+          },
+          "pagination": {"max_pages": 2, "evidence": "X-WP-TotalPages=3 and a Link rel=next header were observed; the plan caps backfill at two pages."},
+          "candidate_counts": {
+            "direct_endpoint_candidates": 10,
+            "selector_candidate_count": null,
+            "selector_unit": "JSON root-slug links; no safe narrow path",
+            "probe_only": true,
+            "total_items_reported": 28
+          },
+          "evidence_urls": [
+            "https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories",
+            "https://www.pretoriazoo.org/robots.txt",
+            "https://www.pretoriazoo.org/sitemap.xml"
+          ],
+          "notes": "The dedicated WordPress host returned link, title.rendered, date, modified, content.rendered, and categories, but the observed links are root slugs with no stable news/article path. Keep as evidence only until a narrow URL policy is verified; do not use the broad root-slug rule."
+        }
+      ],
+      "checked_at": "2026-08-14"
+    }
+  ],
+  "gaps": [
+    {
+      "stable_id": "toronto-zoo",
+      "type": "robots_disallowed",
+      "detail": "The verified press archive has exact selectors and 21 observed cards, but robots.txt returns HTTP 404; no crawl is permitted."
+    },
+    {
+      "stable_id": "ueno-zoo",
+      "type": "robots_disallowed",
+      "detail": "The verified Japanese archive has 76 news-category candidates, but robots.txt returns HTTP 404; no crawl is permitted."
+    },
+    {
+      "stable_id": "taipei-zoo",
+      "type": "robots_disallowed",
+      "detail": "RSS, JSON, archive, and sitemap contracts are observed, but both Chinese and English robots endpoints return HTTP 404."
+    },
+    {
+      "stable_id": "sao-paulo-zoo",
+      "type": "robots_disallowed_and_unsupported",
+      "detail": "The official API returns six internal records per page, but all observed internal link fields are null; robots.txt is also HTTP 404 on both aliases."
+    },
+    {
+      "stable_id": "singapore-zoo",
+      "type": "registry_only",
+      "detail": "Mandai's sitemap exposes 261 media-centre detail locations, but no verified Singapore-Zoo-only identity selector was evidenced; the index API is JS-gated, robots-disallowed, and returned HTTP 500 to a direct probe."
+    },
+    {
+      "stable_id": "taronga-zoo-sydney",
+      "type": "unsupported",
+      "detail": "The first-party article API and sitemap are operator-wide across Sydney and Dubbo; no Sydney-specific query/filter contract was verified, so candidates remain registry/partial evidence."
+    },
+    {
+      "stable_id": "smithsonians-national-zoo",
+      "type": "partial",
+      "detail": "The current News page has 16 verified cards, but historical archive paths are explicitly robots-disallowed and no RSS/API was verified."
+    }
+  ]
+}

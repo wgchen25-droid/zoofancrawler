@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "url": "/news/custom-duplicate/",
+      "title": "Custom duplicate first",
+      "publishedAt": "2025-04-03"
+    },
+    {
+      "url": "https://official.example/news/custom-duplicate/?utm_source=custom",
+      "title": "Custom duplicate second",
+      "publishedAt": "2025-04-03"
+    }
+  ]
+}

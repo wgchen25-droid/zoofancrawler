@@ -1,0 +1,14 @@
+{
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": "Une nouvelle arrivée",
+  "datePublished": "5 février 2024",
+  "image": {
+    "url": "/media/arrivee.jpg"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Zoo editorial team"
+  },
+  "inLanguage": "fr"
+}

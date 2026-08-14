@@ -7,16 +7,30 @@ forcing parsers or crawlers to know about SQL.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import sqlite3
 import threading
+import time
+import unicodedata
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, Mapping, Optional, Tuple, Union
+from typing import Any, Iterator, Mapping, Optional, Union, cast
 
-from .models import Article, ArticleDiscovery, ArticleUpsertOutcome, CrawlRun, CrawlRunStat, Source, Zoo
+from .models import (
+    Article,
+    ArticleDiscovery,
+    ArticleReadModel,
+    ArticleUpsertOutcome,
+    CrawlRun,
+    CrawlRunStat,
+    CrawlZooResult,
+    Source,
+    Zoo,
+)
 from .normalization import normalize_url
 
 
@@ -43,9 +57,61 @@ def _decoded_timestamp(value: Optional[str]) -> Optional[Union[datetime, str]]:
         return value
 
 
+def _discovery_timestamp(value: Any) -> Optional[str]:
+    """Canonicalize a discovery timestamp without discarding bad legacy text."""
+
+    raw = _timestamp(value)
+    if raw is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return raw
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def _parsed_discovery_timestamp(value: str) -> Optional[datetime]:
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _select_discovery_timestamp(values: Any, *, latest: bool) -> Optional[str]:
+    """Select min/max chronologically, with deterministic raw-text fallback.
+
+    An unparseable legacy value remains intact.  When all candidates parse,
+    compare aware UTC datetimes; when any candidate is opaque, lexical order
+    is only a deterministic fallback because no honest chronology is known.
+    """
+
+    candidates = [
+        normalized
+        for value in values
+        if (normalized := _discovery_timestamp(value)) is not None
+    ]
+    if not candidates:
+        return None
+    parsed = [(candidate, _parsed_discovery_timestamp(candidate)) for candidate in candidates]
+    if all(timestamp is not None for _, timestamp in parsed):
+        selected = max if latest else min
+        return selected(
+            parsed,
+            key=lambda item: item[1] or datetime.min.replace(tzinfo=timezone.utc),
+        )[0]
+    return (max if latest else min)(candidates)
+
+
 def _json(value: Any) -> str:
     try:
-        return json.dumps(value or {}, ensure_ascii=False, sort_keys=True, default=str)
+        # Preserve empty lists/tuples.  New zoo registry fields use JSON list
+        # values, and turning [] into {} would make a fresh round-trip lossy.
+        return json.dumps({} if value is None else value, ensure_ascii=False, sort_keys=True, default=str)
     except (TypeError, ValueError):
         return "{}"
 
@@ -58,10 +124,89 @@ def _load_json(value: Optional[str]) -> dict[str, Any]:
         return {}
 
 
+def _load_json_value(value: Optional[str], default: Any = None) -> Any:
+    """Decode an arbitrary JSON value while keeping malformed legacy data safe."""
+
+    if value in (None, ""):
+        return default
+    try:
+        raw_value = str(value)
+        return json.loads(raw_value)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return default
+
+
+def _normalize_title(value: Optional[str]) -> str:
+    """Return a deterministic, human-title identity key.
+
+    URL identity remains the primary global key.  This key is only used in
+    the zoo-scoped identity relation, so two zoos can independently publish
+    an article with the same title.
+    """
+
+    if value is None:
+        return ""
+    text = unicodedata.normalize("NFKC", str(value)).casefold()
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _normalize_legacy_url(value: Any) -> Optional[str]:
+    """Normalize a legacy URL without letting corrupt evidence abort startup.
+
+    New writes intentionally continue to call :func:`normalize_url` directly
+    and therefore retain its validation behavior.  A legacy database may
+    contain values that were accepted before URL parsing was made strict,
+    though, so migration treats an unparseable value as an unknown identity
+    while retaining the original value in its raw-evidence column.
+    """
+
+    if value in (None, ""):
+        return None
+    try:
+        normalized = normalize_url(str(value))
+    except (TypeError, UnicodeError, ValueError):
+        return None
+    return normalized or None
+
+
+def _first_legacy_url(*values: Any) -> Optional[str]:
+    """Return the first usable normalized URL from legacy fallbacks."""
+
+    for value in values:
+        normalized = _normalize_legacy_url(value)
+        if normalized is not None:
+            return normalized
+    return None
+
+
+# Public spelling for adapters that need to build the same title key before
+# calling storage; the underscored implementation remains the local helper.
+normalize_title = _normalize_title
+
+
+def _content_identity_key(content_hash: Optional[str], title: Optional[str]) -> Optional[str]:
+    """Build the stable, collision-scoped content identity.
+
+    A parsed-content hash alone is not globally unique: boilerplate cards can
+    produce the same digest for unrelated articles.  Scoping it by the
+    normalized title keeps the database-level uniqueness guarantee while
+    allowing those distinct titles to coexist.
+    """
+
+    if not content_hash:
+        return None
+    title_key = _normalize_title(title)
+    if not title_key:
+        return None
+    identity = f"{content_hash}\x00{title_key}".encode("utf-8")
+    return hashlib.sha256(identity).hexdigest()
+
+
 class SQLiteStorage:
     """Transactional storage for crawl state and article records."""
 
-    SCHEMA_VERSION = 4
+    SCHEMA_VERSION = 7
+    _INIT_RETRY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8)
 
     def __init__(self, path: Union[str, Path] = ":memory:", connection: Optional[sqlite3.Connection] = None) -> None:
         self.path = str(path)
@@ -72,9 +217,34 @@ class SQLiteStorage:
         self._lock = threading.RLock()
         self._connection.execute("PRAGMA foreign_keys = ON")
         self._connection.execute("PRAGMA busy_timeout = 5000")
-        if self.path != ":memory:":
-            self._connection.execute("PRAGMA journal_mode = WAL")
-        self.create_schema()
+        self._initialize_database()
+
+    @staticmethod
+    def _is_lock_error(error: sqlite3.OperationalError) -> bool:
+        message = str(error).lower()
+        return "database is locked" in message or "database is busy" in message
+
+    def _initialize_database(self) -> None:
+        """Set up a file database with bounded retries for startup races.
+
+        Two workers can open the same new database at the same time.  WAL
+        negotiation and the first schema transaction both contend on SQLite's
+        schema lock, so retry the complete initialization as one unit.  The
+        retry count is deliberately finite: a permanently unusable database
+        must still fail promptly and visibly.
+        """
+
+        attempts = len(self._INIT_RETRY_DELAYS) + 1
+        for attempt in range(attempts):
+            try:
+                if self.path != ":memory:":
+                    self._connection.execute("PRAGMA journal_mode = WAL")
+                self.create_schema()
+                return
+            except sqlite3.OperationalError as error:
+                if not self._is_lock_error(error) or attempt >= attempts - 1:
+                    raise
+                time.sleep(self._INIT_RETRY_DELAYS[attempt])
 
     @property
     def connection(self) -> sqlite3.Connection:
@@ -94,6 +264,11 @@ class SQLiteStorage:
         """Create or transactionally migrate and verify the SQLite schema."""
         with self._lock:
             db = self._connection
+            if db.in_transaction:
+                # A schema migration may rebuild tables.  Refusing to nest it
+                # inside an arbitrary caller transaction avoids rolling back
+                # unrelated caller writes on migration failure.
+                raise RuntimeError("create_schema cannot run inside an active caller transaction")
             # SQLite cannot add FK constraints with ALTER TABLE.  Disable FK
             # enforcement only for the bounded rebuild transaction, then run
             # both database checks before committing and restore enforcement.
@@ -133,21 +308,26 @@ class SQLiteStorage:
     ) -> None:
         z, s, a = f"zoos{suffix}", f"sources{suffix}", f"articles{suffix}"
         d, r, rs = f"article_discoveries{suffix}", f"crawl_runs{suffix}", f"crawl_run_stats{suffix}"
+        azi, zr = f"article_zoo_identities{suffix}", f"crawl_zoo_results{suffix}"
         extra_declarations = extra_declarations or {}
         columns = {
-            "zoos": ["id TEXT PRIMARY KEY", "slug TEXT UNIQUE", "name TEXT", "website_url TEXT", "country_code TEXT", "language TEXT", "enabled INTEGER DEFAULT 1", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
+            "zoos": ["id TEXT PRIMARY KEY", "slug TEXT UNIQUE", "name TEXT", "website_url TEXT", "country_code TEXT", "language TEXT", "groups_json TEXT DEFAULT '[]'", "region TEXT", "city TEXT", "source_status TEXT", "list_provenance_json TEXT DEFAULT '[]'", "enabled INTEGER DEFAULT 1", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
             "sources": ["id TEXT PRIMARY KEY", "zoo_id TEXT", "url TEXT", "normalized_url TEXT", "kind TEXT DEFAULT 'rss'", "name TEXT", "language TEXT", "config_json TEXT DEFAULT '{}'", "enabled INTEGER DEFAULT 1", "status TEXT DEFAULT 'pending'", "success INTEGER", "last_checked TEXT", "last_success TEXT", "last_error TEXT", "last_http_status INTEGER", "created_at TEXT", "updated_at TEXT"],
-            "articles": ["id TEXT PRIMARY KEY", "canonical_url TEXT", "normalized_url TEXT", "source_url TEXT", "title TEXT", "published_at TEXT", "updated_at_source TEXT", "author TEXT", "summary TEXT", "content TEXT", "content_hash TEXT", "html_hash TEXT", "raw_html TEXT", "language TEXT", "http_status INTEGER", "crawl_status TEXT", "last_fetched_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
-            "article_discoveries": ["id TEXT PRIMARY KEY", "article_id TEXT", "source_id TEXT", "discovered_url TEXT", "discovered_key TEXT NOT NULL DEFAULT ''", "discovered_at TEXT", "last_discovered_at TEXT", "metadata_json TEXT DEFAULT '{}'"],
+            "articles": ["id TEXT PRIMARY KEY", "canonical_url TEXT", "normalized_url TEXT", "source_url TEXT", "source_url_raw TEXT", "title TEXT", "published_at TEXT", "published_at_raw TEXT", "updated_at_source TEXT", "author TEXT", "summary TEXT", "content TEXT", "content_html TEXT", "image_url TEXT", "parse_status TEXT", "content_hash TEXT", "content_identity_key TEXT", "html_hash TEXT", "raw_html TEXT", "language TEXT", "http_status INTEGER", "crawl_status TEXT", "last_fetched_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
+            "article_discoveries": ["id TEXT PRIMARY KEY", "article_id TEXT", "source_id TEXT", "discovered_url TEXT", "discovered_url_raw TEXT", "discovered_key TEXT NOT NULL DEFAULT ''", "discovered_at TEXT", "last_discovered_at TEXT", "metadata_json TEXT DEFAULT '{}'"],
             "crawl_runs": ["id TEXT PRIMARY KEY", "batch_id TEXT UNIQUE", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "status TEXT DEFAULT 'running'", "error TEXT", "metadata_json TEXT DEFAULT '{}'"],
             "crawl_run_stats": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT", "zoo_id TEXT", "source_id TEXT", "status TEXT DEFAULT 'running'", "discovered_count INTEGER DEFAULT 0", "fetched_count INTEGER DEFAULT 0", "stored_count INTEGER DEFAULT 0", "already_known_count INTEGER DEFAULT 0", "duplicate_candidate_count INTEGER DEFAULT 0", "error_count INTEGER DEFAULT 0", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "error TEXT", "errors_json TEXT DEFAULT '[]'", "metadata_json TEXT DEFAULT '{}'"],
+            "article_zoo_identities": ["article_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "title_key TEXT NOT NULL", "created_at TEXT", "updated_at TEXT", "PRIMARY KEY(article_id,zoo_id)"],
+            "crawl_zoo_results": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "zoo_slug TEXT", "zoo_name TEXT", "status TEXT DEFAULT 'running'", "source_status TEXT", "discovered INTEGER DEFAULT 0", "parsed INTEGER DEFAULT 0", "inserted INTEGER DEFAULT 0", "updated INTEGER DEFAULT 0", "failed INTEGER DEFAULT 0", "duplicate_filtered INTEGER DEFAULT 0", "duration_ms INTEGER", "source_url TEXT", "http_status INTEGER", "error_category TEXT", "error_summary TEXT", "started_at TEXT", "finished_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
         }
         foreign_keys = {
             "sources": [f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE RESTRICT"],
             "article_discoveries": [f"FOREIGN KEY(article_id) REFERENCES {a}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(source_id) REFERENCES {s}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
             "crawl_run_stats": [f"FOREIGN KEY(crawl_run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE SET NULL", f"FOREIGN KEY(source_id) REFERENCES {s}(id) ON UPDATE CASCADE ON DELETE SET NULL"],
+            "article_zoo_identities": [f"FOREIGN KEY(article_id) REFERENCES {a}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
+            "crawl_zoo_results": [f"FOREIGN KEY(crawl_run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
         }
-        physical = {"zoos": z, "sources": s, "articles": a, "article_discoveries": d, "crawl_runs": r, "crawl_run_stats": rs}
+        physical = {"zoos": z, "sources": s, "articles": a, "article_discoveries": d, "crawl_runs": r, "crawl_run_stats": rs, "article_zoo_identities": azi, "crawl_zoo_results": zr}
         for logical, table in physical.items():
             declarations = columns[logical] + list(extra_declarations.get(logical, [])) + foreign_keys.get(logical, [])
             db.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(declarations)})")
@@ -191,6 +371,101 @@ class SQLiteStorage:
         return " ".join(parts)
 
     @staticmethod
+    def _table_definition_parts(sql: str) -> list[str]:
+        """Split a CREATE TABLE body at top-level commas.
+
+        SQLite does not expose the original declaration for an extension
+        column through ``table_xinfo``.  This small tokenizer is intentionally
+        limited to the SQL grammar needed for declarations, but handles
+        quoted identifiers, string defaults, and nested default expressions so
+        an ordinary type/default is not mistaken for a constraint.
+        """
+
+        opening = sql.find("(")
+        if opening < 0:
+            return []
+        parts: list[str] = []
+        start = opening + 1
+        depth = 1
+        quote: Optional[str] = None
+        index = start
+        while index < len(sql) and depth:
+            char = sql[index]
+            if quote is not None:
+                if char == quote:
+                    if index + 1 < len(sql) and sql[index + 1] == quote:
+                        index += 1
+                    else:
+                        quote = None
+                elif quote == "]" and char == "]":
+                    quote = None
+            else:
+                if char in ("'", '"', "`"):
+                    quote = char
+                elif char == "[":
+                    quote = "]"
+                elif char == "(":
+                    depth += 1
+                elif char == ")":
+                    depth -= 1
+                    if depth == 0:
+                        parts.append(sql[start:index].strip())
+                        break
+                elif char == "," and depth == 1:
+                    parts.append(sql[start:index].strip())
+                    start = index + 1
+            index += 1
+        return [part for part in parts if part]
+
+    @classmethod
+    def _table_column_declarations(cls, sql: str) -> dict[str, str]:
+        declarations: dict[str, str] = {}
+        for part in cls._table_definition_parts(sql):
+            match = re.match(
+                r"^\s*(?:\"((?:\"\"|[^\"])*)\"|`((?:``|[^`])*)`|\[((?:\]\]|[^\]])*)\]|([^\s]+))",
+                part,
+            )
+            if not match:
+                continue
+            quoted_name = next((group for group in match.groups()[:3] if group is not None), None)
+            name = (
+                quoted_name.replace('""', '"').replace("``", "`").replace("]]", "]")
+                if quoted_name is not None
+                else str(match.group(4))
+            )
+            declarations[name] = part
+        return declarations
+
+    @staticmethod
+    def _sql_without_quoted_text(value: str) -> str:
+        """Mask quoted SQL text before checking declaration keywords."""
+
+        output: list[str] = []
+        quote: Optional[str] = None
+        index = 0
+        while index < len(value):
+            char = value[index]
+            if quote is not None:
+                if char == quote:
+                    if index + 1 < len(value) and value[index + 1] == quote:
+                        index += 1
+                    else:
+                        quote = None
+                elif quote == "]" and char == "]":
+                    quote = None
+                output.append(" ")
+            elif char in ("'", '"', "`"):
+                quote = char
+                output.append(" ")
+            elif char == "[":
+                quote = "]"
+                output.append(" ")
+            else:
+                output.append(char)
+            index += 1
+        return "".join(output)
+
+    @staticmethod
     def _add_columns(db: sqlite3.Connection, table: str, definitions: Mapping[str, str]) -> None:
         columns = SQLiteStorage._columns(db, table)
         for name, definition in definitions.items():
@@ -228,35 +503,168 @@ class SQLiteStorage:
                 (article_id, source_id, donor["discovered_key"], donor["id"]),
             ).fetchone()
             if existing:
-                first = min(filter(None, (existing["discovered_at"], donor["discovered_at"])), default=None)
-                last = max(filter(None, (existing["last_discovered_at"], donor["last_discovered_at"], existing["discovered_at"], donor["discovered_at"])), default=None)
+                first = _select_discovery_timestamp(
+                    (existing["discovered_at"], donor["discovered_at"]), latest=False
+                )
+                last = _select_discovery_timestamp(
+                    (
+                        existing["last_discovered_at"], donor["last_discovered_at"],
+                        existing["discovered_at"], donor["discovered_at"],
+                    ),
+                    latest=True,
+                )
                 metadata = {**_load_json(donor["metadata_json"]), **_load_json(existing["metadata_json"])}
+                discovered_url = existing["discovered_url"] or donor["discovered_url"]
+                discovered_url_raw = existing["discovered_url_raw"] or donor["discovered_url_raw"]
                 db.execute(
-                    "UPDATE article_discoveries SET discovered_at=?,last_discovered_at=?,metadata_json=? WHERE id=?",
-                    (first, last, _json(metadata), existing["id"]),
+                    "UPDATE article_discoveries SET discovered_url=?,discovered_url_raw=?,discovered_at=?,last_discovered_at=?,metadata_json=? WHERE id=?",
+                    (discovered_url, discovered_url_raw, first, last, _json(metadata), existing["id"]),
                 )
                 db.execute("DELETE FROM article_discoveries WHERE id=?", (donor["id"],))
             else:
                 db.execute(f"UPDATE article_discoveries SET {column}=? WHERE id=?", (keeper_id, donor["id"]))
 
+    @staticmethod
+    def _merge_article_zoo_identity_reference(
+        db: sqlite3.Connection, *, donor_id: str, keeper_id: str
+    ) -> None:
+        """Retarget article/zoo identities while coalescing PK collisions."""
+
+        if not SQLiteStorage._columns(db, "article_zoo_identities"):
+            return
+        identities = db.execute(
+            "SELECT zoo_id,title_key FROM article_zoo_identities WHERE article_id=?",
+            (donor_id,),
+        ).fetchall()
+        for identity in identities:
+            existing = db.execute(
+                "SELECT 1 FROM article_zoo_identities WHERE article_id=? AND zoo_id=?",
+                (keeper_id, identity["zoo_id"]),
+            ).fetchone()
+            if existing:
+                db.execute(
+                    "DELETE FROM article_zoo_identities WHERE article_id=? AND zoo_id=?",
+                    (donor_id, identity["zoo_id"]),
+                )
+            else:
+                db.execute(
+                    "UPDATE article_zoo_identities SET article_id=? WHERE article_id=? AND zoo_id=?",
+                    (keeper_id, donor_id, identity["zoo_id"]),
+                )
+
+    @classmethod
+    def _merge_runtime_article_conflict(
+        cls, db: sqlite3.Connection, *, donor_id: str, keeper_id: str
+    ) -> None:
+        """Resolve a URL/hash-vs-title collision deterministically.
+
+        The globally identified URL/hash row is the keeper.  The title-only
+        row is removed only after its discoveries, zoo identities, metadata,
+        and non-conflicting evidence have been retained on the keeper.
+        """
+
+        if donor_id == keeper_id:
+            return
+        keeper = db.execute("SELECT * FROM articles WHERE id=?", (keeper_id,)).fetchone()
+        donor = db.execute("SELECT * FROM articles WHERE id=?", (donor_id,)).fetchone()
+        if not keeper or not donor:
+            return
+        evidence = (
+            "canonical_url", "normalized_url", "source_url", "source_url_raw", "title", "published_at",
+            "published_at_raw", "updated_at_source", "author", "summary", "content",
+            "content_html", "image_url", "parse_status", "content_hash", "html_hash",
+            "raw_html", "language", "http_status", "crawl_status", "last_fetched_at",
+        )
+        merged = {name: keeper[name] for name in evidence}
+        metadata = _load_json(keeper["metadata_json"])
+        donor_metadata = _load_json(donor["metadata_json"])
+        for key, value in donor_metadata.items():
+            metadata.setdefault(key, value)
+        conflicts = {
+            name: donor[name]
+            for name in evidence
+            if name != "source_url_raw"
+            and donor[name] not in (None, "")
+            and merged[name] not in (None, "")
+            and donor[name] != merged[name]
+        }
+        provenance = metadata.setdefault("_runtime_merge_provenance", [])
+        if not isinstance(provenance, list):
+            provenance = []
+            metadata["_runtime_merge_provenance"] = provenance
+        provenance.append(
+            {
+                "donor_article_id": donor_id,
+                "conflicting_evidence": conflicts,
+                "donor_metadata": donor_metadata,
+            }
+        )
+        for name in evidence:
+            if merged[name] in (None, "") and donor[name] not in (None, ""):
+                # Never introduce a donor URL/hash that collides with a third
+                # article; identity ownership remains deterministic.
+                if name in {"canonical_url", "normalized_url", "content_hash"}:
+                    collision = db.execute(
+                        f"SELECT id FROM articles WHERE {name}=? AND id NOT IN (?,?) LIMIT 1",
+                        (donor[name], keeper_id, donor_id),
+                    ).fetchone()
+                    if collision:
+                        continue
+                merged[name] = donor[name]
+        cls._merge_discovery_reference(db, column="article_id", donor_id=donor_id, keeper_id=keeper_id)
+        cls._merge_article_zoo_identity_reference(db, donor_id=donor_id, keeper_id=keeper_id)
+        db.execute("DELETE FROM articles WHERE id=?", (donor_id,))
+        assignments = ",".join(f"{name}=?" for name in evidence)
+        db.execute(
+            f"UPDATE articles SET {assignments},metadata_json=? WHERE id=?",
+            (*[merged[name] for name in evidence], _json(metadata), keeper_id),
+        )
+
     @classmethod
     def _consolidate_legacy_articles(cls, db: sqlite3.Connection) -> None:
         evidence = (
-            "canonical_url", "normalized_url", "source_url", "title", "published_at",
-            "updated_at_source", "author", "summary", "content", "content_hash", "html_hash",
+            "canonical_url", "normalized_url", "source_url", "source_url_raw", "title", "published_at",
+            "published_at_raw", "updated_at_source", "author", "summary", "content",
+            "content_html", "image_url", "parse_status", "content_hash", "html_hash",
             "raw_html", "language", "http_status", "crawl_status", "last_fetched_at",
         )
         while True:
-            duplicate = None
-            for column in ("canonical_url", "normalized_url", "content_hash"):
+            duplicate_column: Optional[str] = None
+            duplicate_value: Optional[str] = None
+            for column in ("canonical_url", "normalized_url"):
                 duplicate = db.execute(
                     f"SELECT {column} AS value FROM articles WHERE {column} IS NOT NULL AND {column}<>'' GROUP BY {column} HAVING COUNT(*)>1 LIMIT 1"
                 ).fetchone()
                 if duplicate:
+                    duplicate_column = column
+                    duplicate_value = str(duplicate["value"])
                     break
-            if not duplicate:
+            if duplicate_column is None:
+                # A content hash may collide across unrelated pages.  It is
+                # safe as a migration merge signal only when the normalized
+                # titles agree; otherwise leave both rows for the non-unique
+                # evidence index and preserve distinct article records.
+                hash_groups = db.execute(
+                    "SELECT content_hash AS value FROM articles "
+                    "WHERE content_hash IS NOT NULL AND content_hash<>'' "
+                    "GROUP BY content_hash HAVING COUNT(*)>1"
+                ).fetchall()
+                for group in hash_groups:
+                    hash_rows = db.execute(
+                        "SELECT title FROM articles WHERE content_hash=?",
+                        (group["value"],),
+                    ).fetchall()
+                    title_keys = {_normalize_title(row["title"]) for row in hash_rows}
+                    if len(title_keys) == 1 and "" not in title_keys:
+                        duplicate_column = "content_hash"
+                        duplicate_value = str(group["value"])
+                        break
+            if duplicate_column is None or duplicate_value is None:
                 return
-            rows = db.execute(f"SELECT rowid,* FROM articles WHERE {column}=?", (duplicate["value"],)).fetchall()
+            rows = db.execute(
+                f"SELECT rowid,* FROM articles WHERE {duplicate_column}=?",
+                (duplicate_value,),
+            ).fetchall()
             keeper = max(rows, key=lambda row: (sum(row[name] not in (None, "") for name in evidence), len(row["content"] or "") + len(row["raw_html"] or ""), -row["rowid"]))
             merged = {name: keeper[name] for name in evidence}
             metadata = _load_json(keeper["metadata_json"])
@@ -294,7 +702,8 @@ class SQLiteStorage:
                 }
                 conflicts = {
                     name: donor[name] for name in evidence
-                    if donor[name] not in (None, "") and merged[name] not in (None, "") and donor[name] != merged[name]
+                    if name != "source_url_raw"
+                    and donor[name] not in (None, "") and merged[name] not in (None, "") and donor[name] != merged[name]
                 }
                 provenance.append({
                     "donor_article_id": donor["id"],
@@ -309,6 +718,7 @@ class SQLiteStorage:
                     if merged[name] in (None, "") and donor[name] not in (None, ""):
                         merged[name] = donor[name]
                 cls._merge_discovery_reference(db, column="article_id", donor_id=donor["id"], keeper_id=keeper["id"])
+                cls._merge_article_zoo_identity_reference(db, donor_id=donor["id"], keeper_id=keeper["id"])
                 db.execute("DELETE FROM articles WHERE id=?", (donor["id"],))
             metadata["merged_legacy_article_ids"] = sorted(set(merged_ids))
             # Transitive merges may present the same historical donor through
@@ -349,59 +759,374 @@ class SQLiteStorage:
                 (*[values[name] for name in evidence], keeper["id"]),
             )
 
+    @classmethod
+    def _consolidate_legacy_discoveries(cls, db: sqlite3.Connection) -> None:
+        """Coalesce normalized duplicate discovery identities before indexing."""
+
+        while True:
+            duplicate = db.execute(
+                """
+                SELECT article_id,source_id,discovered_key
+                FROM article_discoveries
+                GROUP BY article_id,source_id,discovered_key
+                HAVING COUNT(*)>1 LIMIT 1
+                """
+            ).fetchone()
+            if not duplicate:
+                return
+            rows = db.execute(
+                """
+                SELECT rowid,* FROM article_discoveries
+                WHERE article_id IS ? AND source_id IS ? AND discovered_key IS ?
+                ORDER BY rowid
+                """,
+                (duplicate["article_id"], duplicate["source_id"], duplicate["discovered_key"]),
+            ).fetchall()
+            keeper = rows[0]
+            first_values = [row["discovered_at"] for row in rows]
+            last_values = [
+                value for row in rows
+                for value in (row["discovered_at"], row["last_discovered_at"])
+            ]
+            metadata: dict[str, Any] = {}
+            discovered_url = None
+            discovered_url_raw = None
+            for row in rows:
+                metadata.update(_load_json(row["metadata_json"]))
+                if discovered_url is None and row["discovered_url"]:
+                    discovered_url = row["discovered_url"]
+                if discovered_url_raw is None and row["discovered_url_raw"]:
+                    discovered_url_raw = row["discovered_url_raw"]
+            # Keeper metadata wins on conflicts, while all donor-only keys
+            # survive.  This mirrors the existing article/source merge rule.
+            metadata = {
+                **{key: value for row in rows[1:] for key, value in _load_json(row["metadata_json"]).items()},
+                **_load_json(keeper["metadata_json"]),
+            }
+            first = _select_discovery_timestamp(first_values, latest=False)
+            last = _select_discovery_timestamp(last_values, latest=True) or first
+            for donor in rows[1:]:
+                db.execute("DELETE FROM article_discoveries WHERE id=?", (donor["id"],))
+            db.execute(
+                """
+                UPDATE article_discoveries
+                SET discovered_url=?,discovered_url_raw=?,discovered_at=?,last_discovered_at=?,metadata_json=?
+                WHERE id=?
+                """,
+                (discovered_url, discovered_url_raw, first, last, _json(metadata), keeper["id"]),
+            )
+
+    @classmethod
+    def _backfill_article_zoo_identities(cls, db: sqlite3.Connection) -> None:
+        """Backfill zoo-scoped title identities from discovery provenance.
+
+        Legacy article rows did not carry a zoo column.  The source relation is
+        the only authoritative way to recover that scope, so rows without a
+        discovery are intentionally left without a fabricated identity.
+        """
+
+        now = datetime.now(timezone.utc).isoformat()
+        rows = db.execute(
+            """
+            SELECT DISTINCT a.id AS article_id, s.zoo_id, a.title
+            FROM articles AS a
+            JOIN article_discoveries AS d ON d.article_id=a.id
+            JOIN sources AS s ON s.id=d.source_id
+            WHERE s.zoo_id IS NOT NULL AND a.title IS NOT NULL AND TRIM(a.title)<>''
+            """
+        ).fetchall()
+        for row in rows:
+            title_key = _normalize_title(row["title"])
+            if not title_key:
+                continue
+            db.execute(
+                """
+                INSERT OR IGNORE INTO article_zoo_identities(article_id,zoo_id,title_key,created_at,updated_at)
+                VALUES(?,?,?,?,?)
+                """,
+                (row["article_id"], row["zoo_id"], title_key, now, now),
+            )
+
+    @classmethod
+    def _consolidate_legacy_title_identities(cls, db: sqlite3.Connection) -> None:
+        """Merge pre-existing duplicate zoo/title identities before indexing."""
+
+        evidence = (
+            "canonical_url", "normalized_url", "source_url", "source_url_raw", "title", "published_at",
+            "published_at_raw", "updated_at_source", "author", "summary", "content",
+            "content_html", "image_url", "parse_status", "content_hash", "html_hash",
+            "raw_html", "language", "http_status", "crawl_status", "last_fetched_at",
+        )
+        while True:
+            duplicate = db.execute(
+                """
+                SELECT zoo_id,title_key
+                FROM article_zoo_identities
+                WHERE zoo_id IS NOT NULL AND title_key IS NOT NULL AND title_key<>''
+                GROUP BY zoo_id,title_key HAVING COUNT(*)>1 LIMIT 1
+                """
+            ).fetchone()
+            if not duplicate:
+                return
+            rows = db.execute(
+                """
+                SELECT a.rowid AS article_rowid,a.*,i.zoo_id,i.title_key
+                FROM article_zoo_identities AS i
+                JOIN articles AS a ON a.id=i.article_id
+                WHERE i.zoo_id=? AND i.title_key=?
+                """,
+                (duplicate["zoo_id"], duplicate["title_key"]),
+            ).fetchall()
+            if len(rows) < 2:
+                continue
+            keeper = max(
+                rows,
+                key=lambda row: (
+                    sum(row[name] not in (None, "") for name in evidence),
+                    len(row["content"] or "") + len(row["raw_html"] or ""),
+                    -row["article_rowid"],
+                ),
+            )
+            merged = {name: keeper[name] for name in evidence}
+            metadata = _load_json(keeper["metadata_json"])
+            merged_ids = list(metadata.get("merged_legacy_article_ids", []))
+            provenance = list(metadata.get("_migration_provenance", []))
+            for donor in rows:
+                if donor["id"] == keeper["id"]:
+                    continue
+                merged_ids.append(donor["id"])
+                donor_metadata = _load_json(donor["metadata_json"])
+                donor_user_metadata = {
+                    key: value
+                    for key, value in donor_metadata.items()
+                    if key not in {"_migration_provenance", "merged_legacy_article_ids"}
+                }
+                conflicts = {
+                    name: donor[name]
+                    for name in evidence
+                    if donor[name] not in (None, "")
+                    and merged[name] not in (None, "")
+                    and donor[name] != merged[name]
+                }
+                provenance.append(
+                    {
+                        "donor_article_id": donor["id"],
+                        "conflicting_evidence": conflicts,
+                        "donor_metadata": donor_user_metadata,
+                    }
+                )
+                for key, value in donor_user_metadata.items():
+                    metadata.setdefault(key, value)
+                for name in evidence:
+                    if merged[name] in (None, "") and donor[name] not in (None, ""):
+                        merged[name] = donor[name]
+
+                cls._merge_discovery_reference(
+                    db, column="article_id", donor_id=donor["id"], keeper_id=keeper["id"]
+                )
+                cls._merge_article_zoo_identity_reference(
+                    db, donor_id=donor["id"], keeper_id=keeper["id"]
+                )
+                db.execute("DELETE FROM articles WHERE id=?", (donor["id"],))
+            metadata["merged_legacy_article_ids"] = sorted(set(merged_ids))
+            by_donor_id = {
+                str(snapshot["donor_article_id"]): snapshot
+                for snapshot in provenance
+                if isinstance(snapshot, dict) and snapshot.get("donor_article_id")
+            }
+            metadata["_migration_provenance"] = [
+                by_donor_id[key] for key in sorted(by_donor_id)
+            ]
+            assignments = ",".join(f"{name}=?" for name in evidence)
+            db.execute(
+                f"UPDATE articles SET {assignments},metadata_json=? WHERE id=?",
+                (*[merged[name] for name in evidence], _json(metadata), keeper["id"]),
+            )
+
+    @classmethod
+    def _consolidate_legacy_zoo_results(cls, db: sqlite3.Connection) -> None:
+        """Merge duplicate legacy run/zoo rows before the unique index exists."""
+
+        fields = (
+            "status", "source_status", "discovered", "parsed", "inserted", "updated",
+            "failed", "duplicate_filtered", "duration_ms", "source_url", "http_status",
+            "error_category", "error_summary", "started_at", "finished_at",
+        )
+        while True:
+            duplicate = db.execute(
+                """
+                SELECT crawl_run_id,zoo_id FROM crawl_zoo_results
+                WHERE crawl_run_id IS NOT NULL AND zoo_id IS NOT NULL
+                GROUP BY crawl_run_id,zoo_id HAVING COUNT(*)>1 LIMIT 1
+                """
+            ).fetchone()
+            if not duplicate:
+                return
+            rows = db.execute(
+                "SELECT rowid,* FROM crawl_zoo_results WHERE crawl_run_id=? AND zoo_id=?",
+                (duplicate["crawl_run_id"], duplicate["zoo_id"]),
+            ).fetchall()
+            keeper = max(
+                rows,
+                key=lambda row: (
+                    sum(row[name] not in (None, "") for name in fields),
+                    str(row["finished_at"] or row["started_at"] or ""),
+                    -row["rowid"],
+                ),
+            )
+            merged = {name: keeper[name] for name in fields}
+            metadata = _load_json(keeper["metadata_json"])
+            merged_ids = list(metadata.get("merged_legacy_result_ids", []))
+            for donor in rows:
+                if donor["id"] == keeper["id"]:
+                    continue
+                merged_ids.append(donor["id"])
+                donor_metadata = _load_json(donor["metadata_json"])
+                for key, value in donor_metadata.items():
+                    metadata.setdefault(key, value)
+                for name in fields:
+                    if merged[name] in (None, "") and donor[name] not in (None, ""):
+                        merged[name] = donor[name]
+                db.execute("DELETE FROM crawl_zoo_results WHERE id=?", (donor["id"],))
+            metadata["merged_legacy_result_ids"] = sorted(set(merged_ids))
+            assignments = ",".join(f"{name}=?" for name in fields)
+            db.execute(
+                f"UPDATE crawl_zoo_results SET {assignments},metadata_json=? WHERE id=?",
+                (*[merged[name] for name in fields], _json(metadata), keeper["id"]),
+            )
+
+    @staticmethod
+    def _backfill_content_identity_keys(db: sqlite3.Connection) -> None:
+        """Derive composite content identities after legacy merges."""
+
+        for row in db.execute("SELECT rowid,content_hash,title FROM articles").fetchall():
+            key = _content_identity_key(row["content_hash"], row["title"])
+            db.execute(
+                "UPDATE articles SET content_identity_key=? WHERE rowid=?",
+                (key, row["rowid"]),
+            )
+
     def _migrate_schema(self, db: sqlite3.Connection) -> None:
         now = datetime.now(timezone.utc).isoformat()
         definitions = {
-            "zoos": {"id": "TEXT", "slug": "TEXT", "name": "TEXT", "website_url": "TEXT", "country_code": "TEXT", "language": "TEXT", "enabled": "INTEGER DEFAULT 1", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
+            "zoos": {"id": "TEXT", "slug": "TEXT", "name": "TEXT", "website_url": "TEXT", "country_code": "TEXT", "language": "TEXT", "groups_json": "TEXT DEFAULT '[]'", "region": "TEXT", "city": "TEXT", "source_status": "TEXT", "list_provenance_json": "TEXT DEFAULT '[]'", "enabled": "INTEGER DEFAULT 1", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
             "sources": {"id": "TEXT", "zoo_id": "TEXT", "url": "TEXT", "normalized_url": "TEXT", "kind": "TEXT DEFAULT 'rss'", "name": "TEXT", "language": "TEXT", "config_json": "TEXT DEFAULT '{}'", "enabled": "INTEGER DEFAULT 1", "status": "TEXT DEFAULT 'pending'", "success": "INTEGER", "last_checked": "TEXT", "last_success": "TEXT", "last_error": "TEXT", "last_http_status": "INTEGER", "created_at": "TEXT", "updated_at": "TEXT"},
-            "articles": {"id": "TEXT", "canonical_url": "TEXT", "normalized_url": "TEXT", "source_url": "TEXT", "title": "TEXT", "published_at": "TEXT", "updated_at_source": "TEXT", "author": "TEXT", "summary": "TEXT", "content": "TEXT", "content_hash": "TEXT", "html_hash": "TEXT", "raw_html": "TEXT", "language": "TEXT", "http_status": "INTEGER", "crawl_status": "TEXT", "last_fetched_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
-            "article_discoveries": {"id": "TEXT", "article_id": "TEXT", "source_id": "TEXT", "discovered_url": "TEXT", "discovered_key": "TEXT NOT NULL DEFAULT ''", "discovered_at": "TEXT", "last_discovered_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
+            "articles": {"id": "TEXT", "canonical_url": "TEXT", "normalized_url": "TEXT", "source_url": "TEXT", "source_url_raw": "TEXT", "title": "TEXT", "published_at": "TEXT", "published_at_raw": "TEXT", "updated_at_source": "TEXT", "author": "TEXT", "summary": "TEXT", "content": "TEXT", "content_html": "TEXT", "image_url": "TEXT", "parse_status": "TEXT", "content_hash": "TEXT", "content_identity_key": "TEXT", "html_hash": "TEXT", "raw_html": "TEXT", "language": "TEXT", "http_status": "INTEGER", "crawl_status": "TEXT", "last_fetched_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
+            "article_discoveries": {"id": "TEXT", "article_id": "TEXT", "source_id": "TEXT", "discovered_url": "TEXT", "discovered_url_raw": "TEXT", "discovered_key": "TEXT NOT NULL DEFAULT ''", "discovered_at": "TEXT", "last_discovered_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
             "crawl_runs": {"id": "TEXT", "batch_id": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "status": "TEXT DEFAULT 'running'", "error": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
             "crawl_run_stats": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "source_id": "TEXT", "status": "TEXT DEFAULT 'running'", "discovered_count": "INTEGER DEFAULT 0", "fetched_count": "INTEGER DEFAULT 0", "stored_count": "INTEGER DEFAULT 0", "already_known_count": "INTEGER DEFAULT 0", "duplicate_candidate_count": "INTEGER DEFAULT 0", "error_count": "INTEGER DEFAULT 0", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "error": "TEXT", "errors_json": "TEXT DEFAULT '[]'", "metadata_json": "TEXT DEFAULT '{}'"},
+            "article_zoo_identities": {"article_id": "TEXT", "zoo_id": "TEXT", "title_key": "TEXT", "created_at": "TEXT", "updated_at": "TEXT"},
+            "crawl_zoo_results": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "zoo_slug": "TEXT", "zoo_name": "TEXT", "status": "TEXT DEFAULT 'running'", "source_status": "TEXT", "discovered": "INTEGER DEFAULT 0", "parsed": "INTEGER DEFAULT 0", "inserted": "INTEGER DEFAULT 0", "updated": "INTEGER DEFAULT 0", "failed": "INTEGER DEFAULT 0", "duplicate_filtered": "INTEGER DEFAULT 0", "duration_ms": "INTEGER", "source_url": "TEXT", "http_status": "INTEGER", "error_category": "TEXT", "error_summary": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
         }
+        legacy_zoo_columns = self._columns(db, "zoos")
         for table, columns in definitions.items():
             self._add_columns(db, table, columns)
-        for table in ("zoos", "sources", "articles", "article_discoveries", "crawl_runs", "crawl_run_stats"):
+        for table in ("zoos", "sources", "articles", "article_discoveries", "crawl_runs", "crawl_run_stats", "crawl_zoo_results"):
             self._ensure_ids(db, table)
         # Legacy schemas used url rather than source_url.  Do not infer either
         # hash from the other: legacy NULL evidence must remain unknown.
         article_cols = self._columns(db, "articles")
         if "url" in article_cols:
             db.execute("UPDATE articles SET source_url=COALESCE(source_url,url) WHERE source_url IS NULL")
-        db.execute("UPDATE articles SET normalized_url=COALESCE(NULLIF(normalized_url,''), canonical_url, source_url)")
+        # Preserve legacy spellings before canonical identity cleanup.  Fresh
+        # rows write these columns directly; old rows use their best available
+        # URL field as the one-time provenance backfill.
+        db.execute(
+            "UPDATE articles SET source_url_raw=COALESCE(source_url_raw,source_url,canonical_url) "
+            "WHERE source_url_raw IS NULL"
+        )
+        # Empty legacy identity values mean "unknown", not a real shared
+        # identity.  Convert them to NULL before the unique indexes are
+        # created; SQLite permits multiple NULLs and the migration does not
+        # invent a URL or content hash from another field.
+        db.execute(
+            "UPDATE articles SET canonical_url=NULLIF(canonical_url,''), "
+            "normalized_url=NULLIF(normalized_url,''), content_hash=NULLIF(content_hash,'')"
+        )
+        db.execute(
+            "UPDATE articles SET normalized_url=COALESCE(normalized_url, canonical_url, NULLIF(source_url,''))"
+        )
         for row in db.execute("SELECT rowid, canonical_url, normalized_url, source_url FROM articles").fetchall():
-            canonical = normalize_url(row["canonical_url"]) if row["canonical_url"] else None
-            normalized = normalize_url(row["normalized_url"] or row["source_url"]) if (row["normalized_url"] or row["source_url"]) else None
+            canonical = _normalize_legacy_url(row["canonical_url"])
+            normalized = _first_legacy_url(
+                row["normalized_url"], row["canonical_url"], row["source_url"]
+            )
             db.execute("UPDATE articles SET canonical_url=?, normalized_url=? WHERE rowid=?", (canonical, normalized, row["rowid"]))
         db.execute("UPDATE articles SET created_at=COALESCE(created_at,?), updated_at=COALESCE(updated_at,?)", (now, now))
+        # Accept an early/hand-written schema that used direct JSON columns
+        # before the project settled on the ``*_json`` naming convention.
+        if "groups" in legacy_zoo_columns and "groups_json" not in legacy_zoo_columns:
+            db.execute(
+                "UPDATE zoos SET groups_json=CASE WHEN groups_json IS NULL OR groups_json IN ('','[]','{}') THEN groups ELSE groups_json END"
+            )
+        if "list_provenance" in legacy_zoo_columns and "list_provenance_json" not in legacy_zoo_columns:
+            db.execute(
+                "UPDATE zoos SET list_provenance_json=CASE WHEN list_provenance_json IS NULL OR list_provenance_json IN ('','[]','{}') THEN list_provenance ELSE list_provenance_json END"
+            )
         source_cols = self._columns(db, "sources")
         if "source_url" in source_cols:
             db.execute("UPDATE sources SET url=COALESCE(url,source_url) WHERE url IS NULL")
-        db.execute("UPDATE sources SET normalized_url=COALESCE(NULLIF(normalized_url,''),url)")
         for row in db.execute("SELECT rowid, normalized_url, url FROM sources").fetchall():
-            db.execute("UPDATE sources SET normalized_url=? WHERE rowid=?", (normalize_url(row["normalized_url"] or row["url"]), row["rowid"]))
+            normalized = _first_legacy_url(row["normalized_url"], row["url"])
+            db.execute("UPDATE sources SET normalized_url=? WHERE rowid=?", (normalized, row["rowid"]))
         db.execute("UPDATE sources SET created_at=COALESCE(created_at,?), updated_at=COALESCE(updated_at,?)", (now, now))
+        db.execute(
+            "UPDATE article_discoveries SET discovered_url_raw=COALESCE(discovered_url_raw,discovered_url) "
+            "WHERE discovered_url_raw IS NULL"
+        )
         db.execute("UPDATE article_discoveries SET discovered_key=COALESCE(NULLIF(discovered_key,''), discovered_url, '')")
         for row in db.execute("SELECT rowid, discovered_url, discovered_key FROM article_discoveries").fetchall():
-            db.execute("UPDATE article_discoveries SET discovered_url=?, discovered_key=? WHERE rowid=?", (normalize_url(row["discovered_url"]) if row["discovered_url"] else None, normalize_url(row["discovered_key"]) if row["discovered_key"] else "", row["rowid"]))
+            discovered_url = _normalize_legacy_url(row["discovered_url"])
+            discovered_key = _first_legacy_url(row["discovered_key"], row["discovered_url"]) or ""
+            db.execute(
+                "UPDATE article_discoveries SET discovered_url=?, discovered_key=? WHERE rowid=?",
+                (discovered_url, discovered_key, row["rowid"]),
+            )
         db.execute("UPDATE article_discoveries SET last_discovered_at=COALESCE(last_discovered_at, discovered_at)")
+        for row in db.execute(
+            "SELECT rowid,discovered_at,last_discovered_at FROM article_discoveries"
+        ).fetchall():
+            discovered_at = _discovery_timestamp(row["discovered_at"])
+            last_discovered_at = _discovery_timestamp(row["last_discovered_at"])
+            db.execute(
+                "UPDATE article_discoveries SET discovered_at=?,last_discovered_at=? WHERE rowid=?",
+                (discovered_at, last_discovered_at, row["rowid"]),
+            )
+        self._consolidate_legacy_discoveries(db)
         db.execute("UPDATE crawl_runs SET started_at=COALESCE(started_at,?), status=COALESCE(status,'running'), metadata_json=COALESCE(metadata_json,'{}')", (now,))
         db.execute("UPDATE crawl_run_stats SET discovered_count=COALESCE(discovered_count,0), fetched_count=COALESCE(fetched_count,0), stored_count=COALESCE(stored_count,0), already_known_count=COALESCE(already_known_count,0), duplicate_candidate_count=COALESCE(duplicate_candidate_count,0), error_count=COALESCE(error_count,0)")
         self._backfill_durations(db, "crawl_runs")
         self._backfill_durations(db, "crawl_run_stats")
         self._consolidate_legacy_articles(db)
         self._consolidate_legacy_sources(db)
+        self._consolidate_legacy_discoveries(db)
+        self._backfill_article_zoo_identities(db)
+        self._consolidate_legacy_title_identities(db)
+        self._consolidate_legacy_zoo_results(db)
+        # Recompute keys from authoritative hash/title fields even on an
+        # already-v6 database.  Dropping the old derived index first lets a
+        # repair fix stale keys atomically before recreating the constraint.
+        db.execute("DROP INDEX IF EXISTS ux_articles_content_identity_key")
+        self._backfill_content_identity_keys(db)
         self._rebuild_with_foreign_keys(db, definitions)
+        # Content hashes are evidence, not globally unique identity.  Older
+        # schema versions created a unique index here; replace it within the
+        # migration transaction so benign boilerplate collisions can coexist.
+        db.execute("DROP INDEX IF EXISTS ux_articles_content_hash")
         indexes = (
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_sources_zoo_normalized_url ON sources(zoo_id, normalized_url)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_articles_canonical_url ON articles(canonical_url)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_articles_normalized_url ON articles(normalized_url)",
-            "CREATE UNIQUE INDEX IF NOT EXISTS ux_articles_content_hash ON articles(content_hash)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_articles_content_identity_key ON articles(content_identity_key) WHERE content_identity_key IS NOT NULL",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_discoveries_identity ON article_discoveries(article_id, source_id, discovered_key)",
             "CREATE INDEX IF NOT EXISTS idx_sources_status ON sources(status)",
             "CREATE INDEX IF NOT EXISTS idx_articles_normalized_url ON articles(normalized_url)",
             "CREATE INDEX IF NOT EXISTS idx_articles_content_hash ON articles(content_hash)",
             "CREATE INDEX IF NOT EXISTS idx_discoveries_source ON article_discoveries(source_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_article_zoo_title ON article_zoo_identities(zoo_id,title_key)",
+            "CREATE INDEX IF NOT EXISTS idx_article_zoo_article ON article_zoo_identities(article_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_crawl_zoo_results_run_zoo ON crawl_zoo_results(crawl_run_id,zoo_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_zoo_results_zoo ON crawl_zoo_results(zoo_id)",
         )
         for statement in indexes:
             db.execute(statement)
@@ -428,7 +1153,10 @@ class SQLiteStorage:
 
     @classmethod
     def _rebuild_with_foreign_keys(cls, db: sqlite3.Connection, definitions: Mapping[str, Mapping[str, str]]) -> None:
-        tables = ("zoos", "sources", "articles", "article_discoveries", "crawl_runs", "crawl_run_stats")
+        tables = (
+            "zoos", "sources", "articles", "article_discoveries", "crawl_runs",
+            "crawl_run_stats", "article_zoo_identities", "crawl_zoo_results",
+        )
         expected = {
             "sources": {("zoo_id", "zoos", "id", "CASCADE", "RESTRICT")},
             "article_discoveries": {
@@ -439,6 +1167,14 @@ class SQLiteStorage:
                 ("crawl_run_id", "crawl_runs", "id", "CASCADE", "CASCADE"),
                 ("zoo_id", "zoos", "id", "CASCADE", "SET NULL"),
                 ("source_id", "sources", "id", "CASCADE", "SET NULL"),
+            },
+            "article_zoo_identities": {
+                ("article_id", "articles", "id", "CASCADE", "CASCADE"),
+                ("zoo_id", "zoos", "id", "CASCADE", "CASCADE"),
+            },
+            "crawl_zoo_results": {
+                ("crawl_run_id", "crawl_runs", "id", "CASCADE", "CASCADE"),
+                ("zoo_id", "zoos", "id", "CASCADE", "CASCADE"),
             },
         }
         actual = {
@@ -467,6 +1203,74 @@ class SQLiteStorage:
             f"SELECT type,name,tbl_name,sql FROM sqlite_master WHERE type IN ('index','trigger') AND tbl_name IN ({placeholders}) AND sql IS NOT NULL ORDER BY type,name",
             tables,
         ).fetchall()
+        # Extension column constraints are not represented by the
+        # ``table_xinfo`` fields used by ``_extra_column_declaration``.  If we
+        # copied only the type/default, a rebuild would silently turn e.g.
+        # ``extra TEXT UNIQUE`` or ``extra_id TEXT REFERENCES ...`` into an
+        # unconstrained column.  Inspect the original declaration and abort
+        # before any rename when it cannot be represented safely.
+        for table in tables:
+            table_sql_row = db.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone()
+            table_sql = str(table_sql_row["sql"] or "") if table_sql_row else ""
+            declarations = cls._table_column_declarations(table_sql)
+            extension_names = {str(row["name"]) for row in extra_columns[table]}
+            for name in extension_names:
+                declaration = declarations.get(name)
+                if declaration is None:
+                    raise RuntimeError(f"unsupported legacy extension column: {table}.{name}")
+                declaration_sql = cls._sql_without_quoted_text(declaration)
+                if re.search(r"\b(?:CHECK|COLLATE|REFERENCES|UNIQUE)\b", declaration_sql, flags=re.IGNORECASE):
+                    raise RuntimeError(
+                        f"unsupported legacy extension column constraint: {table}.{name}"
+                    )
+            # Table-level constraints are likewise not included in the
+            # canonical declarations.  Reject only actual top-level
+            # constraint clauses; quoted/default text such as DEFAULT
+            # ('CHECK') is intentionally ignored by the masked SQL.
+            for part in cls._table_definition_parts(table_sql):
+                masked = cls._sql_without_quoted_text(part)
+                constraint = re.match(
+                    r"^\s*(CHECK|UNIQUE|FOREIGN|PRIMARY)\b", masked, flags=re.IGNORECASE
+                )
+                if not constraint:
+                    continue
+                mentions_extension = any(
+                    name.casefold() in part.casefold() for name in extension_names
+                )
+                kind = constraint.group(1).upper()
+                if mentions_extension or kind in {"CHECK", "UNIQUE"}:
+                    raise RuntimeError(f"unsupported legacy table constraint in {table}")
+                if kind == "FOREIGN":
+                    foreign = re.match(
+                        r"^\s*FOREIGN\s+KEY\s*\(\s*([^)]*?)\s*\)\s+"
+                        r"REFERENCES\s+([\w\"`\[\]]+)\s*\(\s*([^)]*?)\s*\)"
+                        r"(?P<actions>.*)$",
+                        part,
+                        flags=re.IGNORECASE | re.DOTALL,
+                    )
+                    if not foreign:
+                        raise RuntimeError(f"unsupported legacy table constraint in {table}")
+                    local = foreign.group(1).strip().strip('"`[]')
+                    target_table = foreign.group(2).strip().strip('"`[]')
+                    target = foreign.group(3).strip().strip('"`[]')
+                    actions = foreign.group("actions")
+                    update_match = re.search(
+                        r"ON\s+UPDATE\s+(SET\s+NULL|NO\s+ACTION|\w+)",
+                        actions,
+                        flags=re.IGNORECASE,
+                    )
+                    delete_match = re.search(
+                        r"ON\s+DELETE\s+(SET\s+NULL|NO\s+ACTION|\w+)",
+                        actions,
+                        flags=re.IGNORECASE,
+                    )
+                    on_update = update_match.group(1).upper() if update_match else "NO ACTION"
+                    on_delete = delete_match.group(1).upper() if delete_match else "NO ACTION"
+                    if (local, target_table, target, on_update, on_delete) not in expected.get(table, set()):
+                        raise RuntimeError(f"unsupported legacy table constraint in {table}")
         for table in reversed(tables):
             db.execute(f"ALTER TABLE {table} RENAME TO {table}__legacy")
         cls._create_tables(
@@ -493,14 +1297,30 @@ class SQLiteStorage:
     @contextmanager
     def _transaction(self) -> Iterator[sqlite3.Connection]:
         with self._lock:
-            self._connection.execute("BEGIN IMMEDIATE")
+            # Nested storage calls (notably outcome-aware article upserts that
+            # resolve a Source) must stay in one write transaction.  A
+            # savepoint also prevents an inner failure from rolling back a
+            # caller-owned outer transaction.
+            nested = bool(self._connection.in_transaction)
+            savepoint = f"zoofan_sp_{uuid.uuid4().hex}" if nested else None
+            if nested:
+                self._connection.execute(f"SAVEPOINT {savepoint}")
+            else:
+                self._connection.execute("BEGIN IMMEDIATE")
             try:
                 yield self._connection
             except BaseException:
-                self._connection.rollback()
+                if nested:
+                    self._connection.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                    self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
+                else:
+                    self._connection.rollback()
                 raise
             else:
-                self._connection.commit()
+                if nested:
+                    self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
+                else:
+                    self._connection.commit()
 
     # ---- zoos and sources -------------------------------------------------
 
@@ -511,19 +1331,39 @@ class SQLiteStorage:
         now = datetime.now(timezone.utc).isoformat()
         with self._transaction() as db:
             existing = db.execute(
-                "SELECT id FROM zoos WHERE id = ? OR slug = ? LIMIT 1", (zoo.id, zoo.slug)
+                "SELECT * FROM zoos WHERE id = ? OR slug = ? LIMIT 1", (zoo.id, zoo.slug)
             ).fetchone()
             if existing:
                 zoo.id = str(existing["id"])
+                # A legacy caller that does not know the registry fields must
+                # not erase values written by a newer registry import.
+                groups = (
+                    zoo.groups
+                    if zoo._groups_provided
+                    else tuple(_load_json_value(existing["groups_json"], []) or [])
+                )
+                region = zoo.region if zoo.region is not None else existing["region"]
+                city = zoo.city if zoo.city is not None else existing["city"]
+                source_status = zoo.source_status if zoo.source_status is not None else existing["source_status"]
+                list_provenance = (
+                    zoo.list_provenance
+                    if zoo._list_provenance_provided
+                    else list(_load_json_value(existing["list_provenance_json"], []) or [])
+                )
+                zoo.groups = tuple(str(value) for value in groups)
+                zoo.region = region
+                zoo.city = city
+                zoo.source_status = source_status
+                zoo.list_provenance = list(list_provenance)
                 db.execute(
-                    """UPDATE zoos SET slug=?, name=?, website_url=?, country_code=?, language=?, enabled=?, metadata_json=?, updated_at=? WHERE id=?""",
-                    (zoo.slug, zoo.name, zoo.website_url, zoo.country_code, zoo.language, int(zoo.enabled), _json(zoo.metadata), now, zoo.id),
+                    """UPDATE zoos SET slug=?, name=?, website_url=?, country_code=?, language=?, groups_json=?, region=?, city=?, source_status=?, list_provenance_json=?, enabled=?, metadata_json=?, updated_at=? WHERE id=?""",
+                    (zoo.slug, zoo.name, zoo.website_url, zoo.country_code, zoo.language, _json(list(zoo.groups)), zoo.region, zoo.city, zoo.source_status, _json(zoo.list_provenance), int(zoo.enabled), _json(zoo.metadata), now, zoo.id),
                 )
             else:
                 db.execute(
-                    """INSERT INTO zoos(id,slug,name,website_url,country_code,language,enabled,metadata_json,created_at,updated_at)
-                       VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                    (zoo.id, zoo.slug, zoo.name, zoo.website_url, zoo.country_code, zoo.language, int(zoo.enabled), _json(zoo.metadata), now, now),
+                    """INSERT INTO zoos(id,slug,name,website_url,country_code,language,groups_json,region,city,source_status,list_provenance_json,enabled,metadata_json,created_at,updated_at)
+                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (zoo.id, zoo.slug, zoo.name, zoo.website_url, zoo.country_code, zoo.language, _json(list(zoo.groups)), zoo.region, zoo.city, zoo.source_status, _json(zoo.list_provenance), int(zoo.enabled), _json(zoo.metadata), now, now),
                 )
         return zoo
 
@@ -542,14 +1382,20 @@ class SQLiteStorage:
 
     @staticmethod
     def _zoo_from_row(row: sqlite3.Row) -> Zoo:
+        groups_value = _load_json_value(row["groups_json"], [])
+        provenance_value = _load_json_value(row["list_provenance_json"], [])
         return Zoo(
             id=row["id"], slug=row["slug"], name=row["name"], website_url=row["website_url"], country_code=row["country_code"], language=row["language"],
+            groups=tuple(groups_value) if isinstance(groups_value, (list, tuple)) else (),
+            region=row["region"], city=row["city"], source_status=row["source_status"],
+            list_provenance=list(provenance_value) if isinstance(provenance_value, (list, tuple)) else [],
             enabled=bool(row["enabled"]), metadata=_load_json(row["metadata_json"]),
         )
 
     def upsert_source(self, source: Union[Source, Mapping[str, Any]]) -> Source:
         if not isinstance(source, Source):
             source = Source(**dict(source))
+        source.normalized_url = normalize_url(source.normalized_url or source.url) or None
         if not source.zoo_id:
             raise ValueError("source.zoo_id is required")
         zoo = self.get_zoo(source.zoo_id)
@@ -631,7 +1477,10 @@ class SQLiteStorage:
                 (status, source.success if success is None else int(bool(success)), _timestamp(checked_at), int(bool(success)), _timestamp(checked_at) if success else None,
                  error, http_status, datetime.now(timezone.utc).isoformat(), source.id),
             )
-        return self.get_source(source.id)
+        loaded_source_id = source.id
+        if loaded_source_id is None:
+            return None
+        return self.get_source(loaded_source_id)
 
     record_source_check = update_source_status
 
@@ -641,24 +1490,102 @@ class SQLiteStorage:
     def _article_from_row(row: sqlite3.Row) -> Article:
         return Article(
             id=row["id"], canonical_url=row["canonical_url"], normalized_url=row["normalized_url"], url=row["source_url"],
-            title=row["title"], published_at=_decoded_timestamp(row["published_at"]),
+            title=row["title"], published_at=_decoded_timestamp(row["published_at"]), published_at_raw=row["published_at_raw"],
             updated_at_source=_decoded_timestamp(row["updated_at_source"]), author=row["author"], summary=row["summary"],
-            content=row["content"], content_hash=row["content_hash"], html_hash=row["html_hash"], language=row["language"],
+            content=row["content"], content_html=row["content_html"], image_url=row["image_url"], parse_status=row["parse_status"],
+            content_hash=row["content_hash"], content_identity_key=row["content_identity_key"], html_hash=row["html_hash"], language=row["language"],
             http_status=row["http_status"], crawl_status=row["crawl_status"], last_fetched_at=_decoded_timestamp(row["last_fetched_at"]),
             raw_html=row["raw_html"], metadata=_load_json(row["metadata_json"]),
+            source_url_raw=row["source_url_raw"],
         )
 
-    def _find_article(self, db: sqlite3.Connection, article: Article) -> Optional[sqlite3.Row]:
-        # Identity order is intentional: canonical, normalized, content hash.
-        for column, value in (
-            ("canonical_url", normalize_url(article.canonical_url) if article.canonical_url else None),
-            ("normalized_url", normalize_url(article.normalized_url or article.url) if (article.normalized_url or article.url) else None),
-            ("content_hash", article.content_hash),
-        ):
+    @staticmethod
+    def _article_read_model(article: Article, discoveries: list[ArticleDiscovery], row: sqlite3.Row) -> ArticleReadModel:
+        """Build a joined, read-only article view without losing provenance."""
+
+        first = _select_discovery_timestamp(
+            [item.discovered_at for item in discoveries], latest=False
+        )
+        last = _select_discovery_timestamp(
+            [
+                value
+                for item in discoveries
+                for value in (item.discovered_at, item.last_discovered_at)
+            ],
+            latest=True,
+        ) or first
+        values = dict(article.__dict__)
+        values.update(
+            first_discovered_at=first,
+            last_discovered_at=last,
+            created_at=_discovery_timestamp(row["created_at"]),
+            storage_updated_at=_discovery_timestamp(row["updated_at"]),
+            discoveries=discoveries,
+        )
+        return ArticleReadModel(**values)
+
+    def _find_article(
+        self,
+        db: sqlite3.Connection,
+        article: Article,
+        zoo_id: Optional[str] = None,
+    ) -> Optional[sqlite3.Row]:
+        # Global URL identity wins over every other signal.  Keep the two URL
+        # forms separate so we can distinguish an incoming URL that failed to
+        # match from an article which genuinely has no URL identity.
+        canonical_url = normalize_url(article.canonical_url) if article.canonical_url else None
+        normalized_url = (
+            normalize_url(article.normalized_url or article.url)
+            if (article.normalized_url or article.url)
+            else None
+        )
+        for column, value in (("canonical_url", canonical_url), ("normalized_url", normalized_url)):
             if value:
                 row = db.execute(f"SELECT * FROM articles WHERE {column}=? LIMIT 1", (value,)).fetchone()
                 if row:
                     return row
+
+        # Parsed content hashes are useful evidence, but generic boilerplate
+        # can give unrelated pages the same digest.  If an incoming URL exists
+        # but did not match, only a hash row with the same normalized title is
+        # eligible.  A URL-less legacy/discovery record may still use its hash
+        # as the fallback identity.  The query is intentionally non-unique:
+        # more than one article may legitimately share a hash.
+        title_key = _normalize_title(article.title)
+        if article.content_hash and (title_key or canonical_url or normalized_url):
+            hash_rows = db.execute(
+                "SELECT * FROM articles WHERE content_hash=? ORDER BY rowid",
+                (article.content_hash,),
+            ).fetchall()
+            if not canonical_url and not normalized_url and hash_rows:
+                # Without a URL there is no global identity.  Never pick an
+                # arbitrary same-hash row: boilerplate hashes are expected to
+                # collide across unrelated titles.  Only a matching composite
+                # hash/title identity is eligible for a merge.
+                return next(
+                    (row for row in hash_rows if _normalize_title(row["title"]) == title_key),
+                    None,
+                )
+            for row in hash_rows:
+                existing_title_key = _normalize_title(row["title"])
+                if title_key and existing_title_key == title_key:
+                    return row
+                # Preserve the historical same-content behavior for fetched
+                # URL records that have no parsed title, while keeping the
+                # URL-less path strict (it cannot choose an arbitrary row).
+                if not title_key and not existing_title_key and (canonical_url or normalized_url):
+                    return row
+        if zoo_id and title_key:
+            row = db.execute(
+                """
+                SELECT a.* FROM articles AS a
+                JOIN article_zoo_identities AS i ON i.article_id=a.id
+                WHERE i.zoo_id=? AND i.title_key=? LIMIT 1
+                """,
+                (zoo_id, title_key),
+            ).fetchone()
+            if row:
+                return row
         return None
 
     def upsert_article(
@@ -668,45 +1595,101 @@ class SQLiteStorage:
         discovered_url: Optional[str] = None,
         discovered_at: Any = None,
         source: Optional[Source] = None,
+        zoo_id: Optional[str] = None,
     ) -> Article:
         if not isinstance(article, Article):
-            article = Article(**dict(article))
+            values = dict(article)
+            zoo_id = zoo_id or values.pop("zoo_id", None)
+            article = Article(**values)
         if source is not None:
             source = self.upsert_source(source)
             source_id = source.id
+        if zoo_id:
+            zoo = self.get_zoo(str(zoo_id))
+            if zoo is None:
+                raise ValueError(f"unknown zoo: {zoo_id}")
+            zoo_id = zoo.id
+        elif source_id:
+            source_row = self._connection.execute(
+                "SELECT zoo_id FROM sources WHERE id=?", (str(source_id),)
+            ).fetchone()
+            if source_row:
+                zoo_id = source_row["zoo_id"]
         article.id = _id(article.id)
+        # Capture the caller's URL lexeme before normalizing identity fields.
+        # The first stored lexeme is authoritative provenance; later retries
+        # for the same normalized URL do not overwrite it with tracking noise.
+        article.source_url_raw = article.source_url_raw or article.url or article.canonical_url
         article.canonical_url = normalize_url(article.canonical_url) if article.canonical_url else None
         article.normalized_url = normalize_url(article.normalized_url or article.url) if (article.normalized_url or article.url) else None
         if article.url:
             article.url = normalize_url(article.url)
+        article.content_hash = article.content_hash or None
         now = datetime.now(timezone.utc).isoformat()
         with self._transaction() as db:
-            existing = self._find_article(db, article)
+            existing = self._find_article(db, article, zoo_id=zoo_id)
             if existing:
                 article.id = str(existing["id"])
+                # A title/content change can move the composite key onto an
+                # existing article.  Merge that row first so the database
+                # unique index remains authoritative while preserving its
+                # provenance and discoveries.
+                candidate_key = _content_identity_key(
+                    article.content_hash or existing["content_hash"],
+                    article.title or existing["title"],
+                )
+                if candidate_key:
+                    key_conflict = db.execute(
+                        "SELECT id FROM articles WHERE content_identity_key=? AND id<>? LIMIT 1",
+                        (candidate_key, article.id),
+                    ).fetchone()
+                    if key_conflict:
+                        self._merge_runtime_article_conflict(
+                            db, donor_id=str(key_conflict["id"]), keeper_id=article.id
+                        )
+                        existing = db.execute(
+                            "SELECT * FROM articles WHERE id=?", (article.id,)
+                        ).fetchone()
                 # Preserve richer existing values whenever this discovery only
                 # has a subset of fields, while filling every missing value.
                 values = {
-                    "canonical_url": article.canonical_url or existing["canonical_url"],
-                    "normalized_url": article.normalized_url or existing["normalized_url"],
+                    # Identity values are immutable once established.  A
+                    # title/hash hit may arrive with a different URL; retain
+                    # the existing canonical/normalized/source identity and
+                    # only fill a genuinely missing legacy value.
+                    "canonical_url": existing["canonical_url"] or article.canonical_url,
+                    "normalized_url": existing["normalized_url"] or article.normalized_url,
                     # Once an article has an identity, a later discovery must
                     # not replace its canonical/source identity. This is
                     # especially important when deduplication occurs through
                     # the third-layer raw HTML hash.
                     "source_url": existing["source_url"] or article.url,
+                    "source_url_raw": existing["source_url_raw"] or article.source_url_raw or article.url,
                     "title": article.title or existing["title"],
                     "published_at": _timestamp(article.published_at) or existing["published_at"],
+                    "published_at_raw": article.published_at_raw or existing["published_at_raw"],
                     "updated_at_source": _timestamp(article.updated_at_source) or existing["updated_at_source"],
                     "author": article.author or existing["author"],
                     "summary": article.summary or existing["summary"],
                     "content": article.content or existing["content"],
+                    "content_html": article.content_html or existing["content_html"],
+                    "image_url": article.image_url or existing["image_url"],
+                    "parse_status": article.parse_status or existing["parse_status"],
                     "content_hash": article.content_hash or existing["content_hash"],
-                    "html_hash": article.html_hash or existing["html_hash"],
+                    "content_identity_key": _content_identity_key(
+                        article.content_hash or existing["content_hash"],
+                        article.title or existing["title"],
+                    ),
+                    # Raw response evidence is operational and must track the
+                    # latest fetch exactly, including an explicitly empty
+                    # response.  ``None`` means the caller did not provide a
+                    # replacement (partial updates still preserve evidence).
+                    "html_hash": article.html_hash if article.html_hash is not None else existing["html_hash"],
                     "language": article.language or existing["language"],
                     "http_status": article.http_status if article.http_status is not None else existing["http_status"],
                     "crawl_status": article.crawl_status or existing["crawl_status"],
-                    "last_fetched_at": _timestamp(article.last_fetched_at) or existing["last_fetched_at"],
-                    "raw_html": article.raw_html or existing["raw_html"],
+                    "last_fetched_at": _timestamp(article.last_fetched_at) if article.last_fetched_at is not None else existing["last_fetched_at"],
+                    "raw_html": article.raw_html if article.raw_html is not None else existing["raw_html"],
                     "metadata_json": _json({**_load_json(existing["metadata_json"]), **article.metadata}),
                 }
                 # Avoid a new identity colliding with a different row; such a
@@ -717,18 +1700,52 @@ class SQLiteStorage:
                         conflict = db.execute(f"SELECT id FROM articles WHERE {key}=? AND id<>?", (candidate, article.id)).fetchone()
                         if conflict:
                             values[key] = existing[key]
+                # These fields represent the parsed/article business state.
+                # Raw response capture can legitimately change on every
+                # recheck (for example, a rotating CSRF token) without being
+                # an article update.
+                business_fields = (
+                    "canonical_url", "normalized_url", "source_url", "source_url_raw", "title", "published_at",
+                    "published_at_raw", "updated_at_source", "author", "summary", "content",
+                    "content_html", "image_url", "parse_status", "content_hash",
+                    "content_identity_key", "language", "http_status", "crawl_status", "metadata_json",
+                )
+                business_changed = any(
+                    values[name] != existing[name] for name in business_fields
+                )
                 db.execute(
-                    """UPDATE articles SET canonical_url=?,normalized_url=?,source_url=?,title=?,published_at=?,updated_at_source=?,author=?,summary=?,content=?,content_hash=?,html_hash=?,language=?,http_status=?,crawl_status=?,last_fetched_at=?,raw_html=?,metadata_json=?,updated_at=? WHERE id=?""",
-                    (*values.values(), now, article.id),
+                    """UPDATE articles SET canonical_url=?,normalized_url=?,source_url=?,source_url_raw=?,title=?,published_at=?,published_at_raw=?,updated_at_source=?,author=?,summary=?,content=?,content_html=?,image_url=?,parse_status=?,content_hash=?,content_identity_key=?,html_hash=?,language=?,http_status=?,crawl_status=?,last_fetched_at=?,raw_html=?,metadata_json=?,updated_at=? WHERE id=?""",
+                    (*values.values(), now if business_changed else existing["updated_at"], article.id),
                 )
             else:
                 db.execute(
-                    """INSERT INTO articles(id,canonical_url,normalized_url,source_url,title,published_at,updated_at_source,author,summary,content,content_hash,html_hash,language,http_status,crawl_status,last_fetched_at,raw_html,metadata_json,created_at,updated_at)
-                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (article.id, article.canonical_url, article.normalized_url, article.url, article.title, _timestamp(article.published_at),
-                     _timestamp(article.updated_at_source), article.author, article.summary, article.content, article.content_hash,
-                     article.html_hash, article.language, article.http_status, article.crawl_status, _timestamp(article.last_fetched_at),
-                     article.raw_html, _json(article.metadata), now, now),
+                    """INSERT INTO articles(id,canonical_url,normalized_url,source_url,source_url_raw,title,published_at,published_at_raw,updated_at_source,author,summary,content,content_html,image_url,parse_status,content_hash,content_identity_key,html_hash,language,http_status,crawl_status,last_fetched_at,raw_html,metadata_json,created_at,updated_at)
+                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (article.id, article.canonical_url, article.normalized_url, article.url, article.source_url_raw, article.title, _timestamp(article.published_at), article.published_at_raw,
+                     _timestamp(article.updated_at_source), article.author, article.summary, article.content, article.content_html, article.image_url, article.parse_status, article.content_hash,
+                     _content_identity_key(article.content_hash, article.title),
+                     article.html_hash, article.language, article.http_status, article.crawl_status, _timestamp(article.last_fetched_at), article.raw_html, _json(article.metadata), now, now),
+                )
+            title_key = _normalize_title(article.title)
+            if zoo_id and title_key:
+                conflict = db.execute(
+                    "SELECT article_id FROM article_zoo_identities WHERE zoo_id=? AND title_key=? AND article_id<>? LIMIT 1",
+                    (zoo_id, title_key, article.id),
+                ).fetchone()
+                if conflict:
+                    # URL/hash identity is already authoritative for this
+                    # upsert. Merge the title-only row into it before adding
+                    # the current zoo identity, rather than attaching the
+                    # URL to the title row or raising a uniqueness error.
+                    self._merge_runtime_article_conflict(
+                        db, donor_id=str(conflict["article_id"]), keeper_id=article.id
+                    )
+                db.execute(
+                    """
+                    INSERT INTO article_zoo_identities(article_id,zoo_id,title_key,created_at,updated_at)
+                    VALUES(?,?,?,?,?) ON CONFLICT(article_id,zoo_id) DO UPDATE SET title_key=excluded.title_key,updated_at=excluded.updated_at
+                    """,
+                    (article.id, zoo_id, title_key, now, now),
                 )
             if source_id:
                 self._record_discovery_in_transaction(
@@ -751,11 +1768,84 @@ class SQLiteStorage:
 
         ``upsert_article`` remains source compatible for existing consumers.
         """
-        item = article if isinstance(article, Article) else Article(**dict(article))
-        with self._lock:
-            existing = self._find_article(self._connection, item)
+        values = dict(article) if not isinstance(article, Article) else None
+        scope_zoo_id = kwargs.get("zoo_id")
+        source_value = kwargs.get("source")
+        if scope_zoo_id is None and source_value is not None:
+            if isinstance(source_value, Source):
+                scope_zoo_id = source_value.zoo_id
+            elif isinstance(source_value, Mapping):
+                scope_zoo_id = source_value.get("zoo_id")
+        if values is not None:
+            scope_zoo_id = scope_zoo_id or values.get("zoo_id")
+            values.pop("zoo_id", None)
+            item = Article(**values)
+        else:
+            item = cast(Article, article)
+        if scope_zoo_id is None and kwargs.get("source_id"):
+            source_row = self._connection.execute(
+                "SELECT zoo_id FROM sources WHERE id=?", (str(kwargs["source_id"]),)
+            ).fetchone()
+            scope_zoo_id = source_row["zoo_id"] if source_row else None
+        if scope_zoo_id is not None:
+            scope_zoo = self.get_zoo(str(scope_zoo_id))
+            scope_zoo_id = scope_zoo.id if scope_zoo else str(scope_zoo_id)
+        if scope_zoo_id is not None and "zoo_id" not in kwargs:
+            kwargs["zoo_id"] = scope_zoo_id
+        # The identity lookup and write are intentionally one BEGIN IMMEDIATE
+        # transaction.  Two SQLiteStorage instances therefore cannot both
+        # report ``created=True`` for the same identity.
+        with self._transaction() as db:
+            existing = self._find_article(db, item, zoo_id=scope_zoo_id)
+            before = self._article_state(existing) if existing else None
             persisted = self.upsert_article(item, **kwargs)
-        return ArticleUpsertOutcome(article=persisted, created=existing is None)
+            after = self._article_state(persisted)
+        return ArticleUpsertOutcome(
+            article=persisted,
+            created=existing is None,
+            updated=existing is not None and before != after,
+        )
+
+    @staticmethod
+    def _article_state(value: Union[sqlite3.Row, Article]) -> tuple[Any, ...]:
+        """Business state used by ``ArticleUpsertOutcome.updated``.
+
+        Raw response capture and ``last_fetched_at`` are operational
+        observations, not article changes; deliberately exclude them so a
+        repeated recent recheck with identical parsed evidence is
+        ``unchanged`` even when response-only tokens rotate.
+        """
+
+        names = (
+            "canonical_url", "normalized_url", "source_url", "source_url_raw", "title", "published_at",
+            "published_at_raw", "updated_at_source", "author", "summary", "content",
+            "content_html", "image_url", "parse_status", "content_hash", "content_identity_key",
+            "language", "http_status", "crawl_status", "metadata_json",
+        )
+        if isinstance(value, sqlite3.Row):
+            return tuple(value[name] for name in names)
+        return (
+            value.canonical_url,
+            value.normalized_url,
+            value.url,
+            value.source_url_raw,
+            value.title,
+            _timestamp(value.published_at),
+            value.published_at_raw,
+            _timestamp(value.updated_at_source),
+            value.author,
+            value.summary,
+            value.content,
+            value.content_html,
+            value.image_url,
+            value.parse_status,
+            value.content_hash,
+            value.content_identity_key or _content_identity_key(value.content_hash, value.title),
+            value.language,
+            value.http_status,
+            value.crawl_status,
+            _json(value.metadata),
+        )
 
     def get_article(self, article_id: str) -> Optional[Article]:
         row = self._connection.execute("SELECT * FROM articles WHERE id=?", (str(article_id),)).fetchone()
@@ -768,29 +1858,150 @@ class SQLiteStorage:
         ).fetchone()
         return self._article_from_row(row) if row else None
 
-    def list_articles(self, limit: Optional[int] = None) -> list[Article]:
-        sql = "SELECT * FROM articles ORDER BY published_at DESC, created_at DESC"
-        args: tuple[Any, ...] = ()
+    def list_articles(self, limit: Optional[int] = None, zoo_id: Optional[str] = None) -> list[Article]:
+        args_list: list[Any] = []
+        if zoo_id:
+            zoo = self.get_zoo(zoo_id)
+            scope = zoo.id if zoo else str(zoo_id)
+            sql = "SELECT DISTINCT a.* FROM articles AS a JOIN article_zoo_identities AS i ON i.article_id=a.id WHERE i.zoo_id=? ORDER BY a.published_at DESC, a.created_at DESC"
+            args_list.append(scope)
+        else:
+            sql = "SELECT * FROM articles ORDER BY published_at DESC, created_at DESC"
         if limit is not None:
             sql += " LIMIT ?"
-            args = (int(limit),)
-        return [self._article_from_row(row) for row in self._connection.execute(sql, args).fetchall()]
+            args_list.append(int(limit))
+        return [self._article_from_row(row) for row in self._connection.execute(sql, args_list).fetchall()]
+
+    def get_article_read_model(self, article_id: str) -> Optional[ArticleReadModel]:
+        """Return one article joined with all discovery provenance and bounds."""
+
+        row = self._connection.execute(
+            "SELECT * FROM articles WHERE id=?", (str(article_id),)
+        ).fetchone()
+        if row is None:
+            return None
+        article = self._article_from_row(row)
+        discoveries = self.list_discoveries(article_id=article.id)
+        return self._article_read_model(article, discoveries, row)
+
+    def list_article_read_models(
+        self, limit: Optional[int] = None, zoo_id: Optional[str] = None
+    ) -> list[ArticleReadModel]:
+        """Return joined article views ordered like :meth:`list_articles`."""
+
+        args_list: list[Any] = []
+        if zoo_id:
+            zoo = self.get_zoo(zoo_id)
+            scope = zoo.id if zoo else str(zoo_id)
+            sql = (
+                "SELECT DISTINCT a.* FROM articles AS a "
+                "JOIN article_zoo_identities AS i ON i.article_id=a.id "
+                "WHERE i.zoo_id=? ORDER BY a.published_at DESC, a.created_at DESC"
+            )
+            args_list.append(scope)
+        else:
+            sql = "SELECT * FROM articles ORDER BY published_at DESC, created_at DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            args_list.append(int(limit))
+        rows = self._connection.execute(sql, args_list).fetchall()
+        return [
+            self._article_read_model(
+                self._article_from_row(row), self.list_discoveries(article_id=row["id"]), row
+            )
+            for row in rows
+        ]
+
+    # Compatibility spellings used by read-model consumers.
+    get_article_with_discoveries = get_article_read_model
+    list_article_with_discoveries = list_article_read_models
+    list_article_read_model = list_article_read_models
+
+    def get_article_by_title(self, title: str, zoo_id: str) -> Optional[Article]:
+        """Read an article by its normalized title within one zoo."""
+
+        zoo = self.get_zoo(zoo_id)
+        scope = zoo.id if zoo else str(zoo_id)
+        row = self._connection.execute(
+            """
+            SELECT a.* FROM articles AS a
+            JOIN article_zoo_identities AS i ON i.article_id=a.id
+            WHERE i.zoo_id=? AND i.title_key=? LIMIT 1
+            """,
+            (scope, _normalize_title(title)),
+        ).fetchone()
+        return self._article_from_row(row) if row else None
+
+    def list_article_zoo_identities(
+        self, article_id: Optional[str] = None, zoo_id: Optional[str] = None
+    ) -> list[dict[str, str]]:
+        clauses: list[str] = []
+        args: list[Any] = []
+        if article_id:
+            clauses.append("article_id=?")
+            args.append(str(article_id))
+        if zoo_id:
+            zoo = self.get_zoo(zoo_id)
+            clauses.append("zoo_id=?")
+            args.append(zoo.id if zoo else str(zoo_id))
+        sql = "SELECT article_id,zoo_id,title_key FROM article_zoo_identities"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY zoo_id,article_id"
+        return [dict(row) for row in self._connection.execute(sql, args).fetchall()]
 
     def _record_discovery_in_transaction(self, db: sqlite3.Connection, discovery: ArticleDiscovery) -> ArticleDiscovery:
         discovery.id = _id(discovery.id)
+        discovery.discovered_url_raw = discovery.discovered_url_raw or discovery.discovered_url
+        normalized_discovered_url = normalize_url(discovery.discovered_url) if discovery.discovered_url else None
+        discovered_key = normalized_discovered_url or ""
+        incoming_discovered_at = _discovery_timestamp(discovery.discovered_at) or datetime.now(timezone.utc).isoformat()
+        incoming_last_seen = _discovery_timestamp(
+            discovery.last_discovered_at or discovery.discovered_at
+        ) or incoming_discovered_at
+        existing = db.execute(
+            "SELECT * FROM article_discoveries WHERE article_id IS ? AND source_id IS ? AND discovered_key=? LIMIT 1",
+            (discovery.article_id, discovery.source_id, discovered_key),
+        ).fetchone()
+        if existing:
+            first = _select_discovery_timestamp(
+                (existing["discovered_at"], incoming_discovered_at), latest=False
+            )
+            last = _select_discovery_timestamp(
+                (
+                    existing["discovered_at"], existing["last_discovered_at"],
+                    incoming_discovered_at, incoming_last_seen,
+                ),
+                latest=True,
+            ) or first
+            merged_metadata = {
+                **_load_json(existing["metadata_json"]),
+                **dict(discovery.metadata or {}),
+            }
+            db.execute(
+                """
+                UPDATE article_discoveries
+                SET discovered_url=COALESCE(discovered_url,?),discovered_url_raw=COALESCE(discovered_url_raw,?),discovered_at=?,last_discovered_at=?,metadata_json=?
+                WHERE id=?
+                """,
+                (normalized_discovered_url, discovery.discovered_url_raw, first, last, _json(merged_metadata), existing["id"]),
+            )
+            discovery.id = existing["id"]
+            discovery.discovered_url = existing["discovered_url"] or normalized_discovered_url
+            discovery.discovered_url_raw = existing["discovered_url_raw"] or discovery.discovered_url_raw
+            discovery.discovered_at = _decoded_timestamp(first)
+            discovery.last_discovered_at = _decoded_timestamp(last)
+            discovery.metadata = merged_metadata
+            return discovery
         db.execute(
-            """INSERT INTO article_discoveries(id,article_id,source_id,discovered_url,discovered_key,discovered_at,last_discovered_at,metadata_json)
-               VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(article_id,source_id,discovered_key) DO UPDATE SET
-               discovered_url=excluded.discovered_url, last_discovered_at=excluded.last_discovered_at,
-               metadata_json=excluded.metadata_json""",
-            (discovery.id, discovery.article_id, discovery.source_id, normalize_url(discovery.discovered_url) if discovery.discovered_url else None,
-             normalize_url(discovery.discovered_url) if discovery.discovered_url else "",
-             _timestamp(discovery.discovered_at) or datetime.now(timezone.utc).isoformat(),
-             _timestamp(discovery.last_discovered_at or discovery.discovered_at) or datetime.now(timezone.utc).isoformat(), _json(discovery.metadata)),
+            """INSERT INTO article_discoveries(id,article_id,source_id,discovered_url,discovered_url_raw,discovered_key,discovered_at,last_discovered_at,metadata_json)
+               VALUES(?,?,?,?,?,?,?,?,?)""",
+            (discovery.id, discovery.article_id, discovery.source_id, normalized_discovered_url, discovery.discovered_url_raw,
+             discovered_key, incoming_discovered_at, incoming_last_seen, _json(discovery.metadata)),
         )
         row = db.execute(
             "SELECT * FROM article_discoveries WHERE article_id=? AND source_id=? AND discovered_key=? LIMIT 1",
-            (discovery.article_id, discovery.source_id, normalize_url(discovery.discovered_url) if discovery.discovered_url else ""),
+            (discovery.article_id, discovery.source_id, discovered_key),
         ).fetchone()
         if row:
             discovery.id = row["id"]
@@ -829,7 +2040,7 @@ class SQLiteStorage:
             args.append(source_id)
         sql = "SELECT * FROM article_discoveries" + (" WHERE " + " AND ".join(clauses) if clauses else "") + " ORDER BY discovered_at"
         rows = self._connection.execute(sql, args).fetchall()
-        return [ArticleDiscovery(id=row["id"], article_id=row["article_id"], source_id=row["source_id"], discovered_url=row["discovered_url"], discovered_at=_decoded_timestamp(row["discovered_at"]), last_discovered_at=_decoded_timestamp(row["last_discovered_at"]), metadata=_load_json(row["metadata_json"])) for row in rows]
+        return [ArticleDiscovery(id=row["id"], article_id=row["article_id"], source_id=row["source_id"], discovered_url=row["discovered_url"], discovered_url_raw=row["discovered_url_raw"], discovered_at=_decoded_timestamp(row["discovered_at"]), last_discovered_at=_decoded_timestamp(row["last_discovered_at"]), metadata=_load_json(row["metadata_json"])) for row in rows]
 
     # ---- crawl runs -------------------------------------------------------
 
@@ -903,3 +2114,115 @@ class SQLiteStorage:
         else:
             rows = self._connection.execute("SELECT * FROM crawl_run_stats ORDER BY id").fetchall()
         return [self._stat_from_row(row) for row in rows]
+
+    # ---- zoo-level crawl results ----------------------------------------
+
+    @staticmethod
+    def _zoo_result_from_row(row: sqlite3.Row) -> CrawlZooResult:
+        return CrawlZooResult(
+            id=row["id"],
+            crawl_run_id=row["crawl_run_id"],
+            zoo_id=row["zoo_id"],
+            zoo_slug=row["zoo_slug"],
+            zoo_name=row["zoo_name"],
+            status=row["status"],
+            source_status=row["source_status"],
+            discovered=row["discovered"],
+            parsed=row["parsed"],
+            inserted=row["inserted"],
+            updated=row["updated"],
+            failed=row["failed"],
+            duplicate_filtered=row["duplicate_filtered"],
+            duration_ms=row["duration_ms"],
+            source_url=row["source_url"],
+            http_status=row["http_status"],
+            error_category=row["error_category"],
+            error_summary=row["error_summary"],
+            started_at=_decoded_timestamp(row["started_at"]),
+            finished_at=_decoded_timestamp(row["finished_at"]),
+            metadata=_load_json(row["metadata_json"]),
+        )
+
+    def upsert_zoo_run_result(
+        self, result: Union[CrawlZooResult, Mapping[str, Any]]
+    ) -> CrawlZooResult:
+        """Insert or update the unique ``(crawl_run_id, zoo_id)`` result."""
+
+        if not isinstance(result, CrawlZooResult):
+            result = CrawlZooResult(**dict(result))
+        run_id = result.crawl_run_id
+        zoo_id = result.zoo_id
+        if not run_id:
+            raise ValueError("result.crawl_run_id (or run_id) is required")
+        if not zoo_id:
+            raise ValueError("result.zoo_id is required")
+        zoo = self.get_zoo(zoo_id)
+        if zoo is not None:
+            zoo_id = zoo.id or zoo_id
+            result.zoo_id = zoo_id
+        result.id = _id(result.id)
+        started = _timestamp(result.started_at)
+        finished = _timestamp(result.finished_at)
+        duration = result.duration_ms if result.duration_ms is not None else self._duration_ms(started, finished)
+        now = datetime.now(timezone.utc).isoformat()
+        source_url = normalize_url(result.source_url) if result.source_url else None
+        with self._transaction() as db:
+            existing = db.execute(
+                "SELECT id FROM crawl_zoo_results WHERE id=? OR (crawl_run_id=? AND zoo_id=?) LIMIT 1",
+                (result.id, run_id, zoo_id),
+            ).fetchone()
+            if existing:
+                result.id = str(existing["id"])
+                db.execute(
+                    """
+                    UPDATE crawl_zoo_results SET crawl_run_id=?,zoo_id=?,zoo_slug=?,zoo_name=?,status=?,source_status=?,discovered=?,parsed=?,inserted=?,updated=?,failed=?,duplicate_filtered=?,duration_ms=?,source_url=?,http_status=?,error_category=?,error_summary=?,started_at=?,finished_at=?,metadata_json=?,updated_at=? WHERE id=?
+                    """,
+                    (run_id, zoo_id, result.zoo_slug, result.zoo_name, result.status, result.source_status, result.discovered, result.parsed, result.inserted, result.updated, result.failed, result.duplicate_filtered, duration, source_url, result.http_status, result.error_category, result.error_summary, started, finished, _json(result.metadata), now, result.id),
+                )
+            else:
+                db.execute(
+                    """
+                    INSERT INTO crawl_zoo_results(id,crawl_run_id,zoo_id,zoo_slug,zoo_name,status,source_status,discovered,parsed,inserted,updated,failed,duplicate_filtered,duration_ms,source_url,http_status,error_category,error_summary,started_at,finished_at,metadata_json,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (result.id, run_id, zoo_id, result.zoo_slug, result.zoo_name, result.status, result.source_status, result.discovered, result.parsed, result.inserted, result.updated, result.failed, result.duplicate_filtered, duration, source_url, result.http_status, result.error_category, result.error_summary, started, finished, _json(result.metadata), now, now),
+                )
+        return self.get_zoo_run_result(run_id, zoo_id) or result
+
+    save_zoo_run_result = upsert_zoo_run_result
+    record_zoo_run_result = upsert_zoo_run_result
+    upsert_crawl_zoo_result = upsert_zoo_run_result
+    record_crawl_zoo_result = upsert_zoo_run_result
+
+    def get_zoo_run_result(self, run_id: str, zoo_id: str) -> Optional[CrawlZooResult]:
+        zoo = self.get_zoo(zoo_id)
+        scope = zoo.id if zoo else str(zoo_id)
+        row = self._connection.execute(
+            "SELECT * FROM crawl_zoo_results WHERE crawl_run_id=? AND zoo_id=? LIMIT 1",
+            (str(run_id), scope),
+        ).fetchone()
+        return self._zoo_result_from_row(row) if row else None
+
+    def get_zoo_run_results(
+        self, run_id: Optional[str] = None, zoo_id: Optional[str] = None
+    ) -> list[CrawlZooResult]:
+        clauses: list[str] = []
+        args: list[Any] = []
+        if run_id:
+            clauses.append("crawl_run_id=?")
+            args.append(str(run_id))
+        if zoo_id:
+            zoo = self.get_zoo(zoo_id)
+            clauses.append("zoo_id=?")
+            args.append(zoo.id if zoo else str(zoo_id))
+        sql = "SELECT * FROM crawl_zoo_results"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY started_at,id"
+        return [
+            self._zoo_result_from_row(row)
+            for row in self._connection.execute(sql, args).fetchall()
+        ]
+
+    list_zoo_run_results = get_zoo_run_results
+    list_zoo_results = get_zoo_run_results

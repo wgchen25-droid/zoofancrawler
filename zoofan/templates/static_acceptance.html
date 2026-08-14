@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generation-id" content="__GENERATION_ID__">
+  <title>ZooFanCrawler acceptance</title>
+  <style>
+    :root { color-scheme: light; --ink:#1f2937; --muted:#64748b; --line:#dbe3ec; --panel:#fff; --bg:#f4f7fb; --good:#16734a; --warn:#9a5b00; --bad:#b42318; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--bg); font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .skip-link { position:absolute; left:12px; top:-56px; z-index:10; padding:10px 14px; background:#fff; color:var(--ink); border:2px solid #315c9b; border-radius:6px; font-weight:650; }
+    .skip-link:focus-visible { top:12px; outline:3px solid #8bb8ff; outline-offset:2px; }
+    header { background:#172033; color:#fff; padding:28px max(20px,calc((100vw - 1380px)/2)); }
+    header h1 { margin:0 0 6px; font-size:clamp(1.45rem,3vw,2.2rem); }
+    header p { margin:0; color:#cbd5e1; }
+    main { max-width:1380px; margin:0 auto; padding:20px; }
+    .banner { border:1px solid var(--line); border-left:5px solid var(--warn); background:#fffaf0; padding:14px 16px; margin:0 0 18px; border-radius:8px; }
+    .banner.error { border-left-color:var(--bad); background:#fff5f5; }
+    .banner.good { border-left-color:var(--good); background:#f1fbf5; }
+    .banner h2 { margin:0 0 5px; font-size:1rem; }
+    .banner p { margin:3px 0; overflow-wrap:anywhere; word-break:break-word; }
+    .controls, .summary, .grid, .stat-grid { display:grid; gap:12px; }
+    .controls { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); align-items:end; background:var(--panel); border:1px solid var(--line); padding:14px; border-radius:8px; margin-bottom:18px; }
+    label { color:var(--muted); display:flex; flex-direction:column; gap:5px; font-size:.95rem; font-weight:600; }
+    input, select { color:var(--ink); background:#fff; border:1px solid #b8c5d4; border-radius:5px; min-height:44px; padding:8px 10px; font:inherit; touch-action:manipulation; }
+    input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline:3px solid #8bb8ff; outline-offset:2px; }
+    .summary { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); margin:0 0 18px; }
+    .metric, .card, .details, .source, .article, .report-panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .metric { padding:13px; }
+    .metric strong { display:block; font-size:1.35rem; overflow-wrap:anywhere; }
+    .metric span { color:var(--muted); font-size:.8rem; }
+    .report-panel { min-width:0; padding:16px; margin:0 0 18px; overflow-wrap:anywhere; word-break:break-word; }
+    .report-panel h2 { margin:0 0 9px; font-size:1.08rem; }
+    .report-panel h3 { margin:18px 0 8px; font-size:1rem; }
+    .stat-grid { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }
+    .stat-grid div { background:#f7f9fc; border:1px solid var(--line); border-radius:5px; padding:8px; }
+    .stat-grid strong { display:block; font-size:1.1rem; }
+    .stat-grid span { color:var(--muted); font-size:.78rem; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:7px; background:#fff; }
+    table { width:100%; min-width:1840px; border-collapse:collapse; }
+    caption { text-align:left; padding:10px 12px; color:var(--muted); font-size:.9rem; }
+    th, td { padding:9px 10px; border-top:1px solid var(--line); text-align:left; vertical-align:top; white-space:nowrap; }
+    th { color:#42526b; background:#f7f9fc; font-size:.82rem; letter-spacing:.01em; }
+    tbody tr { cursor:pointer; }
+    tbody tr:hover, tbody tr:focus { background:#f7fbff; }
+    tbody tr.selected { background:#edf5ff; box-shadow:inset 3px 0 #315c9b; }
+    tbody tr:focus-visible { outline:3px solid #8bb8ff; outline-offset:-3px; }
+    .badge { display:inline-block; border-radius:999px; padding:2px 8px; font-size:.75rem; font-weight:650; background:#edf1f5; color:#475569; }
+    .badge.good { background:#e5f6ed; color:var(--good); }
+    .badge.bad { background:#fee9e7; color:var(--bad); }
+    .badge.warn { background:#fff0cf; color:var(--warn); }
+    .badge.neutral { background:#e9edf2; color:#64748b; }
+    .meta, .muted { color:var(--muted); font-size:.95rem; overflow-wrap:anywhere; word-break:break-word; }
+    .small { font-size:.88rem; }
+    .grid { grid-template-columns:minmax(0,1.45fr) minmax(300px,.85fr); align-items:start; }
+    .details { padding:18px; min-height:310px; position:sticky; top:14px; }
+    .details h2 { margin:0 0 4px; font-size:1.35rem; }
+    .details h3 { margin:20px 0 8px; font-size:1rem; border-bottom:1px solid var(--line); padding-bottom:5px; }
+    .detail-row { display:grid; grid-template-columns:145px minmax(0,1fr); gap:10px; padding:4px 0; border-bottom:1px dotted #e4e9ef; }
+    .detail-row dt { color:var(--muted); }
+    .detail-row dd { margin:0; overflow-wrap:anywhere; word-break:break-word; }
+    .source, .article { padding:10px; margin:7px 0; }
+    .source h4, .article h4 { margin:0 0 3px; font-size:.95rem; }
+    a { color:#1e5aa8; overflow-wrap:anywhere; }
+    .warning-list { margin:6px 0 0; padding-left:20px; color:var(--bad); }
+    .article-summary { margin:8px 0; line-height:1.55; overflow-wrap:anywhere; }
+    .article-image { margin:10px 0; max-width:320px; aspect-ratio:16 / 9; overflow:hidden; border-radius:6px; background:#eef2f7; }
+    .article-image img { display:block; width:100%; height:100%; object-fit:cover; }
+    .empty { color:var(--muted); padding:18px 4px; }
+    .hidden { display:none !important; }
+    .inline-list { margin:5px 0; padding-left:20px; }
+    @media (max-width:900px) { .grid { grid-template-columns:1fr; } .details { position:static; } }
+    @media (max-width:600px) { main { padding:14px; } .controls { grid-template-columns:1fr; } .detail-row { grid-template-columns:110px minmax(0,1fr); } }
+    @media (max-width:420px) { .detail-row { grid-template-columns:1fr; gap:2px; } .detail-row dt { font-weight:650; } }
+    @media (prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header>
+    <h1>ZooFanCrawler acceptance</h1>
+    <p id="header-subtitle">Read-only, backend-free report projection</p>
+  </header>
+  <main id="main-content" tabindex="-1">
+    <section id="alerts" aria-live="polite"></section>
+    <section class="summary" id="summary" aria-label="Top report metrics"></section>
+    <section class="report-panel" id="run-panels" aria-label="Run classifications, criteria and adapter changes"></section>
+    <form class="controls" id="filters" aria-label="Filter and sort configured zoos">
+      <label for="country-filter">Country<select id="country-filter"><option value="">All countries</option></select></label>
+      <label for="group-filter">Group<select id="group-filter"><option value="">All groups</option></select></label>
+      <label for="status-filter">Completion status<select id="status-filter"><option value="">All classifications</option></select></label>
+      <label for="name-filter">Name search<input id="name-filter" type="search" autocomplete="off" placeholder="Search zoo name"></label>
+      <label for="sort-filter">Sort order<select id="sort-filter"><option value="anomaly" selected>Anomaly first</option><option value="name">Name A–Z</option><option value="country">Country then name</option><option value="articles">Unique articles</option><option value="warnings">Warnings</option></select></label>
+      <p id="filter-count" class="muted small" aria-live="polite"></p>
+    </form>
+    <section class="report-panel" aria-labelledby="zoo-table-title">
+      <h2 id="zoo-table-title">Configured zoo status</h2>
+      <div class="table-wrap">
+        <table id="zoo-table">
+          <caption>One row per configured zoo. Links are restricted to absolute HTTP(S) URLs; counts are latest-run where marked and unique articles are cumulative database evidence.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th><th scope="col">Country</th><th scope="col">Region</th><th scope="col">Groups</th><th scope="col">Official site</th><th scope="col">News source URL</th><th scope="col">Adapter</th><th scope="col">Completion</th><th scope="col">Run status</th><th scope="col">HTTP</th><th scope="col">Discovered</th><th scope="col">Parsed</th><th scope="col">Inserted</th><th scope="col">Failed</th><th scope="col">Latest errors</th><th scope="col">Latest news date</th><th scope="col">Duration</th><th scope="col">Error summary</th>
+            </tr>
+          </thead>
+          <tbody id="zoo-table-body"></tbody>
+        </table>
+      </div>
+      <div id="table-empty" class="empty hidden">No configured zoos match these filters.</div>
+    </section>
+    <section class="grid">
+      <section aria-label="Filtered zoo rows"></section>
+      <aside id="details" class="details" aria-live="polite"><p class="empty">Select a zoo row to inspect its configuration, sources, articles and quality warnings.</p></aside>
+    </section>
+  </main>
+  <script id="projection" type="application/json">__PROJECTION_JSON__</script>
+  <script>
+  (function () {
+    "use strict";
+    var projection = {};
+    try { projection = JSON.parse(document.getElementById("projection").textContent || "{}"); } catch (error) { projection = { acceptance:{status:"ERROR"}, known_issues:["The embedded projection could not be parsed."] }; }
+    var zoos = Array.isArray(projection.zoos) ? projection.zoos.slice() : [];
+    var PUBLIC_CLASSIFICATIONS = ["SUPPORTED", "SUPPORTED_NO_CURRENT_NEWS", "PARTIALLY_SUPPORTED", "SOURCE_NOT_FOUND", "ROBOTS_DISALLOWED", "JAVASCRIPT_REQUIRED", "BLOCKED", "UNSUPPORTED", "FAILED"];
+    var selectedId = null;
+    var byId = {};
+    zoos.forEach(function (zoo) { byId[String(zoo.id || "")] = zoo; });
+    function node(tag, className, text) { var element = document.createElement(tag); if (className) { element.className = className; } if (text !== undefined && text !== null) { element.textContent = String(text); } return element; }
+    function safeUrl(value) {
+      if (!value) { return ""; }
+      try {
+        var raw = String(value).trim();
+        if (!/^https?:\/\//i.test(raw) || /[\u0000-\u0020<>"']/.test(raw)) { return ""; }
+        var url = new URL(raw);
+        if ((url.protocol === "http:" || url.protocol === "https:") && url.hostname && !url.username && !url.password && url.origin !== "null") { return url.href; }
+      } catch (error) { return ""; }
+      return "";
+    }
+    function appendLink(parent, value, label) { var url = safeUrl(value); if (!url) { parent.appendChild(node("span", "muted", label || value || "—")); return; } var link = node("a", "", label || value); link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer"; link.setAttribute("aria-label", (label || value) + " (opens in a new tab)"); parent.appendChild(link); }
+    function displayValue(value) { if (Array.isArray(value)) { return value.length ? value.map(displayValue).join(", ") : "—"; } if (value && typeof value === "object") { try { return JSON.stringify(value); } catch (error) { return "[object]"; } } return value === undefined || value === null || value === "" ? "—" : String(value); }
+    function addDetail(dl, label, value, link) { var row = node("div", "detail-row"); row.appendChild(node("dt", "", label)); var dd = node("dd"); if (link) { appendLink(dd, value, value || "—"); } else { dd.textContent = displayValue(value); } row.appendChild(dd); dl.appendChild(row); }
+    function badge(value) { var status = String(value || "UNKNOWN"); var lower = status.toLowerCase(); var kind = ["SUPPORTED", "SUPPORTED_NO_CURRENT_NEWS"].indexOf(status) >= 0 || lower === "ok" ? "good" : (["PARTIALLY_SUPPORTED", "UNKNOWN", "NO_DATA"].indexOf(status) >= 0 || lower === "partial" || lower === "no_data" ? "warn" : (["FAILED", "SOURCE_NOT_FOUND", "ROBOTS_DISALLOWED", "JAVASCRIPT_REQUIRED", "BLOCKED", "UNSUPPORTED", "ERROR"].indexOf(status) >= 0 || lower === "error" ? "bad" : "neutral")); var element = node("span", "badge " + kind, status); element.setAttribute("aria-label", "Status: " + status); return element; }
+    function number(value) { return Number(value || 0); }
+    function zooCounts(zoo) { return zoo && zoo.counts ? zoo.counts : {}; }
+    function anomalyRank(zoo) { var status = String((zoo || {}).status || "").toLowerCase(); var completion = String((zoo || {}).completion_classification || "FAILED"); if (["FAILED", "SOURCE_NOT_FOUND", "ROBOTS_DISALLOWED", "JAVASCRIPT_REQUIRED", "BLOCKED", "UNSUPPORTED"].indexOf(completion) >= 0 || ["error", "failed", "missing_result", "duplicate_result"].indexOf(status) >= 0) { return 0; } if (["PARTIALLY_SUPPORTED", "SUPPORTED_NO_CURRENT_NEWS"].indexOf(completion) >= 0 || ["partial", "unknown", "no_data"].indexOf(status) >= 0) { return 1; } if (number(zoo.quality_warning_count || zooCounts(zoo).warnings) > 0) { return 1; } return 2; }
+    function sorted(values) { return values.sort(function (a, b) { return String(a).localeCompare(String(b)); }); }
+    function renderAlerts() {
+      var area = document.getElementById("alerts"); area.textContent = "";
+      var status = projection.acceptance && projection.acceptance.status || "INCOMPLETE";
+      var box = node("section", "banner " + (status === "PASS" ? "good" : "error"));
+      box.appendChild(node("h2", "", "Acceptance: " + status));
+      box.appendChild(node("p", "", "Scope: " + ((projection.scope || {}).label || "Configured registry only") + " · no expanded roster is implied."));
+      box.appendChild(node("p", "", "Git commit: " + (projection.git_commit || "unknown") + " · tree: " + (projection.git_dirty === true ? "dirty" : (projection.git_dirty === false ? "clean" : "unknown")) + " · fingerprint: " + (projection.code_state_fingerprint || "unknown")));
+      box.appendChild(node("p", "", "Generated: " + (projection.generated_at || "unknown") + " · generation: " + (projection.generation_id || "unknown")));
+      var limitation = (projection.scope || {}).limitation; if (limitation) { box.appendChild(node("p", "small", limitation)); }
+      var failures = Array.isArray(projection.failure_reasons) ? projection.failure_reasons : []; var issues = Array.isArray(projection.known_issues) ? projection.known_issues : [];
+      failures.concat(issues).slice(0, 8).forEach(function (item) { box.appendChild(node("p", "small", item)); }); area.appendChild(box);
+    }
+    function metric(area, label, value) { var card = node("div", "metric"); card.appendChild(node("strong", "", value)); card.appendChild(node("span", "", label)); area.appendChild(card); }
+    function renderSummary() {
+      var area = document.getElementById("summary"); area.textContent = "";
+      var coverage = projection.coverage || {}; var counts = projection.counts || {}; var run = projection.run || {}; var metrics = projection.run_metrics || {};
+      metric(area, "Configured zoos", coverage.configured_zoos || counts.zoos || 0); metric(area, "Enabled zoos", coverage.enabled_zoos || 0); metric(area, "Configured sources", coverage.configured_sources || 0); metric(area, "Enabled source checks", coverage.enabled_source_checks || coverage.enabled_sources || 0); metric(area, "Article-capable executable sources", coverage.article_capable_executable_enabled_sources || coverage.executable_enabled_sources || 0); metric(area, "Health-only registry_only sources", coverage.health_only_registry_only_enabled_sources || coverage.health_only_enabled_sources || 0); metric(area, "Unique articles (cumulative)", counts.unique_articles || counts.articles || 0); metric(area, "Source/article associations", coverage.source_article_associations || 0); metric(area, "Discovered (latest run)", metrics.discovered || 0); metric(area, "Fetched (latest run)", metrics.fetched || 0); metric(area, "Parsed (latest run)", metrics.parsed || 0); metric(area, "Stored (latest run)", metrics.stored || 0); metric(area, "Inserted (latest run)", metrics.inserted || 0); metric(area, "Updated (latest run)", metrics.updated || 0); metric(area, "Already known (latest run)", metrics.already_known || 0); metric(area, "Duplicate filtered (latest run)", metrics.duplicate_filtered || 0); metric(area, "Errors (latest run)", metrics.errors || 0); metric(area, "Warnings", counts.warnings || 0); metric(area, "External-limited evidence", projection.external_limited ? "yes" : "no"); metric(area, "Latest-run result coverage", String(coverage.latest_run_zoo_result_coverage_percent === undefined ? 0 : coverage.latest_run_zoo_result_coverage_percent) + "%"); metric(area, "Wall duration (latest run)", String(metrics.wall_duration_ms || run.wall_duration_ms || 0) + " ms");
+    }
+    function appendList(parent, values, emptyText) { var list = node("ul", "inline-list"); (Array.isArray(values) ? values : []).forEach(function (value) { list.appendChild(node("li", "", value)); }); if (!list.children.length) { parent.appendChild(node("p", "muted small", emptyText || "None recorded.")); } else { parent.appendChild(list); } }
+    function renderRunPanels() {
+      var area = document.getElementById("run-panels"); area.textContent = ""; var run = projection.run || {}; var metrics = projection.run_metrics || {}; var publicCategories = projection.completion_classifications || {}; var rawCategories = projection.completion_categories || {}; var adapters = projection.adapter_stats || {}; var warnings = projection.quality_warning_categories || {};
+      area.appendChild(node("h2", "", "Latest run · " + (run.started_at || "unknown") + " → " + (run.finished_at || "unknown") + " · " + (run.status || "no_run")));
+      var totals = node("div", "stat-grid"); PUBLIC_CLASSIFICATIONS.forEach(function (key) { var box = node("div"); box.appendChild(node("strong", "", number(publicCategories[key]))); box.appendChild(node("span", "", key)); totals.appendChild(box); }); [["Discovered", metrics.discovered], ["Fetched", metrics.fetched], ["Parsed", metrics.parsed], ["Stored", metrics.stored], ["Inserted", metrics.inserted], ["Updated", metrics.updated], ["Already known", metrics.already_known], ["Duplicate filtered", metrics.duplicate_filtered], ["Errors", metrics.errors], ["Wall duration", String(metrics.wall_duration_ms || 0) + " ms"]].forEach(function (item) { var box = node("div"); box.appendChild(node("strong", "", item[1] || 0)); box.appendChild(node("span", "", item[0])); totals.appendChild(box); }); area.appendChild(totals);
+      area.appendChild(node("h3", "", "Raw/internal completion categories")); var rawText = PUBLIC_CLASSIFICATIONS.length ? PUBLIC_CLASSIFICATIONS.map(function () { return ""; }).join("") : ""; var rawLines = node("p", "muted small", Object.keys(rawCategories).sort().map(function (key) { return key + ": " + number(rawCategories[key]); }).join(" · ") || "None"); area.appendChild(rawLines); var limitations = projection.limitation_class_counts || {}; area.appendChild(node("h3", "", "External limitations (non-blocking)")); area.appendChild(node("p", "muted small", Object.keys(limitations).sort().map(function (key) { return key + ": " + number(limitations[key]); }).join(" · ") || "None"));
+      area.appendChild(node("h3", "", "Quality and failure classes")); area.appendChild(node("p", "muted small", "Quality warnings: " + (Object.keys(warnings).sort().map(function (key) { return key + ": " + number(warnings[key]); }).join(" · ") || "None"))); var failureCounts = projection.failure_class_counts || projection.failure_reason_counts || {}; area.appendChild(node("p", "muted small", "Failure classes: " + (Object.keys(failureCounts).sort().map(function (key) { return key + ": " + number(failureCounts[key]); }).join(" · ") || "None")));
+      area.appendChild(node("h3", "", "Adapter statistics")); var adapterText = Object.keys(adapters).sort().map(function (key) { var stats = adapters[key] || {}; return key + ": configured " + number(stats.configured_count) + ", registered " + number(stats.registered_count) + ", associations " + number(stats.article_association_count || stats.article_count) + ", unique " + number(stats.unique_article_count) + ", errors " + number(stats.error_count); }).join(" · ") || "None"; area.appendChild(node("p", "muted small", adapterText));
+      var changes = run.adapter_changes || {}; area.appendChild(node("h3", "", "Adapter changes")); area.appendChild(node("p", "muted small", changes.available ? ((changes.evidence_complete ? "Evidence complete" : "Evidence incomplete") + " · " + (changes.reason || "Compared with the previous run.")) : "Unknown: no previous run history was available.")); if (changes.available) { area.appendChild(node("p", "muted small", "Added: " + ((changes.added_sources || []).join(", ") || "none") + " · Removed: " + ((changes.removed_sources || []).join(", ") || "none") + " · Kind changed: " + ((changes.kind_changed_sources || []).join(", ") || "none"))); area.appendChild(node("p", "muted small", "Kind/count deltas: " + JSON.stringify(changes.changes || {}))); }
+      var relative = run.relative_change || {}; area.appendChild(node("p", "muted small", relative.available ? "Relative to " + (relative.previous_run_id || "previous run") + ": " + JSON.stringify(relative.counts || {}) : "Relative change: unknown (no previous run)"));
+      area.appendChild(node("h3", "", "End criteria")); var criteria = projection.acceptance && projection.acceptance.criteria || []; criteria.forEach(function (item) { area.appendChild(node("p", "small", (item.passed ? "PASS · " : "FAIL · ") + (item.label || item.id || "criterion") + ": " + (item.detail || ""))); });
+    }
+    function fillFilters() {
+      var countries = {}; var groups = {}; var statuses = {};
+      zoos.forEach(function (zoo) { if (zoo.country_code) { countries[zoo.country_code] = true; } (zoo.groups || []).forEach(function (group) { groups[group] = true; }); var completion = zoo.completion_classification || "FAILED"; statuses[completion] = true; });
+      [["country-filter", countries], ["group-filter", groups], ["status-filter", statuses]].forEach(function (entry) { var select = document.getElementById(entry[0]); Object.keys(entry[1]).sort().forEach(function (value) { select.appendChild(node("option", "", value)); }); });
+    }
+    function filteredZoos() { var country = document.getElementById("country-filter").value; var group = document.getElementById("group-filter").value; var status = document.getElementById("status-filter").value; var query = document.getElementById("name-filter").value.trim().toLocaleLowerCase(); var sort = document.getElementById("sort-filter").value; var values = zoos.filter(function (zoo) { return (!country || zoo.country_code === country) && (!group || (zoo.groups || []).indexOf(group) >= 0) && (!status || (zoo.completion_classification || "FAILED") === status) && (!query || String(zoo.name || "").toLocaleLowerCase().indexOf(query) >= 0); }); return values.sort(function (a, b) { var delta = 0; if (sort === "name") { delta = String(a.name || a.id).localeCompare(String(b.name || b.id)); } else if (sort === "country") { delta = String(a.country_code || "").localeCompare(String(b.country_code || "")) || String(a.name || a.id).localeCompare(String(b.name || b.id)); } else if (sort === "articles") { delta = number(zooCounts(b).unique_articles || zooCounts(b).articles) - number(zooCounts(a).unique_articles || zooCounts(a).articles); } else if (sort === "warnings") { delta = number(zooCounts(b).warnings) - number(zooCounts(a).warnings); } else { delta = anomalyRank(a) - anomalyRank(b); if (!delta) { delta = number(zooCounts(b).warnings) - number(zooCounts(a).warnings); } } return delta || String(a.name || a.id).localeCompare(String(b.name || b.id)); }); }
+    function appendTableCell(row, value) { row.appendChild(node("td", "", value === undefined || value === null || value === "" ? "—" : value)); }
+    function appendTableLinksCell(row, values) { var cell = node("td"); var links = Array.isArray(values) ? values : (values ? [values] : []); links.forEach(function (value, index) { if (index) { cell.appendChild(node("span", "muted", "; ")); } appendLink(cell, value, value || "—"); }); if (!links.length) { cell.appendChild(node("span", "muted", "—")); } row.appendChild(cell); }
+    function renderTable() {
+      var body = document.getElementById("zoo-table-body"); body.textContent = ""; var visible = filteredZoos(); document.getElementById("table-empty").classList.toggle("hidden", visible.length > 0); document.getElementById("filter-count").textContent = visible.length + " of " + zoos.length + " configured zoos shown";
+      if (selectedId !== null && !visible.some(function (zoo) { return String(zoo.id) === String(selectedId); })) { selectedId = null; renderDetails(null); }
+      visible.forEach(function (zoo) { var counts = zooCounts(zoo); var row = node("tr", String(zoo.id) === String(selectedId) ? "selected" : ""); row.tabIndex = 0; row.setAttribute("aria-selected", String(String(zoo.id) === String(selectedId))); row.setAttribute("aria-label", (zoo.name || zoo.id) + " status details"); row.addEventListener("click", function () { selectedId = zoo.id; renderTable(); renderDetails(byId[String(selectedId)]); }); row.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectedId = zoo.id; renderTable(); renderDetails(byId[String(selectedId)]); } }); appendTableCell(row, zoo.name || zoo.id); appendTableCell(row, zoo.country_code || zoo.country || "—"); appendTableCell(row, zoo.region || "—"); appendTableCell(row, (zoo.groups || []).join(", ") || "—"); appendTableLinksCell(row, (zoo.official_site || zoo.official_site_url || zoo.website_url) ? [zoo.official_site || zoo.official_site_url || zoo.website_url] : []); appendTableLinksCell(row, zoo.news_source_urls || (zoo.news_source_url ? [zoo.news_source_url] : [])); appendTableCell(row, zoo.adapter || zoo.adapter_kind || "—"); var completionCell = node("td"); completionCell.appendChild(badge(zoo.completion_classification || "FAILED")); row.appendChild(completionCell); appendTableCell(row, zoo.run_status || zoo.status_raw || zoo.status || "—"); appendTableCell(row, zoo.http_status || "—"); appendTableCell(row, counts.discovered || 0); appendTableCell(row, counts.parsed || 0); appendTableCell(row, counts.inserted || 0); appendTableCell(row, counts.failed || 0); appendTableCell(row, (zoo.latest_errors || []).join("; ") || zoo.latest_error || "—"); appendTableCell(row, zoo.latest_news_date || "—"); appendTableCell(row, (zoo.duration_ms === undefined ? counts.duration_ms : zoo.duration_ms) || 0); appendTableCell(row, zoo.error_summary || "—"); body.appendChild(row); });
+    }
+    function appendArticleImage(parent, article) { var url = safeUrl(article && article.image_url); if (!url) { return; } var figure = node("figure", "article-image"); var image = document.createElement("img"); image.src = url; image.alt = article.title ? "Image for " + String(article.title) : "Article image"; image.setAttribute("loading", "lazy"); image.setAttribute("decoding", "async"); image.setAttribute("width", "320"); image.setAttribute("height", "180"); figure.appendChild(image); parent.appendChild(figure); }
+    function warningList(parent, warnings) { var list = node("ul", "warning-list"); list.setAttribute("aria-label", "Quality warnings"); (Array.isArray(warnings) ? warnings : []).forEach(function (warning) { var detail = warning && warning.detail ? ": " + warning.detail : ""; list.appendChild(node("li", "", (warning && (warning.label || warning.code) || "Warning") + detail)); }); if (!list.children.length) { parent.appendChild(node("p", "muted small", "No quality warnings.")); } else { parent.appendChild(list); } }
+    function renderDetails(zoo) {
+      var area = document.getElementById("details"); area.textContent = ""; if (!zoo) { area.appendChild(node("p", "empty", "Select a zoo row to inspect its details.")); return; }
+      var heading = node("h2", ""); heading.appendChild(node("span", "", zoo.name || zoo.id)); heading.appendChild(node("span", "", " ")); heading.appendChild(badge(zoo.completion_classification || "FAILED")); area.appendChild(heading); area.appendChild(node("p", "muted small", "Evidence: " + (zoo.evidence_path || "—")));
+      var dl = node("dl"); addDetail(dl, "Configuration ID", zoo.id); addDetail(dl, "Slug", zoo.slug); addDetail(dl, "Country", zoo.country_code); addDetail(dl, "Region / city", (zoo.region || "—") + " / " + (zoo.city || "—")); addDetail(dl, "Language", zoo.language); addDetail(dl, "Groups", (zoo.groups || []).join(", ")); addDetail(dl, "List provenance", zoo.list_provenance); addDetail(dl, "Completion", zoo.completion_classification); addDetail(dl, "Raw/internal category", zoo.completion_category); addDetail(dl, "Raw status", zoo.status_raw || zoo.status); addDetail(dl, "Run status", zoo.run_status || "—"); addDetail(dl, "Result issue", zoo.result_issue); addDetail(dl, "Source status", zoo.source_status); addDetail(dl, "Enabled", zoo.enabled ? "yes" : "no"); addDetail(dl, "Official site", zoo.website_url, true); addDetail(dl, "News source URL", zoo.news_source_url, true); addDetail(dl, "Adapter", zoo.adapter || zoo.adapter_kind); addDetail(dl, "HTTP", zoo.http_status); addDetail(dl, "Latest news date", zoo.latest_news_date); addDetail(dl, "Duration", zoo.duration_ms === undefined ? (zooCounts(zoo).duration_ms || 0) + " ms" : zoo.duration_ms + " ms"); addDetail(dl, "Latest errors", zoo.latest_errors); addDetail(dl, "Error summary", zoo.error_summary); area.appendChild(dl);
+      var counts = zooCounts(zoo); area.appendChild(node("h3", "", "Counts and end criteria")); var countDl = node("dl"); addDetail(countDl, "Sources", number(counts.registered_sources) + "/" + number(counts.configured_sources) + " registered"); addDetail(countDl, "Associations", counts.source_article_associations || 0); addDetail(countDl, "Unique articles", counts.unique_articles === undefined ? number(counts.articles) : counts.unique_articles); addDetail(countDl, "Discovered / fetched", number(counts.discovered) + " / " + number(counts.fetched)); addDetail(countDl, "Parsed / stored", number(counts.parsed) + " / " + number(counts.stored)); addDetail(countDl, "Inserted / already known", number(counts.inserted) + " / " + number(counts.already_known)); addDetail(countDl, "Failed / errors / warnings", number(counts.failed) + " / " + number(counts.errors) + " / " + number(counts.warnings)); addDetail(countDl, "Failure classes", (zoo.failure_classes || []).join(", ")); area.appendChild(countDl);
+      area.appendChild(node("h3", "", "Per-zoo end criteria")); appendList(area, (projection.acceptance && projection.acceptance.criteria || []).map(function (item) { return (item.passed ? "PASS · " : "FAIL · ") + (item.label || item.id || "criterion"); }), "No end criteria recorded.");
+      area.appendChild(node("h3", "", "Sources and adapters")); var sources = Array.isArray(zoo.sources) ? zoo.sources : []; if (!sources.length) { area.appendChild(node("p", "muted", "No configured sources.")); } sources.forEach(function (source) { var box = node("div", "source"); var title = node("h4", ""); title.appendChild(node("span", "", source.name || source.id)); title.appendChild(node("span", "", " ")); title.appendChild(badge(source.status)); box.appendChild(title); box.appendChild(node("p", "meta", "Adapter: " + (source.adapter || source.kind || "unknown") + " · HTTP: " + (source.http_status || "—") + " · Associations: " + number(source.article_association_count || source.article_count) + " · Unique: " + number(source.unique_article_count))); var sourceDl = node("dl"); addDetail(sourceDl, "Source URL", source.url, true); addDetail(sourceDl, "Evidence", source.evidence_path); addDetail(sourceDl, "Failure classes", (source.error_categories || []).join(", ")); if (source.error || (source.errors || []).length) { addDetail(sourceDl, "Error", source.error || (source.errors || []).join("; ")); } box.appendChild(sourceDl); area.appendChild(box); });
+      area.appendChild(node("h3", "", "Recent articles (up to 3)")); var recent = Array.isArray(zoo.recent_articles) ? zoo.recent_articles.slice(0, 3) : []; if (!recent.length) { area.appendChild(node("p", "muted", "No articles recorded.")); } recent.forEach(function (article) { var box = node("div", "article"); var title = node("h4", ""); appendLink(title, article.safe_url || article.url, article.title || "Untitled article"); box.appendChild(title); box.appendChild(node("p", "meta", (article.published_at || "Undated") + " · HTTP " + (article.http_status || "—"))); appendArticleImage(box, article); if (article.body_summary || article.summary) { box.appendChild(node("p", "article-summary", article.body_summary || article.summary)); } var articleDl = node("dl"); addDetail(articleDl, "Body summary", article.body_summary || article.summary); addDetail(articleDl, "Image URL", article.image_url, true); addDetail(articleDl, "Parse status", article.parse_status); addDetail(articleDl, "Crawl status", article.crawl_status || "—"); addDetail(articleDl, "Evidence", article.evidence_path); box.appendChild(articleDl); warningList(box, article.warnings); area.appendChild(box); });
+      area.appendChild(node("h3", "", "Quality warnings")); warningList(area, zoo.warnings);
+    }
+    ["country-filter", "group-filter", "status-filter", "name-filter", "sort-filter"].forEach(function (id) { document.getElementById(id).addEventListener("input", renderTable); document.getElementById(id).addEventListener("change", renderTable); });
+    renderAlerts(); renderSummary(); renderRunPanels(); fillFilters(); renderTable();
+  }());
+  </script>
+</body>
+</html>

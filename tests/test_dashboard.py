@@ -302,9 +302,9 @@ def test_source_context_and_favicon(client):
     assert "Zoo country" in sources and ">DE<" in sources
     assert "Zoo language" in sources and ">de<" in sources
     assert "<th>Kind</th>" in sources and "<th>Language</th>" in sources
-    favicon = client.get("/favicon.ico")
-    assert favicon.status_code == 200
-    assert favicon.mimetype == "image/svg+xml"
+    with client.get("/favicon.ico") as favicon:
+        assert favicon.status_code == 200
+        assert favicon.mimetype == "image/svg+xml"
     assert 'rel="icon" href="/favicon.ico"' in client.get("/").get_data(as_text=True)
 
 

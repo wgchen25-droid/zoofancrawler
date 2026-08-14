@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import builtins
+import json
 import logging
+from pathlib import Path
 import sys
 import types
+from types import SimpleNamespace
 
 import cli
+import pytest
 
 
 def test_dashboard_arguments_are_forwarded(monkeypatch):
@@ -133,3 +137,210 @@ def test_crawl_completed_with_errors_returns_nonzero(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, "zoofan.storage", storage_module)
 
     assert cli.main(["crawl", "all", "--db", str(tmp_path / "crawler.sqlite")]) == 1
+
+
+def _install_crawl_stubs(monkeypatch, config, calls, *, supports_since_days=False):
+    config_module = types.ModuleType("zoofan.config")
+    config_module.load_config = lambda path: config
+    crawler_module = types.ModuleType("zoofan.crawler")
+    storage_module = types.ModuleType("zoofan.storage")
+
+    class FakeResult:
+        status = "completed"
+
+        def as_dict(self):
+            return {
+                "status": self.status,
+                "zoo_results": [{"zoo_id": "z1"}],
+                "metadata": {"processed": 1, "enabled": 2, "processed_zoos": ["z1"]},
+            }
+
+    if supports_since_days:
+        def crawl(self, selection, *, since_days=None):
+            calls.append((selection, since_days))
+            return FakeResult()
+    else:
+        def crawl(self, selection):
+            calls.append((selection, None))
+            return FakeResult()
+    crawl_method = crawl
+
+    class FakeCrawler:
+        def __init__(self, loaded_config, storage):
+            assert loaded_config is config
+
+        crawl = crawl_method
+
+    class FakeStorage:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    crawler_module.Crawler = FakeCrawler
+    storage_module.SQLiteStorage = FakeStorage
+    monkeypatch.setitem(sys.modules, "zoofan.config", config_module)
+    monkeypatch.setitem(sys.modules, "zoofan.crawler", crawler_module)
+    monkeypatch.setitem(sys.modules, "zoofan.storage", storage_module)
+
+
+def test_crawl_group_selection_is_config_driven_and_deduplicated(monkeypatch, capsys):
+    config = SimpleNamespace(
+        zoos=[
+            SimpleNamespace(id="z1", slug="one", groups=("batch",), enabled=True),
+            SimpleNamespace(id="z1", slug="duplicate", groups=("batch",), enabled=True),
+            SimpleNamespace(id="z2", slug="two", groups=("batch",), enabled=False),
+        ]
+    )
+    calls = []
+    _install_crawl_stubs(monkeypatch, config, calls)
+
+    assert cli.main(["crawl", "--group", "batch", "--live"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert calls == [(["z1"], None)]
+    assert payload["zoo_results"]
+    assert "coverage" in payload
+    assert payload["live"] is True
+
+
+def test_crawl_unknown_group_is_nonzero_and_does_not_run(monkeypatch, caplog):
+    config = SimpleNamespace(zoos=[SimpleNamespace(id="z1", groups=(), enabled=True)])
+    calls = []
+    _install_crawl_stubs(monkeypatch, config, calls)
+
+    with caplog.at_level(logging.ERROR):
+        assert cli.main(["crawl", "--group", "missing"]) != 0
+    assert calls == []
+    assert "unknown or has no enabled zoos" in caplog.text
+
+
+def test_crawl_unknown_zoo_is_clean_configuration_error(monkeypatch, caplog):
+    config = types.ModuleType("zoofan.config")
+    config.load_config = lambda path: SimpleNamespace(zoos=[], sources=[])
+    crawler_module = types.ModuleType("zoofan.crawler")
+    storage_module = types.ModuleType("zoofan.storage")
+
+    class FakeCrawler:
+        def __init__(self, loaded_config, storage):
+            pass
+
+        def crawl(self, selection):
+            raise ValueError(f"unknown zoo selection: {selection}")
+
+    class FakeStorage:
+        def __init__(self, path):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    crawler_module.Crawler = FakeCrawler
+    storage_module.SQLiteStorage = FakeStorage
+    monkeypatch.setitem(sys.modules, "zoofan.config", config)
+    monkeypatch.setitem(sys.modules, "zoofan.crawler", crawler_module)
+    monkeypatch.setitem(sys.modules, "zoofan.storage", storage_module)
+
+    with caplog.at_level(logging.ERROR):
+        assert cli.main(["crawl", "--zoo", "missing"]) == 2
+    assert "configuration error: unknown zoo selection: missing" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
+def test_crawl_since_days_rejects_unsupported_crawler(monkeypatch, caplog):
+    config = SimpleNamespace(zoos=[])
+    calls = []
+    _install_crawl_stubs(monkeypatch, config, calls)
+
+    with caplog.at_level(logging.ERROR):
+        assert cli.main(["crawl", "--since-days", "7"]) != 0
+    assert calls == []
+    assert "--since-days is not supported" in caplog.text
+
+
+def test_crawl_since_days_is_validated_before_forwarding(monkeypatch, caplog):
+    config = SimpleNamespace(zoos=[])
+    calls = []
+    _install_crawl_stubs(monkeypatch, config, calls, supports_since_days=True)
+
+    with caplog.at_level(logging.ERROR):
+        assert cli.main(["crawl", "--since-days", "-1"]) != 0
+    assert calls == []
+    assert "must be non-negative" in caplog.text
+
+    assert cli.main(["crawl", "--since-days", "7"]) == 0
+    assert calls == [("all", 7)]
+
+
+def test_crawl_help_describes_since_days_behavior(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["crawl", "--help"])
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    normalized_help = " ".join(help_text.split())
+    assert "retain candidates newer than N days" in normalized_help
+    assert "undated candidates are retained" in normalized_help
+    assert "requires crawler support" not in normalized_help
+
+
+def test_validate_config_json_uses_strict_mode(monkeypatch, capsys):
+    calls = []
+    config_module = types.ModuleType("zoofan.config")
+
+    class Validation:
+        valid = False
+        errors = [{"path": "zoos[0]", "message": "bad", "code": "value"}]
+
+        def as_dict(self):
+            return {"valid": self.valid, "errors": self.errors}
+
+    def validate(path, *, strict=False):
+        calls.append((path, strict))
+        return Validation()
+
+    config_module.validate_config = validate
+    monkeypatch.setitem(sys.modules, "zoofan.config", config_module)
+
+    assert cli.main(["--config", "broken.yaml", "validate-config", "--json"]) != 0
+    assert calls == [(Path("broken.yaml"), True)]
+    assert json.loads(capsys.readouterr().out)["valid"] is False
+
+
+def test_build_acceptance_report_forwards_paths_and_prints_json(monkeypatch, capsys, tmp_path):
+    calls = []
+    reporting_module = types.ModuleType("zoofan.reporting")
+
+    def build_reports(*, config_path, db_path, output_dir):
+        calls.append((config_path, db_path, output_dir))
+        return {
+            "output_dir": tmp_path / "latest",
+            "paths": {"run-summary.json": tmp_path / "latest" / "run-summary.json"},
+        }
+
+    reporting_module.build_reports = build_reports
+    monkeypatch.setitem(sys.modules, "zoofan.reporting", reporting_module)
+
+    assert cli.main([
+        "--config", "custom.yaml", "build-acceptance-report", "--db", "crawl.db",
+        "--output-dir", str(tmp_path / "reports"),
+    ]) == 0
+    assert calls == [(Path("custom.yaml"), "crawl.db", str(tmp_path / "reports"))]
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["paths"]["run-summary.json"].endswith("run-summary.json")
+
+
+def test_acceptance_is_an_alias_for_endgoal_and_forwards_config(monkeypatch):
+    calls = []
+    module = types.ModuleType("zoofan.endgoal")
+    module.main = lambda config_path=None: calls.append(config_path) or 0
+    monkeypatch.setitem(sys.modules, "zoofan.endgoal", module)
+
+    assert cli.main(["--config", "custom.yaml", "acceptance"]) == 0
+    assert calls == [Path("custom.yaml")]

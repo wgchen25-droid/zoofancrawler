@@ -1,0 +1,794 @@
+{
+  "schema_version": "regional-source-research.v1",
+  "researched_at": "2026-08-14",
+  "scope": {
+    "region": "NRW",
+    "group": "regional_lab",
+    "country_code": "DE",
+    "roster_file": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "authority": "User-confirmed authoritative Phase 0 roster"
+  },
+  "counts": {
+    "roster_rows": 25,
+    "verified_rows": 25,
+    "gap_rows": 5,
+    "source_status_counts": {
+      "success": 20,
+      "partial": 4,
+      "blocked": 1
+    }
+  },
+  "method": {
+    "primary_evidence_only": true,
+    "primary_evidence": "Official zoo, operator, or municipal institution websites and their first-party news, press, RSS, Atom, sitemap, or API endpoints.",
+    "discovery_hints": "Search results and third-party directories were used only to locate candidate official domains; they are not used as identity evidence.",
+    "status_notes": "success means an official source suitable for a proposed adapter was found; partial means the official identity is clear but the source is only events/press, a municipal registry page, or a canonical-host migration; blocked means an official source is known but direct HTTP access encountered an access challenge."
+  },
+  "rows": [
+    {
+      "stable_id": "zoo-duisburg",
+      "roster_name": "Zoo Duisburg",
+      "country_code": "DE",
+      "city": "Duisburg",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://zoo-duisburg.de/",
+      "official_host": "zoo-duisburg.de",
+      "official_sources": [
+        {"url": "https://zoo-duisburg.de/unser-zoo/aktuelles", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://zoo-duisburg.de/unser-zoo/aktuelles"], "config_notes": "Server-rendered German current-news listing; keep the path narrow to /unser-zoo/aktuelles."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official home page links to a current-news archive with first-party article entries.",
+      "evidence": [
+        {"url": "https://zoo-duisburg.de/", "type": "official_home"},
+        {"url": "https://zoo-duisburg.de/unser-zoo/aktuelles", "type": "official_news_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zoo-krefeld",
+      "roster_name": "Zoo Krefeld",
+      "country_code": "DE",
+      "city": "Krefeld",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.zookrefeld.de/",
+      "official_host": "www.zookrefeld.de",
+      "official_sources": [
+        {"url": "https://www.zookrefeld.de/aktuelles", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.zookrefeld.de/aktuelles"], "config_notes": "TYPO3 server-rendered news archive; article detail links use the official /news/ and /aktuelles/aktuelles-detail/ paths."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Zoo Krefeld current-news archive and first-party article links are present.",
+      "evidence": [
+        {"url": "https://www.zookrefeld.de/", "type": "official_home"},
+        {"url": "https://www.zookrefeld.de/aktuelles", "type": "official_news_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "gruener-zoo-wuppertal",
+      "roster_name": "Grüner Zoo Wuppertal",
+      "country_code": "DE",
+      "city": "Wuppertal",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.wuppertal.de/microsite/zoo/index.php",
+      "official_host": "www.wuppertal.de",
+      "official_sources": [
+        {"url": "https://www.wuppertal.de/microsite/zoo/Aktuelles/aktuelles.php", "kind": "archive", "role": "news_listing"},
+        {"url": "https://www.wuppertal.de/microsite/zoo/sitemap.php", "kind": "sitemap", "role": "site_navigation"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.wuppertal.de/microsite/zoo/Aktuelles/aktuelles.php"], "config_notes": "Official city microsite archive is server-rendered, but direct non-browser requests currently receive a Cloudflare challenge; retain as blocked until a robots-compliant fetch path succeeds."},
+      "language": "de",
+      "js": {"required": true, "observed": "Cloudflare_access_challenge_on_direct_HTTP; indexed_page_is_server_rendered", "reason": "A browser/JS challenge may be required for automated access even though the archive itself is HTML."},
+      "source_status": "blocked",
+      "status_reason": "Official municipal microsite and archive are verified, but direct HTTP research access was challenged by Cloudflare.",
+      "evidence": [
+        {"url": "https://www.wuppertal.de/microsite/zoo/index.php", "type": "official_municipal_home"},
+        {"url": "https://www.wuppertal.de/microsite/zoo/Aktuelles/aktuelles.php", "type": "official_news_archive"},
+        {"url": "https://www.wuppertal.de/microsite/zoo/sitemap.php", "type": "official_sitemap"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zoom-erlebniswelt",
+      "roster_name": "ZOOM Erlebniswelt",
+      "country_code": "DE",
+      "city": "Gelsenkirchen",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.zoom-erlebniswelt.de/",
+      "official_host": "www.zoom-erlebniswelt.de",
+      "official_sources": [
+        {"url": "https://www.zoom-erlebniswelt.de/presse/", "kind": "archive", "role": "press_listing"},
+        {"url": "https://www.zoom-erlebniswelt.de/tierische-neuigkeiten/", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.zoom-erlebniswelt.de/presse/", "https://www.zoom-erlebniswelt.de/tierische-neuigkeiten/"], "config_notes": "Prefer the narrow press and animal-news listings; both expose first-party detail pages."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official press and animal-news archives are available on the ZOOM domain.",
+      "evidence": [
+        {"url": "https://www.zoom-erlebniswelt.de/", "type": "official_home"},
+        {"url": "https://www.zoom-erlebniswelt.de/presse/", "type": "official_press_archive"},
+        {"url": "https://www.zoom-erlebniswelt.de/tierische-neuigkeiten/", "type": "official_news_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zoo-dortmund",
+      "roster_name": "Zoo Dortmund",
+      "country_code": "DE",
+      "city": "Dortmund",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/",
+      "official_host": "www.dortmund.de",
+      "official_sources": [
+        {"url": "https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/", "kind": "archive", "role": "news_listing"},
+        {"url": "https://www.dortmund.de/newsroom/presse-mitteilungen/", "kind": "archive", "role": "municipal_press_index"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/"], "config_notes": "The official Zoo Dortmund municipal page embeds a narrow Nachrichten list; use its Zoo Dortmund-tagged detail links rather than the broad city newsroom."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Dortmund city page identifies Zoo Dortmund and exposes current Zoo Dortmund news links.",
+      "evidence": [
+        {"url": "https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/", "type": "official_municipal_home_and_news"},
+        {"url": "https://www.dortmund.de/newsroom/presse-mitteilungen/", "type": "official_municipal_press_index"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "allwetterzoo-muenster",
+      "roster_name": "Allwetterzoo Münster",
+      "country_code": "DE",
+      "city": "Münster",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.allwetterzoo.de/",
+      "official_host": "www.allwetterzoo.de",
+      "official_sources": [
+        {"url": "https://www.allwetterzoo.de/de/ueber-den-zoo/news/", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.allwetterzoo.de/de/ueber-den-zoo/news/"], "config_notes": "Server-rendered German news archive with dated article slugs; keep the /de/ueber-den-zoo/news/ path."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Allwetterzoo home page and current news archive expose dated first-party articles.",
+      "evidence": [
+        {"url": "https://www.allwetterzoo.de/", "type": "official_home"},
+        {"url": "https://www.allwetterzoo.de/de/ueber-den-zoo/news/", "type": "official_news_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "aachener-tierpark-euregiozoo",
+      "roster_name": "Aachener Tierpark Euregiozoo",
+      "country_code": "DE",
+      "city": "Aachen",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.euregiozoo.de/",
+      "official_host": "www.euregiozoo.de",
+      "official_sources": [
+        {"url": "https://www.euregiozoo.de/de/kontakt/rss.php", "kind": "rss", "role": "news_feed"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.euregiozoo.de/de/kontakt/rss.php"], "config_notes": "Official RSS endpoint is served over HTTP and HTTPS; prefer the HTTPS URL and retain RSS charset handling (ISO-8859-1 observed)."},
+      "language": "de",
+      "js": {"required": false, "observed": "rss_and_server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Euregiozoo domain advertises a first-party RSS endpoint.",
+      "evidence": [
+        {"url": "https://www.euregiozoo.de/", "type": "official_home"},
+        {"url": "https://www.euregiozoo.de/de/kontakt/rss.php", "type": "official_rss"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "tierpark-fossilium-bochum",
+      "roster_name": "Tierpark + Fossilium Bochum",
+      "country_code": "DE",
+      "city": "Bochum",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.tierpark-bochum.de/",
+      "official_host": "www.tierpark-bochum.de",
+      "official_sources": [
+        {"url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {
+        "kind": "archive",
+        "source_urls": ["https://www.tierpark-bochum.de/neuigkeiten/aktuelles"],
+        "article_content_selector": "main .ais-news-details > .col-md-12",
+        "recommended": true,
+        "verified_live": true,
+        "success_claim": true,
+        "config_notes": "Official TYPO3 current-news listing with dated detail pages under /neuigkeiten/aktuelles/detail/; the exact article body selector is verified by the bounded live retest."
+      },
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Tierpark Bochum current-news archive has active dated entries; a bounded live retest verified the exact article content selector and a clean stored article.",
+      "status_detail": "Ready archive source: the official host returned HTTP 200, one bounded article was stored with canonical URL, title, date and 3271 content characters, and the idempotent second run found it already known.",
+      "source_http_status": 200,
+      "recommended": true,
+      "verified_live": true,
+      "success_claim": true,
+      "evidence": [
+        {"url": "https://www.tierpark-bochum.de/", "type": "official_home"},
+        {"url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles", "type": "official_news_archive"},
+        {"url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026", "type": "official_article_quality_retest"}
+      ],
+      "bounded_live_evidence": {
+        "evidence_artifacts": [
+          "/tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass1.json",
+          "/tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass2.json",
+          "/tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass1.log",
+          "/tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass2.log"
+        ],
+        "source_id": "tierpark-fossilium-bochum-news",
+        "checked_at": "2026-08-14T09:05:18.970547+00:00",
+        "http_status": 200,
+        "discovered_candidate_count": 50,
+        "accepted_candidate_count": 50,
+        "fetched_article_count": 1,
+        "parsed_article_count": 1,
+        "stored_article_count": 1,
+        "already_known_pass2_count": 1,
+        "article_url": "https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026",
+        "article_title": "Lernen, staunen, entdecken",
+        "article_published_at": "2026-08-11T00:00:00+00:00",
+        "article_content_chars": 3271,
+        "article_parse_status": "success",
+        "article_quality_warning_count": 0,
+        "article_quality_warnings": [],
+        "parser_warning_count": 0,
+        "parser_warnings": [],
+        "run_evidence": {
+          "pass1": {
+            "run_id": "0c2ed2d8d0954098a18230cffb1b7147",
+            "status": "completed",
+            "discovered": 50,
+            "fetched": 1,
+            "parsed": 1,
+            "stored": 1,
+            "inserted": 1,
+            "updated": 0,
+            "already_known": 0,
+            "errors": []
+          },
+          "pass2": {
+            "run_id": "9b35f084a4094bee8d694b4f1ad287fa",
+            "status": "completed",
+            "discovered": 50,
+            "fetched": 0,
+            "parsed": 0,
+            "stored": 0,
+            "inserted": 0,
+            "updated": 0,
+            "already_known": 1,
+            "errors": []
+          }
+        },
+        "navigation_errors": 0,
+        "content_errors": 0,
+        "content_parse_errors": 0,
+        "date_errors": 0,
+        "remediation_status": "verified_live",
+        "article_content_selector": "main .ais-news-details > .col-md-12",
+        "success_claim": true
+      },
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "aquazoo-loebbecke-museum",
+      "roster_name": "Aquazoo Löbbecke Museum",
+      "country_code": "DE",
+      "city": "Düsseldorf",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://aquazoo-duesseldorf.de/",
+      "official_host": "aquazoo-duesseldorf.de",
+      "official_sources": [
+        {"url": "https://aquazoo-duesseldorf.de/aktuelles", "kind": "archive", "role": "news_listing"},
+        {"url": "https://www.duesseldorf.de/aquazoo/", "kind": "archive", "role": "municipal_identity"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://aquazoo-duesseldorf.de/aktuelles"], "config_notes": "Prefer the institution's own current-news archive; the Düsseldorf city page is identity corroboration, not a broad crawl source."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Aquazoo site has a live current-news archive and is corroborated by Düsseldorf city administration.",
+      "evidence": [
+        {"url": "https://aquazoo-duesseldorf.de/", "type": "official_home"},
+        {"url": "https://aquazoo-duesseldorf.de/aktuelles", "type": "official_news_archive"},
+        {"url": "https://www.duesseldorf.de/aquazoo/", "type": "official_municipal_identity"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "naturzoo-rheine",
+      "roster_name": "NaturZoo Rheine",
+      "country_code": "DE",
+      "city": "Rheine",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Priority",
+      "official_website_url": "https://www.naturzoo.de/",
+      "official_host": "www.naturzoo.de",
+      "official_sources": [
+        {"url": "https://www.naturzoo.de/aktuelles/", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {
+        "kind": "archive",
+        "source_urls": ["https://www.naturzoo.de/aktuelles/"],
+        "article_content_selector": "#main > .content .news-single .news-text-wrap",
+        "recommended": true,
+        "verified_live": true,
+        "success_claim": true,
+        "config_notes": "TYPO3 server-rendered current-news and events area; keep the official /aktuelles/ path and the exact article content selector to exclude contact, directions, opening-hours, download and back-navigation blocks."
+      },
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official NaturZoo home page explicitly points to its current-news area; a bounded live retest verified the exact article content selector and a clean stored article.",
+      "status_detail": "Ready archive source: the official host returned HTTP 200, one bounded article was stored with canonical URL, title, date and 661 content characters, and the idempotent second run found it already known.",
+      "source_http_status": 200,
+      "recommended": true,
+      "verified_live": true,
+      "success_claim": true,
+      "evidence": [
+        {"url": "https://www.naturzoo.de/", "type": "official_home"},
+        {"url": "https://www.naturzoo.de/aktuelles/", "type": "official_news_archive"},
+        {"url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu", "type": "official_article_quality_retest"}
+      ],
+      "bounded_live_evidence": {
+        "evidence_artifacts": [
+          "/tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass1.json",
+          "/tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass2.json",
+          "/tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass1.log",
+          "/tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass2.log"
+        ],
+        "source_id": "naturzoo-rheine-news",
+        "checked_at": "2026-08-14T08:45:30.048299+00:00",
+        "http_status": 200,
+        "discovered_candidate_count": 10,
+        "accepted_candidate_count": 10,
+        "fetched_article_count": 1,
+        "parsed_article_count": 1,
+        "stored_article_count": 1,
+        "already_known_pass2_count": 1,
+        "article_url": "https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu",
+        "article_title": "Bunt, giftig und neu",
+        "article_published_at": "2026-05-29T10:55:00+02:00",
+        "article_content_chars": 661,
+        "article_parse_status": "success",
+        "article_quality_warning_count": 0,
+        "article_quality_warnings": [],
+        "contamination_tokens": [],
+        "run_evidence": {
+          "pass1": {
+            "run_id": "67f3b8d49d1b4bf79b9965cab0e93764",
+            "status": "completed",
+            "discovered": 10,
+            "fetched": 1,
+            "parsed": 1,
+            "stored": 1,
+            "inserted": 1,
+            "updated": 0,
+            "already_known": 0,
+            "errors": []
+          },
+          "pass2": {
+            "run_id": "99415d6aabbb4206951fac24dd3ee51a",
+            "status": "completed",
+            "discovered": 10,
+            "fetched": 0,
+            "parsed": 0,
+            "stored": 0,
+            "inserted": 0,
+            "updated": 0,
+            "already_known": 1,
+            "errors": []
+          }
+        },
+        "navigation_errors": 0,
+        "content_errors": 0,
+        "content_parse_errors": 0,
+        "date_errors": 0,
+        "remediation_status": "verified_live",
+        "article_content_selector": "#main > .content .news-single .news-text-wrap",
+        "success_claim": true
+      },
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "tiergarten-kleve",
+      "roster_name": "Tiergarten Kleve",
+      "country_code": "DE",
+      "city": "Kleve",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://tiergarten-kleve.de/",
+      "official_host": "tiergarten-kleve.de",
+      "official_sources": [
+        {"url": "https://tiergarten-kleve.de/aktuelles/", "kind": "archive", "role": "news_listing"},
+        {"url": "https://tiergarten-kleve.de/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://tiergarten-kleve.de/wp-json/wp/v2/posts", "kind": "json_api", "role": "news_api"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://tiergarten-kleve.de/feed/"], "config_notes": "WordPress RSS is the simplest primary adapter; /aktuelles/ and the WP posts API are official fallbacks if feed coverage is insufficient."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "success",
+      "status_reason": "Official site exposes a current-news archive, RSS feed, and WordPress REST API.",
+      "evidence": [
+        {"url": "https://tiergarten-kleve.de/", "type": "official_home"},
+        {"url": "https://tiergarten-kleve.de/aktuelles/", "type": "official_news_archive"},
+        {"url": "https://tiergarten-kleve.de/feed/", "type": "official_rss"},
+        {"url": "https://tiergarten-kleve.de/wp-json/", "type": "official_api_root"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "tiergarten-moenchengladbach",
+      "roster_name": "Tiergarten Mönchengladbach",
+      "country_code": "DE",
+      "city": "Mönchengladbach",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.tiergarten-moenchengladbach.de/",
+      "official_host": "www.tiergarten-moenchengladbach.de",
+      "official_sources": [
+        {"url": "https://www.tiergarten-moenchengladbach.de/neuigkeiten/", "kind": "archive", "role": "news_listing"},
+        {"url": "https://www.tiergarten-moenchengladbach.de/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://www.tiergarten-moenchengladbach.de/wp-json/wp/v2/posts", "kind": "json_api", "role": "news_api"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.tiergarten-moenchengladbach.de/feed/"], "config_notes": "Use the first-party WordPress RSS feed; /neuigkeiten/ and the WP REST API provide official fallbacks."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "success",
+      "status_reason": "Official Tiergarten site has active news, RSS, and REST API surfaces; city page corroborates identity.",
+      "evidence": [
+        {"url": "https://www.tiergarten-moenchengladbach.de/", "type": "official_home"},
+        {"url": "https://www.tiergarten-moenchengladbach.de/neuigkeiten/", "type": "official_news_archive"},
+        {"url": "https://www.tiergarten-moenchengladbach.de/feed/", "type": "official_rss"},
+        {"url": "https://www.moenchengladbach.de/leben-in-mg/orte/tiergarten-moenchengladbach", "type": "official_municipal_identity"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "terrazoo-rheinberg",
+      "roster_name": "TerraZoo Rheinberg",
+      "country_code": "DE",
+      "city": "Rheinberg",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.terrazoo.de/",
+      "official_host": "www.terrazoo.de",
+      "official_sources": [
+        {"url": "https://www.terrazoo.de/?format=feed&type=rss", "kind": "rss", "role": "news_feed"},
+        {"url": "https://www.terrazoo.de/?format=feed&type=atom", "kind": "atom", "role": "news_feed"},
+        {"url": "https://www.terrazoo.de/informationen-zum-terrazoo-rheinberg/%C3%BCber-uns/in-der-presse", "kind": "archive", "role": "press_listing"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.terrazoo.de/?format=feed&type=rss"], "config_notes": "Official Joomla RSS is advertised in the page head; Atom is an equivalent fallback. Scope requests to the Rheinberg site content and do not mix TerraZoo Sontra."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html_and_feed"},
+      "source_status": "success",
+      "status_reason": "Official TerraZoo domain identifies the Rheinberg facility and advertises RSS/Atom plus a press section.",
+      "evidence": [
+        {"url": "https://www.terrazoo.de/", "type": "official_home"},
+        {"url": "https://www.terrazoo.de/?format=feed&type=rss", "type": "official_rss"},
+        {"url": "https://www.terrazoo.de/?format=feed&type=atom", "type": "official_atom"},
+        {"url": "https://www.terrazoo.de/informationen-zum-terrazoo-rheinberg/%C3%BCber-uns/in-der-presse", "type": "official_press_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "sea-life-oberhausen",
+      "roster_name": "SEA LIFE Oberhausen",
+      "country_code": "DE",
+      "city": "Oberhausen",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.visitsealife.com/oberhausen/",
+      "official_host": "www.visitsealife.com",
+      "official_sources": [
+        {"url": "https://www.visitsealife.com/oberhausen/informationen/presse/", "kind": "archive", "role": "press_listing"},
+        {"url": "https://www.visitsealife.com/oberhausen/informationen/", "kind": "archive", "role": "site_information"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.visitsealife.com/oberhausen/informationen/presse/"], "config_notes": "Use only the official Oberhausen press area; no dedicated RSS/Atom feed was exposed. Treat this as a lower-confidence press source until stable article listing behavior is confirmed."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_page_with_marketing_components", "reason": "Official page and press link are available in HTML; no feed/API was advertised."},
+      "source_status": "partial",
+      "status_reason": "Official identity and press page are clear, but no narrow first-party news feed/archive was found beyond the press area.",
+      "evidence": [
+        {"url": "https://www.visitsealife.com/oberhausen/", "type": "official_home"},
+        {"url": "https://www.visitsealife.com/oberhausen/informationen/", "type": "official_information_page"},
+        {"url": "https://www.visitsealife.com/oberhausen/informationen/presse/", "type": "official_press_page"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "tiergehege-kaisergarten",
+      "roster_name": "Tiergehege Kaisergarten",
+      "country_code": "DE",
+      "city": "Oberhausen",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.tiergehege-kaisergarten.de/tg/",
+      "official_host": "www.tiergehege-kaisergarten.de",
+      "official_sources": [
+        {"url": "https://www.tiergehege-kaisergarten.de/tg/category/tiergehege/news/", "kind": "archive", "role": "news_listing"},
+        {"url": "https://www.tiergehege-kaisergarten.de/tg/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://www.tiergehege-kaisergarten.de/tg/wp-json/wp/v2/posts", "kind": "json_api", "role": "news_api"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.tiergehege-kaisergarten.de/tg/feed/"], "config_notes": "WordPress feed is first-party; scope category/archive fallback to the Tiergehege news path and retain the /tg/ base path."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "success",
+      "status_reason": "Official operator site exposes a Tiergehege news category, RSS feed, and WordPress API.",
+      "evidence": [
+        {"url": "https://www.tiergehege-kaisergarten.de/tg/", "type": "official_home"},
+        {"url": "https://www.tiergehege-kaisergarten.de/tg/category/tiergehege/news/", "type": "official_news_archive"},
+        {"url": "https://www.tiergehege-kaisergarten.de/tg/feed/", "type": "official_rss"},
+        {"url": "https://www.oberhausen.de/de/index/rathaus/aktuelle-pressemeldungen/meldungen_2025/tiergehege_macht_natur_mit_barfussweg_erlebbar__sponsorenwaende_sind_errichtet.php?pagePresse=4", "type": "official_municipal_press_evidence"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "heimat-tierpark-olderdissen",
+      "roster_name": "Heimat-Tierpark Olderdissen",
+      "country_code": "DE",
+      "city": "Bielefeld",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.bielefeld.de/tierpark",
+      "official_host": "www.bielefeld.de",
+      "official_sources": [
+        {"url": "https://www.bielefeld.de/tierpark", "kind": "archive", "role": "municipal_news_listing"},
+        {"url": "https://www.bielefeld.de/pressedienst", "kind": "archive", "role": "municipal_press_index"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.bielefeld.de/tierpark"], "config_notes": "The city-maintained page embeds a narrow 'Neuigkeiten aus Olderdissen' list; follow only Olderdissen-linked detail pages."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_municipal_html"},
+      "source_status": "success",
+      "status_reason": "Official Bielefeld city page identifies the municipal park and exposes a dedicated Olderdissen news list.",
+      "evidence": [
+        {"url": "https://www.bielefeld.de/tierpark", "type": "official_municipal_home_and_news"},
+        {"url": "https://www.bielefeld.de/pressedienst", "type": "official_municipal_press_index"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "safariland-stukenbrock",
+      "roster_name": "Safariland Stukenbrock",
+      "country_code": "DE",
+      "city": "Schloß Holte-Stukenbrock",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://safariland-stukenbrock.de/",
+      "official_host": "safariland-stukenbrock.de",
+      "official_sources": [
+        {"url": "https://safariland-stukenbrock.de/infos/presse.html", "kind": "archive", "role": "press_listing"},
+        {"url": "https://safariland-stukenbrock.de/", "kind": "archive", "role": "news_and_events_home"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://safariland-stukenbrock.de/infos/presse.html"], "config_notes": "Official static press page is the most stable article-like source; home-page event notices are secondary and should not be treated as a broad site crawl."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Safariland Stukenbrock domain and dedicated press page are available.",
+      "evidence": [
+        {"url": "https://safariland-stukenbrock.de/", "type": "official_home"},
+        {"url": "https://safariland-stukenbrock.de/infos/presse.html", "type": "official_press_page"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "affen-und-vogelpark-eckenhagen",
+      "roster_name": "Affen- und Vogelpark Eckenhagen",
+      "country_code": "DE",
+      "city": "Reichshof",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://affen-und-vogelpark.de/",
+      "official_host": "affen-und-vogelpark.de",
+      "official_sources": [
+        {"url": "https://affen-und-vogelpark.de/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://affen-und-vogelpark.de/", "kind": "archive", "role": "official_home_updates"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://affen-und-vogelpark.de/feed/"], "config_notes": "Use the official WordPress feed; the public home page is mostly static park information and should not be used as a wide candidate source."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "success",
+      "status_reason": "Official park domain has a first-party RSS feed and matching park identity.",
+      "evidence": [
+        {"url": "https://affen-und-vogelpark.de/", "type": "official_home"},
+        {"url": "https://affen-und-vogelpark.de/feed/", "type": "official_rss"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "wildpark-grafenberg",
+      "roster_name": "Wildpark Grafenberg",
+      "country_code": "DE",
+      "city": "Düsseldorf",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.duesseldorf.de/stadtgruen/wald/wildpark",
+      "official_host": "www.duesseldorf.de",
+      "official_sources": [
+        {"url": "https://www.duesseldorf.de/stadtgruen/wald/wildpark", "kind": "registry_only", "role": "municipal_identity_and_visit_page"},
+        {"url": "https://www.duesseldorf.de/aktuelles/news", "kind": "archive", "role": "municipal_news_index"}
+      ],
+      "adapter_proposal": {"kind": "registry_only", "source_urls": ["https://www.duesseldorf.de/stadtgruen/wald/wildpark"], "config_notes": "No narrow Wildpark Grafenberg news feed was found. Keep this as official health/identity registration unless a future city-tagged source is confirmed; do not crawl the broad Düsseldorf news index."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_municipal_html"},
+      "source_status": "partial",
+      "status_reason": "Official city identity page is clear, but no dedicated Wildpark news/archive endpoint was found.",
+      "evidence": [
+        {"url": "https://www.duesseldorf.de/stadtgruen/wald/wildpark", "type": "official_municipal_identity"},
+        {"url": "https://www.duesseldorf.de/aktuelles/news", "type": "official_municipal_news_index"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "biotopwildpark-anholter-schweiz",
+      "roster_name": "Biotopwildpark Anholter Schweiz",
+      "country_code": "DE",
+      "city": "Isselburg",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.wildpark-nrw.de/",
+      "official_host": "www.wildpark-nrw.de",
+      "alternate_official_hosts": ["www.anholter-schweiz.de"],
+      "official_sources": [
+        {"url": "https://www.wildpark-nrw.de/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://www.wildpark-nrw.de/", "kind": "archive", "role": "official_home"},
+        {"url": "https://www.anholter-schweiz.de/besucherinformationen/", "kind": "archive", "role": "legacy_official_identity"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.wildpark-nrw.de/feed/"], "config_notes": "The former anholter-schweiz.de host currently points to the branded wildpark-nrw.de site. Register the canonical host and retain the legacy URL only as redirect/identity evidence."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "partial",
+      "status_reason": "Official identity and feed are verified, but the roster's familiar domain is now a canonical-host migration to wildpark-nrw.de.",
+      "evidence": [
+        {"url": "https://www.wildpark-nrw.de/", "type": "official_canonical_home"},
+        {"url": "https://www.wildpark-nrw.de/feed/", "type": "official_rss"},
+        {"url": "https://www.anholter-schweiz.de/besucherinformationen/", "type": "legacy_official_identity"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "naturwildpark-granat",
+      "roster_name": "Naturwildpark Granat",
+      "country_code": "DE",
+      "city": "Haltern am See",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.naturwildpark.de/",
+      "official_host": "www.naturwildpark.de",
+      "official_sources": [
+        {"url": "https://www.naturwildpark.de/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://www.naturwildpark.de/presse/", "kind": "archive", "role": "press_listing"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.naturwildpark.de/feed/"], "config_notes": "Use the official WordPress RSS feed; the press page is a first-party fallback."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "success",
+      "status_reason": "Official Naturwildpark Granat site exposes an RSS feed and press area.",
+      "evidence": [
+        {"url": "https://www.naturwildpark.de/", "type": "official_home"},
+        {"url": "https://www.naturwildpark.de/feed/", "type": "official_rss"},
+        {"url": "https://www.naturwildpark.de/presse/", "type": "official_press_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "wildwald-vosswinkel",
+      "roster_name": "Wildwald Vosswinkel",
+      "country_code": "DE",
+      "city": "Arnsberg",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://wildwald.de/",
+      "official_host": "wildwald.de",
+      "official_sources": [
+        {"url": "https://wildwald.de/aktuelles/", "kind": "archive", "role": "news_listing"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://wildwald.de/aktuelles/"], "config_notes": "Official static current-information archive; article pages use the /aktuelles/ path."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html_with_embedded_social_updates"},
+      "source_status": "success",
+      "status_reason": "Official Wildwald Vosswinkel site has a dedicated Aktuelles area and current updates.",
+      "evidence": [
+        {"url": "https://wildwald.de/", "type": "official_home"},
+        {"url": "https://wildwald.de/aktuelles/", "type": "official_news_archive"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "hochwildpark-rheinland",
+      "roster_name": "Hochwildpark Rheinland",
+      "country_code": "DE",
+      "city": "Mechernich",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.hochwildpark-rheinland.de/",
+      "official_host": "www.hochwildpark-rheinland.de",
+      "official_sources": [
+        {"url": "https://www.hochwildpark-rheinland.de/feed/", "kind": "rss", "role": "news_feed"},
+        {"url": "https://www.hochwildpark-rheinland.de/", "kind": "archive", "role": "news_and_identity_home"}
+      ],
+      "adapter_proposal": {"kind": "rss", "source_urls": ["https://www.hochwildpark-rheinland.de/feed/"], "config_notes": "Official WordPress RSS feed is available; homepage also advertises 'Neues aus dem Wildpark'."},
+      "language": "de",
+      "js": {"required": false, "observed": "wordpress_server_rendered_html_and_rss"},
+      "source_status": "success",
+      "status_reason": "Official Hochwildpark Rheinland site has a first-party feed and current-news section.",
+      "evidence": [
+        {"url": "https://www.hochwildpark-rheinland.de/", "type": "official_home_and_news"},
+        {"url": "https://www.hochwildpark-rheinland.de/feed/", "type": "official_rss"},
+        {"url": "https://www.mechernich.de/tourismus-und-freizeit/erlebenswert/hochwildpark-kommern", "type": "official_municipal_identity"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zoo-im-brueckenkopfpark",
+      "roster_name": "Zoo im Brückenkopfpark",
+      "country_code": "DE",
+      "city": "Jülich",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://brueckenkopf-park.de/",
+      "official_host": "brueckenkopf-park.de",
+      "official_sources": [
+        {"url": "https://brueckenkopf-park.de/", "kind": "archive", "role": "official_park_home"},
+        {"url": "https://brueckenkopf-park.de/events/", "kind": "archive", "role": "events_listing"},
+        {"url": "https://brueckenkopf-park.de/tiere/", "kind": "registry_only", "role": "zoo_identity"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://brueckenkopf-park.de/events/"], "config_notes": "The official park exposes event detail pages but no dedicated zoo-news feed. Treat events as a partial source and keep the Zoo identity path separate."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_wordpress_html; no_feed_advertised"},
+      "source_status": "partial",
+      "status_reason": "Official park and zoo identity are clear, but the first-party machine-readable surface found is an events archive rather than a dedicated news feed.",
+      "evidence": [
+        {"url": "https://brueckenkopf-park.de/", "type": "official_park_home"},
+        {"url": "https://brueckenkopf-park.de/tiere/", "type": "official_zoo_identity"},
+        {"url": "https://brueckenkopf-park.de/events/", "type": "official_events_archive"},
+        {"url": "https://www.juelich.de/aktuelles", "type": "official_municipal_context"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "adlerwarte-berlebeck",
+      "roster_name": "Adlerwarte Berlebeck",
+      "country_code": "DE",
+      "city": "Detmold",
+      "groups": ["regional_lab", "nrw"],
+      "tier": "Secondary",
+      "official_website_url": "https://www.detmold-adlerwarte.de/",
+      "official_host": "www.detmold-adlerwarte.de",
+      "official_sources": [
+        {"url": "https://www.detmold-adlerwarte.de/aktuelles/", "kind": "archive", "role": "news_listing"},
+        {"url": "https://www.detmold-adlerwarte.de/sitemap.xml", "kind": "sitemap", "role": "site_map"}
+      ],
+      "adapter_proposal": {"kind": "archive", "source_urls": ["https://www.detmold-adlerwarte.de/aktuelles/"], "config_notes": "Official TYPO3 current-news archive with dated detail pages under /news/."},
+      "language": "de",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "Official Adlerwarte site has a current-news archive and dated first-party updates.",
+      "evidence": [
+        {"url": "https://www.detmold-adlerwarte.de/", "type": "official_home"},
+        {"url": "https://www.detmold-adlerwarte.de/aktuelles/", "type": "official_news_archive"},
+        {"url": "https://www.detmold-adlerwarte.de/sitemap.xml", "type": "official_sitemap"},
+        {"url": "https://www.detmold.de/verwaltung/adlerwarte", "type": "official_municipal_identity"}
+      ],
+      "checked_at": "2026-08-14"
+    }
+  ]
+}

@@ -1,9 +1,11 @@
 import sqlite3
+import threading
+import time
 from datetime import datetime, timezone
 
 import pytest
 
-from zoofan.models import Article, ArticleDiscovery, CrawlRun, CrawlRunStat, Source, Zoo
+from zoofan.models import Article, ArticleDiscovery, CrawlRun, CrawlRunStat, CrawlZooResult, Source, Zoo
 from zoofan.storage import SQLiteStorage
 
 
@@ -79,18 +81,754 @@ def test_legacy_schema_is_migrated_idempotently():
     assert migrated.language is None and migrated.http_status is None
     assert len(storage.list_discoveries(article_id="a")) == 1
     storage.create_schema()
-    assert connection.execute("SELECT value FROM schema_meta WHERE key='version'").fetchone()[0] == "4"
+    assert connection.execute("SELECT value FROM schema_meta WHERE key='version'").fetchone()[0] == str(SQLiteStorage.SCHEMA_VERSION)
     assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
     assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
     assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
 
 
+def test_zoo_registry_fields_and_article_compatibility_aliases_round_trip():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(
+            Zoo(
+                id="z",
+                slug="z",
+                name="Zoo",
+                groups=["regional", "news"],
+                region="west",
+                city="Berlin",
+                source_status="configured",
+                list_provenance=[{"source": "registry.csv"}],
+            )
+        )
+        loaded_zoo = storage.get_zoo(zoo.id)
+        assert loaded_zoo.groups == ("regional", "news")
+        assert loaded_zoo.region == "west" and loaded_zoo.city == "Berlin"
+        assert loaded_zoo.source_status == "configured"
+        assert loaded_zoo.list_provenance == [{"source": "registry.csv"}]
+
+        article = storage.upsert_article(
+            Article(
+                url="https://example.org/article",
+                title="Evidence",
+                published_at_raw="not-a-date",
+                content="plain text",
+                content_hash="parsed-content",
+                content_html="<p>plain text</p>",
+                raw_html="<html><p>plain text</p></html>",
+            )
+        )
+        assert article.article_id == article.id
+        assert article.fetched_at == article.last_fetched_at
+        assert article.content_text == "plain text"
+        assert article.published_at_raw == "not-a-date"
+        assert article.content_html != article.raw_html
+        assert article.content_identity_key
+        assert storage.connection.execute(
+            "SELECT content_identity_key FROM articles WHERE id=?", (article.id,)
+        ).fetchone()[0] == article.content_identity_key
+
+
+def test_zoo_authoritative_empty_registry_lists_clear_stale_values_idempotently():
+    with SQLiteStorage() as storage:
+        stored = storage.upsert_zoo(
+            Zoo(
+                id="z",
+                slug="z",
+                name="Zoo",
+                groups=["old-group"],
+                list_provenance=[{"source": "legacy"}],
+            )
+        )
+        assert storage.get_zoo(stored.id).groups == ("old-group",)
+        assert storage.get_zoo(stored.id).list_provenance == [{"source": "legacy"}]
+
+        cleared = storage.upsert_zoo(
+            Zoo(id="z", slug="z", name="Zoo", groups=[], list_provenance=[])
+        )
+        assert cleared.groups == ()
+        assert cleared.list_provenance == []
+        loaded = storage.get_zoo("z")
+        assert loaded.groups == ()
+        assert loaded.list_provenance == []
+
+        repeated_input = Zoo(
+            id="z", slug="z", name="Zoo", groups=["transient"], list_provenance=["transient"]
+        )
+        repeated_input.groups = []
+        repeated_input.list_provenance = []
+        repeated = storage.upsert_zoo(repeated_input)
+        assert repeated.groups == () and repeated.list_provenance == []
+        loaded_again = storage.get_zoo("z")
+        assert loaded_again.groups == ()
+        assert loaded_again.list_provenance == []
+
+
+def test_legacy_zoo_registry_values_migrate_then_explicit_empty_clears_idempotently():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE zoos(
+            id TEXT PRIMARY KEY, slug TEXT, name TEXT,
+            groups TEXT, list_provenance TEXT
+        );
+        INSERT INTO zoos VALUES(
+            'z', 'z', 'Zoo', '["legacy"]', '[{"source":"legacy"}]'
+        );
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    migrated = storage.get_zoo("z")
+    assert migrated.groups == ("legacy",)
+    assert migrated.list_provenance == [{"source": "legacy"}]
+
+    storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo", groups=[], list_provenance=[]))
+    cleared = storage.get_zoo("z")
+    assert cleared.groups == () and cleared.list_provenance == []
+    storage.create_schema()
+    repeated = storage.get_zoo("z")
+    assert repeated.groups == () and repeated.list_provenance == []
+
+
+def test_content_identity_partial_unique_constraint_allows_hash_collisions_but_blocks_same_title():
+    with SQLiteStorage() as storage:
+        first = storage.upsert_article(
+            Article(url="https://example.org/one", title="First", content_hash="card")
+        )
+        second = storage.upsert_article(
+            Article(url="https://example.org/two", title="Second", content_hash="card")
+        )
+        assert first.content_identity_key != second.content_identity_key
+        with pytest.raises(sqlite3.IntegrityError, match="content_identity_key"):
+            storage.connection.execute(
+                "INSERT INTO articles(id,title,content_hash,content_identity_key) VALUES(?,?,?,?)",
+                ("bypass", "First", "card", first.content_identity_key),
+            )
+
+
+def test_zoo_title_identity_merges_within_zoo_but_not_across_zoos():
+    with SQLiteStorage() as storage:
+        first_zoo = storage.upsert_zoo(Zoo(id="z1", slug="z1", name="One"))
+        second_zoo = storage.upsert_zoo(Zoo(id="z2", slug="z2", name="Two"))
+        same_zoo_first = storage.upsert_article(
+            Article(url="https://example.org/one", title="  Shared   title "),
+            zoo_id=first_zoo.id,
+        )
+        same_zoo_second = storage.upsert_article(
+            Article(url="https://example.org/two", title="shared title"),
+            zoo_id=first_zoo.id,
+        )
+        other_zoo = storage.upsert_article(
+            Article(url="https://example.org/three", title="SHARED TITLE"),
+            zoo_id=second_zoo.id,
+        )
+        assert same_zoo_first.id == same_zoo_second.id
+        assert other_zoo.id != same_zoo_first.id
+        assert len(storage.list_articles()) == 2
+        identities = storage.list_article_zoo_identities()
+        assert {(item["zoo_id"], item["title_key"]) for item in identities} == {
+            ("z1", "shared title"),
+            ("z2", "shared title"),
+        }
+
+
+def test_zoo_run_result_is_unique_per_run_and_zoo_and_updates():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        run = storage.start_crawl_run(CrawlRun(id="run"))
+        initial = storage.upsert_zoo_run_result(
+            CrawlZooResult(
+                run_id=run.id,
+                zoo_id=zoo.id,
+                status="success_no_items",
+                discovered=0,
+                started_at="2026-01-01T00:00:00+00:00",
+                finished_at="2026-01-01T00:00:00.010000+00:00",
+            )
+        )
+        updated = storage.upsert_zoo_run_result(
+            CrawlZooResult(
+                crawl_run_id=run.id,
+                zoo_id=zoo.id,
+                status="success",
+                discovered=3,
+                parsed=2,
+                inserted=1,
+                updated=1,
+                failed=0,
+                duplicate_filtered=1,
+                source_url="https://example.org/feed?utm_source=test",
+            )
+        )
+        assert updated.id == initial.id
+        assert updated.status == "success" and updated.discovered == 3
+        assert updated.source_url == "https://example.org/feed"
+        assert len(storage.get_zoo_run_results(run.id)) == 1
+        assert storage.connection.execute(
+            "SELECT COUNT(*) FROM crawl_zoo_results WHERE crawl_run_id=? AND zoo_id=?",
+            (run.id, zoo.id),
+        ).fetchone()[0] == 1
+
+
+def test_article_upsert_outcome_distinguishes_identical_from_evidence_update():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        source = storage.upsert_source(Source(id="s", zoo_id=zoo.id, url="https://example.org/feed"))
+        first = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/a", title="A", content="old", raw_html="<p>old</p>"),
+            zoo_id=zoo.id,
+            source_id=source.id,
+            discovered_at="2026-01-02T00:00:00+00:00",
+        )
+        identical = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/a", title="A", content="old", raw_html="<p>old</p>"),
+            zoo_id=zoo.id,
+            source_id=source.id,
+            discovered_at="2026-01-01T00:00:00+00:00",
+        )
+        changed = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/a", title="A", content="new", raw_html="<p>new</p>"),
+            zoo_id=zoo.id,
+            source_id=source.id,
+            discovered_at="2026-01-03T00:00:00+00:00",
+        )
+        assert first.created is True and first.updated is False and first.action == "created"
+        assert identical.created is False and identical.updated is False and identical.action == "unchanged"
+        assert changed.created is False and changed.updated is True and changed.action == "updated"
+        discovery = storage.list_discoveries(article_id=first.article.id)[0]
+        assert discovery.discovered_at.isoformat() == "2026-01-01T00:00:00+00:00"
+        assert discovery.last_discovered_at.isoformat() == "2026-01-03T00:00:00+00:00"
+
+
+def test_raw_response_recheck_refreshes_capture_without_business_update():
+    with SQLiteStorage() as storage:
+        first = storage.upsert_article_with_outcome(
+            Article(
+                url="https://example.org/a",
+                title="A",
+                published_at="2026-01-01T00:00:00+00:00",
+                content="same body",
+                content_html="<p>same body</p>",
+                content_hash="parsed-body-v1",
+                html_hash="raw-hash-v1",
+                raw_html="<html><input value='csrf-one'><p>same body</p></html>",
+                metadata={"section": "news"},
+                last_fetched_at="2026-01-01T00:00:00+00:00",
+            )
+        )
+        assert first.created is True and first.updated is False
+
+        # Keep the assertion independent of wall-clock resolution.  A raw
+        # response-only recheck must not move this business timestamp.
+        business_timestamp = "2026-01-01T00:00:00+00:00"
+        storage.connection.execute(
+            "UPDATE articles SET updated_at=? WHERE id=?",
+            (business_timestamp, first.article.id),
+        )
+        raw_recheck = storage.upsert_article_with_outcome(
+            Article(
+                url="https://example.org/a",
+                title="A",
+                published_at="2026-01-01T00:00:00+00:00",
+                content="same body",
+                content_html="<p>same body</p>",
+                content_hash="parsed-body-v1",
+                html_hash="raw-hash-v2",
+                raw_html="<html><input value='csrf-two'><p>same body</p></html>",
+                metadata={"section": "news"},
+                last_fetched_at="2026-01-02T00:00:00+00:00",
+            )
+        )
+        assert raw_recheck.created is False and raw_recheck.updated is False
+        assert raw_recheck.action == "unchanged"
+        assert raw_recheck.article.id == first.article.id
+        assert raw_recheck.article.raw_html == "<html><input value='csrf-two'><p>same body</p></html>"
+        assert raw_recheck.article.html_hash == "raw-hash-v2"
+        assert raw_recheck.article.last_fetched_at == datetime(2026, 1, 2, tzinfo=timezone.utc)
+        assert storage.connection.execute(
+            "SELECT updated_at FROM articles WHERE id=?", (first.article.id,)
+        ).fetchone()[0] == business_timestamp
+
+        parsed_update = storage.upsert_article_with_outcome(
+            Article(
+                url="https://example.org/a",
+                title="A",
+                published_at="2026-01-01T00:00:00+00:00",
+                content="changed body",
+                content_html="<p>changed body</p>",
+                content_hash="parsed-body-v2",
+                html_hash="raw-hash-v3",
+                raw_html="<html><input value='csrf-three'><p>changed body</p></html>",
+                metadata={"section": "news", "revision": 2},
+                last_fetched_at="2026-01-03T00:00:00+00:00",
+            )
+        )
+        assert parsed_update.created is False and parsed_update.updated is True
+        assert parsed_update.action == "updated"
+        assert parsed_update.article.content == "changed body"
+        assert parsed_update.article.metadata == {"section": "news", "revision": 2}
+        assert storage.connection.execute(
+            "SELECT updated_at FROM articles WHERE id=?", (first.article.id,)
+        ).fetchone()[0] != business_timestamp
+
+
+def test_different_urls_and_titles_with_same_content_hash_remain_distinct():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        first = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/one", title="First story", content_hash="generic-card"),
+            zoo_id=zoo.id,
+        )
+        second = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/two", title="Second story", content_hash="generic-card"),
+            zoo_id=zoo.id,
+        )
+        assert first.created is True and first.updated is False
+        assert second.created is True and second.updated is False
+        assert second.article.id != first.article.id
+        assert len(storage.list_articles()) == 2
+        assert [article.content_hash for article in storage.list_articles()] == [
+            "generic-card", "generic-card"
+        ]
+
+
+def test_different_urls_same_title_and_hash_use_hash_fallback_and_outcome_is_known():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        first = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/one", title="Shared story", content_hash="same-card"),
+            zoo_id=zoo.id,
+        )
+        second = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/two", title="Shared story", content_hash="same-card"),
+            zoo_id=zoo.id,
+        )
+        assert first.created is True and first.updated is False
+        assert second.created is False and second.updated is False
+        assert second.article.id == first.article.id
+        assert second.article.canonical_url == "https://example.org/one"
+        assert len(storage.list_articles()) == 1
+
+
+def test_url_less_same_hash_different_titles_do_not_merge_arbitrarily():
+    with SQLiteStorage() as storage:
+        first = storage.upsert_article(
+            Article(title="First title", content_hash="boilerplate")
+        )
+        second = storage.upsert_article(
+            Article(title="Second title", content_hash="boilerplate")
+        )
+        same_title = storage.upsert_article(
+            Article(title=" first   title ", content_hash="boilerplate")
+        )
+        assert first.id != second.id
+        assert same_title.id == first.id
+        assert len(storage.list_articles()) == 2
+        assert {article.title for article in storage.list_articles()} == {
+            " first   title ", "Second title"
+        }
+
+
+def test_url_less_same_hash_without_titles_do_not_merge():
+    with SQLiteStorage() as storage:
+        first = storage.upsert_article(Article(content_hash="boilerplate"))
+        second = storage.upsert_article(Article(content_hash="boilerplate"))
+        assert first.id != second.id
+        assert len(storage.list_articles()) == 2
+
+
+def test_upsert_title_and_content_hash_changes_composite_identity_key():
+    with SQLiteStorage() as storage:
+        first = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/story", title="Before", content_hash="old-hash")
+        )
+        old_key = first.article.content_identity_key
+        changed = storage.upsert_article_with_outcome(
+            Article(
+                url="https://example.org/story",
+                title="After",
+                content_hash="new-hash",
+                content="new evidence",
+            )
+        )
+        assert changed.created is False and changed.updated is True
+        assert changed.article.content_identity_key
+        assert changed.article.content_identity_key != old_key
+        assert storage.connection.execute(
+            "SELECT content_identity_key FROM articles WHERE id=?", (first.article.id,)
+        ).fetchone()[0] == changed.article.content_identity_key
+
+
+def test_composite_key_conflict_uses_runtime_merge_provenance():
+    with SQLiteStorage() as storage:
+        keeper = storage.upsert_article(
+            Article(url="https://example.org/one", title="One", content_hash="shared")
+        )
+        donor = storage.upsert_article(
+            Article(url="https://example.org/two", title="Two", content_hash="shared")
+        )
+        changed = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/one", title="Two", content_hash="shared")
+        )
+        assert changed.article.id == keeper.id
+        assert changed.created is False and changed.updated is True
+        assert storage.get_article(donor.id) is None
+        provenance = changed.article.metadata["_runtime_merge_provenance"]
+        assert provenance[0]["donor_article_id"] == donor.id
+
+
+def test_discovery_tracking_urls_merge_to_one_identity_and_preserve_first_last_metadata():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        source = storage.upsert_source(Source(id="s", zoo_id=zoo.id, url="https://example.org/feed"))
+        article = storage.upsert_article(Article(url="https://example.org/a", title="A"))
+        storage.record_discovery(
+            article_id=article.id, source_id=source.id,
+            discovered_url="https://example.org/a?utm_source=first",
+            discovered_at="2026-01-02T00:00:00+00:00", metadata={"first": 1},
+        )
+        storage.record_discovery(
+            article_id=article.id, source_id=source.id,
+            discovered_url="https://EXAMPLE.org/a?utm_campaign=second",
+            discovered_at="2026-01-01T00:00:00+00:00", metadata={"second": 2},
+        )
+        discoveries = storage.list_discoveries(article_id=article.id)
+        assert len(discoveries) == 1
+        assert discoveries[0].discovered_at.isoformat() == "2026-01-01T00:00:00+00:00"
+        assert discoveries[0].last_discovered_at.isoformat() == "2026-01-02T00:00:00+00:00"
+        assert discoveries[0].metadata == {"first": 1, "second": 2}
+
+
+def test_runtime_discovery_first_last_compare_offsets_in_utc_and_normalize_naive():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        source = storage.upsert_source(Source(id="s", zoo_id=zoo.id, url="https://example.org/feed"))
+        article = storage.upsert_article(Article(url="https://example.org/a"))
+        storage.record_discovery(
+            article_id=article.id,
+            source_id=source.id,
+            discovered_url="https://example.org/a",
+            discovered_at="2026-01-01T00:30:00+02:00",
+        )
+        storage.record_discovery(
+            article_id=article.id,
+            source_id=source.id,
+            discovered_url="https://EXAMPLE.org/a?utm_source=later",
+            discovered_at="2025-12-31T23:00:00+00:00",
+        )
+        discovery = storage.list_discoveries(article_id=article.id)[0]
+        assert discovery.discovered_at.isoformat() == "2025-12-31T22:30:00+00:00"
+        assert discovery.last_discovered_at.isoformat() == "2025-12-31T23:00:00+00:00"
+
+        storage.record_discovery(
+            article_id=article.id,
+            source_id=source.id,
+            discovered_url="https://example.org/a?utm_medium=naive",
+            discovered_at="2025-12-31T23:30:00",
+        )
+        assert storage.list_discoveries(article_id=article.id)[0].last_discovered_at.isoformat() == "2025-12-31T23:30:00+00:00"
+
+
+def test_unparseable_discovery_timestamp_is_preserved_with_fallback_order():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        source = storage.upsert_source(Source(id="s", zoo_id=zoo.id, url="https://example.org/feed"))
+        article = storage.upsert_article(Article(url="https://example.org/a"))
+        storage.record_discovery(
+            article_id=article.id, source_id=source.id,
+            discovered_url="https://example.org/a",
+            discovered_at="legacy-unknown-first",
+        )
+        storage.record_discovery(
+            article_id=article.id, source_id=source.id,
+            discovered_url="https://EXAMPLE.org/a?utm_source=second",
+            discovered_at="legacy-unknown-second",
+        )
+        discovery = storage.list_discoveries(article_id=article.id)[0]
+        assert discovery.discovered_at == "legacy-unknown-first"
+        assert discovery.last_discovered_at == "legacy-unknown-second"
+
+
+def test_legacy_unparseable_discovery_timestamps_survive_coalescing_and_repeat_migration():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(id TEXT PRIMARY KEY, zoo_id TEXT, url TEXT);
+        CREATE TABLE articles(id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT);
+        CREATE TABLE article_discoveries(
+            id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT,
+            discovered_url TEXT, discovered_key TEXT, discovered_at TEXT,
+            last_discovered_at TEXT, metadata_json TEXT
+        );
+        INSERT INTO zoos VALUES('z','z','Zoo');
+        INSERT INTO sources VALUES('s','z','https://example.org/feed');
+        INSERT INTO articles VALUES('a','https://example.org/a','https://example.org/a','A');
+        INSERT INTO article_discoveries VALUES('d1','a','s','https://example.org/a?utm_source=one','https://example.org/a?utm_source=one','legacy-z',NULL,'{"one":1}');
+        INSERT INTO article_discoveries VALUES('d2','a','s','https://EXAMPLE.org/a?utm_campaign=two','https://EXAMPLE.org/a?utm_campaign=two','legacy-a','legacy-z','{"two":2}');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    discovery = storage.list_discoveries(article_id="a")[0]
+    assert discovery.discovered_at == "legacy-a"
+    assert discovery.last_discovered_at == "legacy-z"
+    assert discovery.metadata == {"one": 1, "two": 2}
+    storage.create_schema()
+    repeated = storage.list_discoveries(article_id="a")[0]
+    assert repeated.discovered_at == "legacy-a"
+    assert repeated.last_discovered_at == "legacy-z"
+
+
+def test_article_updated_at_only_advances_for_evidence_changes():
+    with SQLiteStorage() as storage:
+        article = storage.upsert_article(
+            Article(url="https://example.org/a", title="A", content="same")
+        )
+        initial = storage.connection.execute(
+            "SELECT updated_at FROM articles WHERE id=?", (article.id,)
+        ).fetchone()[0]
+        time.sleep(0.002)
+        storage.upsert_article(
+            Article(url="https://example.org/a", title="A", content="same")
+        )
+        unchanged = storage.connection.execute(
+            "SELECT updated_at FROM articles WHERE id=?", (article.id,)
+        ).fetchone()[0]
+        assert unchanged == initial
+        time.sleep(0.002)
+        storage.upsert_article(
+            Article(url="https://example.org/a", title="A", content="changed")
+        )
+        changed = storage.connection.execute(
+            "SELECT updated_at FROM articles WHERE id=?", (article.id,)
+        ).fetchone()[0]
+        assert changed != initial
+
+
+def test_global_url_identity_wins_over_conflicting_title_identity():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        title_article = storage.upsert_article(
+            Article(url="https://example.org/title-only", title="Same title"), zoo_id=zoo.id
+        )
+        global_article = storage.upsert_article(
+            Article(url="https://example.org/global", title="Different title"), zoo_id=zoo.id
+        )
+        resolved = storage.upsert_article(
+            Article(url="https://example.org/global", title="Same title", content="fresh"),
+            zoo_id=zoo.id,
+        )
+        assert resolved.id == global_article.id
+        assert resolved.canonical_url == "https://example.org/global"
+        assert storage.get_article(title_article.id) is None
+        assert storage.get_article_by_title("Same title", zoo.id).id == global_article.id
+
+
+def test_article_outcome_source_object_resolves_zoo_slug_before_title_lookup():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        source = Source(id="s", zoo_id="z", url="https://example.org/feed")
+        first = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/a", title="Scoped title"), source=source
+        )
+        second = storage.upsert_article_with_outcome(
+            Article(url="https://example.org/b", title="Scoped title"), source=source
+        )
+        assert first.created is True
+        assert second.created is False and second.article.id == first.article.id
+        assert storage.get_article_by_title("Scoped title", zoo.slug).id == first.article.id
+
+
+def test_legacy_tracking_variant_discoveries_are_coalesced_before_unique_index():
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(id TEXT PRIMARY KEY, zoo_id TEXT, url TEXT);
+        CREATE TABLE articles(id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT);
+        CREATE TABLE article_discoveries(
+            id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT,
+            discovered_url TEXT, discovered_key TEXT, discovered_at TEXT,
+            last_discovered_at TEXT, metadata_json TEXT
+        );
+        INSERT INTO zoos VALUES('z','z','Zoo');
+        INSERT INTO sources VALUES('s','z','https://example.org/feed');
+        INSERT INTO articles VALUES('a','https://example.org/a','https://example.org/a','A');
+        INSERT INTO article_discoveries VALUES('d1','a','s','https://example.org/a?utm_source=one','https://example.org/a?utm_source=one','2026-01-01T00:30:00+02:00',NULL,'{"one":1}');
+        INSERT INTO article_discoveries VALUES('d2','a','s','https://EXAMPLE.org/a?utm_campaign=two','https://EXAMPLE.org/a?utm_campaign=two','2025-12-31T23:00:00+00:00','2025-12-31T23:30:00+00:00','{"two":2}');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    discoveries = storage.list_discoveries(article_id="a")
+    assert len(discoveries) == 1
+    assert discoveries[0].discovered_at.isoformat() == "2025-12-31T22:30:00+00:00"
+    assert discoveries[0].last_discovered_at.isoformat() == "2025-12-31T23:30:00+00:00"
+    assert discoveries[0].metadata == {"one": 1, "two": 2}
+
+
+def test_schema_migration_rejects_active_caller_transaction_without_rollback():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    storage = SQLiteStorage(connection=connection)
+    connection.execute("BEGIN")
+    connection.execute("CREATE TABLE caller_data(value TEXT)")
+    connection.execute("INSERT INTO caller_data VALUES('keep')")
+    with pytest.raises(RuntimeError, match="active caller transaction"):
+        storage.create_schema()
+    assert connection.execute("SELECT value FROM caller_data").fetchone()[0] == "keep"
+    connection.rollback()
+
+
+def test_concurrent_file_initialization_retries_wal_setup(tmp_path):
+    database = tmp_path / "concurrent-init.db"
+    failures = []
+
+    for _ in range(8):
+        barrier = threading.Barrier(2)
+
+        def initialize() -> None:
+            try:
+                barrier.wait(timeout=5)
+                storage = SQLiteStorage(database)
+                storage.connection.execute("SELECT 1").fetchone()
+                storage.close()
+            except BaseException as error:  # pragma: no cover - assertion below reports it
+                failures.append(error)
+
+        workers = [threading.Thread(target=initialize) for _ in range(2)]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(timeout=15)
+        assert all(not worker.is_alive() for worker in workers)
+
+    assert failures == []
+
+
+@pytest.mark.parametrize("constraint", ("UNIQUE", "REFERENCES zoos(id)"))
+def test_fk_rebuild_rejects_unpreservable_extension_column_constraint(constraint):
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        f"""
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(
+            id TEXT PRIMARY KEY, zoo_id TEXT REFERENCES zoos(id), url TEXT,
+            extra TEXT {constraint}
+        );
+        INSERT INTO zoos VALUES('z', 'z', 'Zoo');
+        INSERT INTO sources VALUES('s', 'z', 'https://example.org/feed', 'keep');
+        """
+    )
+    original_sql = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='sources'"
+    ).fetchone()[0]
+    with pytest.raises(RuntimeError, match="extension column constraint"):
+        SQLiteStorage(connection=connection)
+    assert connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='sources'"
+    ).fetchone()[0] == original_sql
+    assert connection.execute("SELECT extra FROM sources WHERE id='s'").fetchone()[0] == "keep"
+    assert "country_code" not in {
+        row[1] for row in connection.execute("PRAGMA table_info(zoos)")
+    }
+
+
+def test_legacy_empty_article_identity_values_become_null_idempotently():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE articles(
+            id TEXT PRIMARY KEY, canonical_url TEXT, normalized_url TEXT,
+            content_hash TEXT, url TEXT, title TEXT
+        );
+        INSERT INTO articles VALUES('a1', '', '', '', '', 'No identity 1');
+        INSERT INTO articles VALUES('a2', '', '', '', '', 'No identity 2');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    values = [
+        tuple(row)
+        for row in connection.execute(
+            "SELECT canonical_url,normalized_url,content_hash,content_identity_key FROM articles ORDER BY id"
+        )
+    ]
+    assert values == [(None, None, None, None), (None, None, None, None)]
+    storage.create_schema()
+    assert [
+        tuple(row)
+        for row in connection.execute(
+            "SELECT canonical_url,normalized_url,content_hash,content_identity_key FROM articles ORDER BY id"
+        )
+    ] == values
+
+
+def test_legacy_same_hash_and_normalized_title_merges_before_content_identity_index():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE articles(
+            id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT,
+            content_hash TEXT
+        );
+        INSERT INTO articles VALUES('a1','https://example.org/one','https://example.org/one','Same title','card');
+        INSERT INTO articles VALUES('a2','https://example.org/two','https://example.org/two',' same   title ','card');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    assert connection.execute("SELECT COUNT(*) FROM articles").fetchone()[0] == 1
+    key = connection.execute("SELECT content_identity_key FROM articles").fetchone()[0]
+    assert key
+    storage.create_schema()
+    assert connection.execute("SELECT COUNT(*) FROM articles").fetchone()[0] == 1
+    assert connection.execute("SELECT content_identity_key FROM articles").fetchone()[0] == key
+
+
+def test_concurrent_same_content_identity_has_one_created_outcome(tmp_path):
+    database = tmp_path / "concurrent-content-identity.db"
+    SQLiteStorage(database).close()
+    barrier = threading.Barrier(2)
+    outcomes = []
+    failures = []
+
+    def upsert(index: int) -> None:
+        try:
+            barrier.wait(timeout=5)
+            with SQLiteStorage(database) as storage:
+                outcomes.append(
+                    storage.upsert_article_with_outcome(
+                        Article(
+                            url=f"https://example.org/{index}",
+                            title="Concurrent story",
+                            content_hash="same-card",
+                        )
+                    )
+                )
+        except BaseException as error:  # pragma: no cover - assertion reports it
+            failures.append(error)
+
+    workers = [threading.Thread(target=upsert, args=(index,)) for index in range(2)]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join(timeout=15)
+    assert failures == []
+    assert len(outcomes) == 2
+    assert sum(result.created for result in outcomes) == 1
+    assert sum(not result.created for result in outcomes) == 1
+    with SQLiteStorage(database) as storage:
+        assert len(storage.list_articles()) == 1
 def test_new_fields_round_trip_and_partial_updates_preserve_evidence():
     with SQLiteStorage() as storage:
         zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo", country_code="DE", language="de"))
-        source = storage.upsert_source(Source(id="s", zoo_id=zoo.id, url="https://example.org/feed", language="de", last_http_status=200))
+        storage.upsert_source(Source(id="s", zoo_id=zoo.id, url="https://example.org/feed", language="de", last_http_status=200))
         fetched = datetime(2026, 1, 2, tzinfo=timezone.utc)
-        first = storage.upsert_article(Article(url="https://example.org/a", content_hash="content", html_hash="html", language="de", http_status=203, crawl_status="fetched", last_fetched_at=fetched))
+        storage.upsert_article(Article(url="https://example.org/a", content_hash="content", html_hash="html", language="de", http_status=203, crawl_status="fetched", last_fetched_at=fetched))
         outcome = storage.upsert_article_with_outcome(Article(url="https://example.org/a", title="Title"))
         assert outcome.created is False and outcome.already_known is True
         assert outcome.article.content_hash == "content"
@@ -225,7 +963,7 @@ def test_partial_foreign_key_schema_is_rebuilt_with_exact_actions():
         INSERT INTO crawl_runs VALUES('r','b');
         INSERT INTO crawl_run_stats VALUES('rs','r','z','s');
     """)
-    with SQLiteStorage(connection=connection) as storage:
+    with SQLiteStorage(connection=connection):
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         expected = {
             "sources": {("zoo_id", "zoos", "id", "CASCADE", "RESTRICT")},
@@ -361,7 +1099,7 @@ def test_legacy_duplicate_identities_merge_evidence_and_discoveries():
     assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
-def test_transitive_duplicate_merge_flattens_and_preserves_provenance():
+def test_legacy_content_hash_collisions_with_different_titles_remain_distinct():
     connection = sqlite3.connect(":memory:", isolation_level=None)
     connection.row_factory = sqlite3.Row
     connection.executescript("""
@@ -375,24 +1113,157 @@ def test_transitive_duplicate_merge_flattens_and_preserves_provenance():
         CREATE TABLE article_discoveries(id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT, discovered_url TEXT, discovered_at TEXT);
         INSERT INTO zoos VALUES('z','z','Zoo');
         INSERT INTO sources VALUES('s','z','https://example.org/feed');
-        INSERT INTO articles VALUES('a1','https://example.org/shared/','https://example.org/shared/','A1',NULL,NULL,'one','hash-a1','html-a1',NULL,NULL,'{"origin":"one"}');
+        INSERT INTO articles VALUES('a1','https://example.org/first','https://example.org/first','A1',NULL,NULL,'one','hash-a1','html-a1',NULL,NULL,'{"origin":"one"}');
         INSERT INTO articles VALUES('a2','https://example.org/shared?utm_source=x','https://example.org/shared?utm_source=x','A2','Author 2',NULL,'two','bridge-hash','html-a2','<p>two</p>',NULL,'{"origin":"two"}');
         INSERT INTO articles VALUES('a3','https://example.org/final','https://example.org/final','A3','Author 3','Summary 3','three richer body','bridge-hash','html-a3','<p>three richer body</p>','de','{"origin":"three"}');
-        INSERT INTO article_discoveries VALUES('d1','a1','s','https://example.org/shared/','2026-01-01T00:00:00+00:00');
+        INSERT INTO article_discoveries VALUES('d1','a1','s','https://example.org/first','2026-01-01T00:00:00+00:00');
         INSERT INTO article_discoveries VALUES('d2','a2','s','https://example.org/shared?utm_source=x','2026-01-02T00:00:00+00:00');
         INSERT INTO article_discoveries VALUES('d3','a3','s','https://example.org/final','2026-01-03T00:00:00+00:00');
     """)
     storage = SQLiteStorage(connection=connection)
-    final = storage.list_articles()[0]
-    assert final.id == "a3"
-    assert final.metadata["merged_legacy_article_ids"] == ["a1", "a2"]
-    snapshots = final.metadata["_migration_provenance"]
-    assert [item["donor_article_id"] for item in snapshots] == ["a1", "a2"]
-    assert snapshots[0]["donor_metadata"] == {"origin": "one"}
-    assert snapshots[1]["donor_metadata"] == {"origin": "two"}
-    assert all("_migration_provenance" not in item["donor_metadata"] for item in snapshots)
-    metadata_before = final.metadata
+    articles = storage.list_articles()
+    assert {article.id for article in articles} == {"a1", "a2", "a3"}
+    assert sum(article.content_hash == "bridge-hash" for article in articles) == 2
     storage.create_schema()
-    assert storage.list_articles()[0].metadata == metadata_before
+    assert connection.execute("SELECT COUNT(*) FROM articles").fetchone()[0] == 3
     assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
     assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_article_raw_url_lexemes_and_joined_read_model_round_trip():
+    with SQLiteStorage() as storage:
+        zoo = storage.upsert_zoo(Zoo(id="z", slug="z", name="Zoo"))
+        feed = storage.upsert_source(Source(id="feed", zoo_id=zoo.id, url="https://example.org/feed"))
+        archive = storage.upsert_source(Source(id="archive", zoo_id=zoo.id, url="https://example.org/archive"))
+        source_lexeme = " https://EXAMPLE.org/story/?b=2&utm_source=feed&a=1 "
+        discovered_lexeme = "https://EXAMPLE.org/story/?utm_medium=archive&b=2&a=1"
+        article = storage.upsert_article(
+            Article(url=source_lexeme, title="Evidence", content="Body"),
+            source_id=feed.id,
+            discovered_url=source_lexeme,
+            discovered_at="2026-01-02T02:00:00+02:00",
+        )
+        storage.record_discovery(
+            article_id=article.id,
+            source_id=archive.id,
+            discovered_url=discovered_lexeme,
+            discovered_at="2026-01-03T01:30:00+01:00",
+        )
+
+        loaded = storage.get_article(article.id)
+        assert loaded and loaded.source_url_raw == source_lexeme
+        discoveries = storage.list_discoveries(article_id=article.id)
+        assert {item.discovered_url_raw for item in discoveries} == {source_lexeme, discovered_lexeme}
+        assert all(item.discovered_url != item.discovered_url_raw for item in discoveries)
+
+        read = storage.get_article_read_model(article.id)
+        assert read and read.first_discovered_at == "2026-01-02T00:00:00+00:00"
+        assert read.last_discovered_at == "2026-01-03T00:30:00+00:00"
+        assert read.created_at and read.storage_updated_at
+        assert len(read.article_discoveries) == 2
+        assert {item.source_id for item in read.article_discoveries} == {"feed", "archive"}
+
+
+def test_v7_raw_url_columns_migrate_legacy_rows_idempotently():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(id TEXT PRIMARY KEY, zoo_id TEXT, url TEXT);
+        CREATE TABLE articles(id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT);
+        CREATE TABLE article_discoveries(id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT, discovered_url TEXT);
+        INSERT INTO zoos VALUES('z', 'z', 'Zoo');
+        INSERT INTO sources VALUES('s', 'z', 'https://example.org/feed');
+        INSERT INTO articles VALUES('a', 'https://example.org/story', 'https://EXAMPLE.org/story/?utm_source=legacy', 'Legacy');
+        INSERT INTO article_discoveries VALUES('d', 'a', 's', 'https://EXAMPLE.org/story/?utm_medium=legacy');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    assert {"source_url_raw"}.issubset(SQLiteStorage._columns(connection, "articles"))
+    assert {"discovered_url_raw"}.issubset(SQLiteStorage._columns(connection, "article_discoveries"))
+    assert storage.get_article("a").source_url_raw == "https://EXAMPLE.org/story/?utm_source=legacy"
+    assert storage.list_discoveries(article_id="a")[0].discovered_url_raw == "https://EXAMPLE.org/story/?utm_medium=legacy"
+    raw_before = tuple(
+        connection.execute(
+            "SELECT source_url_raw FROM articles WHERE id='a'"
+        ).fetchone()
+    ) + tuple(
+        connection.execute(
+            "SELECT discovered_url_raw FROM article_discoveries WHERE id='d'"
+        ).fetchone()
+    )
+    storage.create_schema()
+    raw_after = tuple(
+        connection.execute(
+            "SELECT source_url_raw FROM articles WHERE id='a'"
+        ).fetchone()
+    ) + tuple(
+        connection.execute(
+            "SELECT discovered_url_raw FROM article_discoveries WHERE id='d'"
+        ).fetchone()
+    )
+    assert raw_after == raw_before
+    assert connection.execute("SELECT value FROM schema_meta WHERE key='version'").fetchone()[0] == "7"
+
+
+def test_malformed_legacy_urls_keep_raw_evidence_and_empty_identities_idempotently():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    malformed_source = "https://[invalid-source"
+    malformed_article = "https://[invalid-article"
+    malformed_discovery = "https://[invalid-discovery"
+    connection.executescript(
+        f"""
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(id TEXT PRIMARY KEY, zoo_id TEXT, url TEXT);
+        CREATE TABLE articles(id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT);
+        CREATE TABLE article_discoveries(id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT, discovered_url TEXT);
+        INSERT INTO zoos VALUES('z', 'z', 'Zoo');
+        INSERT INTO sources VALUES('s', 'z', '{malformed_source}');
+        INSERT INTO articles VALUES('a', '{malformed_article}', '{malformed_article}', 'Legacy');
+        INSERT INTO article_discoveries VALUES('d', 'a', 's', '{malformed_discovery}');
+        """
+    )
+
+    storage = SQLiteStorage(connection=connection)
+    first = {
+        "source": tuple(
+            connection.execute("SELECT url,normalized_url FROM sources WHERE id='s'").fetchone()
+        ),
+        "article": tuple(
+            connection.execute(
+                "SELECT canonical_url,normalized_url,source_url,source_url_raw FROM articles WHERE id='a'"
+            ).fetchone()
+        ),
+        "discovery": tuple(
+            connection.execute(
+                "SELECT discovered_url,discovered_url_raw,discovered_key FROM article_discoveries WHERE id='d'"
+            ).fetchone()
+        ),
+    }
+    assert first == {
+        "source": (malformed_source, None),
+        "article": (None, None, malformed_article, malformed_article),
+        "discovery": (None, malformed_discovery, ""),
+    }
+    assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+    storage.create_schema()
+    second = {
+        "source": tuple(
+            connection.execute("SELECT url,normalized_url FROM sources WHERE id='s'").fetchone()
+        ),
+        "article": tuple(
+            connection.execute(
+                "SELECT canonical_url,normalized_url,source_url,source_url_raw FROM articles WHERE id='a'"
+            ).fetchone()
+        ),
+        "discovery": tuple(
+            connection.execute(
+                "SELECT discovered_url,discovered_url_raw,discovered_key FROM article_discoveries WHERE id='d'"
+            ).fetchone()
+        ),
+    }
+    assert second == first
+    assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"

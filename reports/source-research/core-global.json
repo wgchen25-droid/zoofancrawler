@@ -1,0 +1,399 @@
+{
+  "schema_version": "core-global-source-research.v1",
+  "researched_at": "2026-08-14",
+  "scope": {
+    "region": "Global",
+    "group": "core30+global_top10",
+    "country_code": "MULTI",
+    "roster_file": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "authority": "User-confirmed authoritative Phase 0 roster"
+  },
+  "counts": {
+    "roster_rows": 10,
+    "verified_rows": 10,
+    "gap_rows": 4,
+    "source_status_counts": {
+      "success": 2,
+      "partial": 4,
+      "blocked": 4
+    }
+  },
+  "method": {
+    "primary_evidence_only": true,
+    "primary_evidence": "Official zoo, operator, or government/institution websites and their first-party news, press, RSS, sitemap, or API endpoints.",
+    "discovery_hints": "Search results and third-party directories were used only to locate candidate official domains; they are not used as identity evidence.",
+    "status_notes": "success means an official source suitable for a proposed adapter was found; partial means an official source exists but its listing is JS/API-gated, shared without a zoo-specific filter, or lacks a safe narrow URL path; blocked means the official source is known but the configured Fetcher must fail closed because robots.txt is missing or the relevant official path is disallowed.",
+    "robots_policy": "A HTTP 404/missing robots.txt is recorded as blocked. A robots-disallowed API or archive is not proposed as an active crawl path. No browser automation or robots bypass is assumed."
+  },
+  "rows": [
+    {
+      "stable_id": "san-diego-zoo",
+      "roster_name": "San Diego Zoo",
+      "country_code": "US",
+      "city": "San Diego",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://zoo.sandiegozoo.org/",
+      "official_host": "zoo.sandiegozoo.org",
+      "official_sources": [
+        {"url": "https://sandiegozoowildlifealliance.org/story-hub/search-news", "kind": "archive", "role": "press_and_news_listing"},
+        {"url": "https://sandiegozoowildlifealliance.org/story-hub/media-resources", "kind": "archive", "role": "official_media_resources"}
+      ],
+      "adapter_proposal": {
+        "kind": "archive",
+        "source_urls": ["https://sandiegozoowildlifealliance.org/story-hub/search-news"],
+        "config_notes": "Use the server-rendered Story Hub search/news listing and restrict detail links to the Alliance's first-party story/press paths. The visitor site is zoo.sandiegozoo.org, while the current press/news hub is on the official San Diego Zoo Wildlife Alliance host. Do not use the Alliance sitemap as the primary source without filtering its stale http://live-sdzwa.pantheonsite.io entries."
+      },
+      "language": "en",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "success",
+      "status_reason": "The official zoo site and its operator's Story Hub expose a server-rendered press/news listing with first-party article links; robots.txt is available and does not disallow the proposed path.",
+      "evidence": [
+        {"url": "https://zoo.sandiegozoo.org/", "type": "official_zoo_home"},
+        {"url": "https://sandiegozoowildlifealliance.org/", "type": "official_operator_home"},
+        {"url": "https://sandiegozoowildlifealliance.org/story-hub/search-news", "type": "official_news_archive"},
+        {"url": "https://sandiegozoowildlifealliance.org/story-hub/media-resources", "type": "official_press_room"},
+        {"url": "https://sandiegozoowildlifealliance.org/robots.txt", "type": "official_robots"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "bronx-zoo",
+      "roster_name": "Bronx Zoo",
+      "country_code": "US",
+      "city": "New York",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://bronxzoo.com/",
+      "official_host": "bronxzoo.com",
+      "official_sources": [
+        {"url": "https://newsroom.wcs.org/News-Releases.aspx", "kind": "archive", "role": "WCS_news_release_listing"},
+        {"url": "https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25", "kind": "rss", "role": "WCS_news_release_feed"}
+      ],
+      "adapter_proposal": {
+        "kind": "rss",
+        "source_urls": ["https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25", "https://newsroom.wcs.org/News-Releases.aspx"],
+        "article_content_selector": ".article-body",
+        "config_notes": "The Bronx Zoo is a Wildlife Conservation Society (WCS) zoo. Use the official WCS newsroom RSS/archive, then retain only entries whose official detail URL or content identifies Bronx Zoo; the WCS feed is operator-wide and also covers other WCS programs and zoos. The source-scoped article_content_selector .article-body passed the bounded live retest below."
+      },
+      "language": "en",
+      "js": {"required": false, "observed": "server_rendered_html; WCS_DNN_RSS"},
+      "source_status": "success",
+      "success_claim": true,
+      "status_reason": "The official WCS newsroom and operator-wide RSS feed are reachable, eight entries pass the Bronx identity filter, and the source-scoped .article-body selector passed the bounded live retest: the first run fetched and stored one clean 4,429-character article and the second found that article already known, with no content_parse_error or new duplicate.",
+      "evidence": [
+        {"url": "https://bronxzoo.com/", "type": "official_zoo_home"},
+        {"url": "https://newsroom.wcs.org/", "type": "official_operator_newsroom"},
+        {"url": "https://newsroom.wcs.org/News-Releases.aspx", "type": "official_news_archive"},
+        {"url": "https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25", "type": "official_rss"},
+        {"url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx", "type": "official_article_content_probe", "http_status": 200, "article_content_selector": ".article-body", "main_root_present": false, "article_root_present": false},
+        {"url": "https://newsroom.wcs.org/robots.txt", "type": "official_robots"}
+      ],
+      "live_diagnostic": {
+        "artifact_dir": "/tmp/zoofan-phase0.9Jx9xK",
+        "run_artifacts": ["global_top10.pass1.json", "global_top10.pass1.log", "global_top10.pass2.json", "global_top10.pass2.log"],
+        "source_id": "bronx-zoo-wcs-rss",
+        "feed_http_status": 200,
+        "operator_feed_candidate_count": 25,
+        "identity_match_count": 8,
+        "article_probe": {
+          "url": "https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx",
+          "http_status": 200,
+          "article_content_selector": ".article-body",
+          "main_root_present": false,
+          "article_root_present": false
+        },
+        "remediation_status": "verified_live_retest",
+        "remediation_note": "The source-scoped selector passed the two bounded live retest runs; success_claim is based only on these run IDs and their clean fetch/store and already-known evidence.",
+        "retest": {
+          "run_ids": ["d1dc9a0cfc15474dbcb322d9e73b97ef", "5372992f73a74afda78d0a1573d00790"],
+          "rss_discovered_identity_matches": 8,
+          "first_fetched": 1,
+          "first_stored": 1,
+          "first_content_chars": 4429,
+          "second_already_known": 1,
+          "content_parse_errors": 0,
+          "new_duplicates": 0,
+          "success_claim": true
+        }
+      },
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "smithsonians-national-zoo",
+      "roster_name": "Smithsonian's National Zoo",
+      "country_code": "US",
+      "city": "Washington, DC",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://nationalzoo.si.edu/",
+      "official_host": "nationalzoo.si.edu",
+      "official_sources": [
+        {"url": "https://nationalzoo.si.edu/news", "kind": "archive", "role": "current_news_listing"},
+        {"url": "https://nationalzoo.si.edu/news/press-release-archive", "kind": "archive", "role": "historical_archive_robots_blocked"},
+        {"url": "https://nationalzoo.si.edu/sitemap.xml", "kind": "sitemap", "role": "site_navigation"}
+      ],
+      "adapter_proposal": {
+        "kind": "archive",
+        "source_urls": ["https://nationalzoo.si.edu/news"],
+        "config_notes": "Parse the server-rendered current News page's Press Releases and Animal Stories. The historical /news/archive and /news/press-release-archive paths are official but currently disallowed by the site's robots policy and must not be fetched until that policy changes; no official RSS or API was found."
+      },
+      "language": "en",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "partial",
+      "status_reason": "The official current news listing is directly crawlable, but robots.txt disallows the historical archive paths, leaving only a limited current listing for a compliant adapter.",
+      "evidence": [
+        {"url": "https://nationalzoo.si.edu/", "type": "official_zoo_home"},
+        {"url": "https://nationalzoo.si.edu/news", "type": "official_news_listing"},
+        {"url": "https://nationalzoo.si.edu/news/press-release-archive", "type": "official_press_archive"},
+        {"url": "https://nationalzoo.si.edu/sitemap.xml", "type": "official_sitemap"},
+        {"url": "https://nationalzoo.si.edu/robots.txt", "type": "official_robots"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "toronto-zoo",
+      "roster_name": "Toronto Zoo",
+      "country_code": "CA",
+      "city": "Toronto",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.torontozoo.com/",
+      "official_host": "www.torontozoo.com",
+      "official_sources": [
+        {"url": "https://www.torontozoo.com/mediaroom", "kind": "archive", "role": "official_media_room"},
+        {"url": "https://www.torontozoo.com/mediaroom/press2026", "kind": "archive", "role": "press_archive"}
+      ],
+      "adapter_proposal": {
+        "kind": "archive",
+        "source_urls": ["https://www.torontozoo.com/mediaroom/press2026"],
+        "config_notes": "The year-specific press archive is server-rendered and links dated first-party releases; follow its year links and keep detail URLs under /mediaroom/. Enable only after the official host serves a valid robots.txt, because the current HTTP 404 must be treated fail-closed."
+      },
+      "language": "en",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "blocked",
+      "status_reason": "The official media room and press2026 archive are available as HTML, but https://www.torontozoo.com/robots.txt returns HTTP 404. Under the project's default fail-closed robots behavior this source cannot be crawled yet.",
+      "evidence": [
+        {"url": "https://www.torontozoo.com/", "type": "official_zoo_home"},
+        {"url": "https://www.torontozoo.com/mediaroom", "type": "official_media_room"},
+        {"url": "https://www.torontozoo.com/mediaroom/press2026", "type": "official_press_archive"},
+        {"url": "https://www.torontozoo.com/robots.txt", "type": "official_robots_missing_http_404"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "singapore-zoo",
+      "roster_name": "Singapore Zoo",
+      "country_code": "SG",
+      "city": "Singapore",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.mandai.com/en/singapore-zoo.html",
+      "official_host": "www.mandai.com",
+      "official_sources": [
+        {"url": "https://www.mandai.com/en/about-mandai/media-centre.html", "kind": "archive", "role": "media_centre_listing_shell"},
+        {"url": "https://www.mandai.com/content/wrs/en.sitemap.xml", "kind": "sitemap", "role": "official_media_centre_article_urls"},
+        {"url": "https://www.mandai.com/bin/commons/pressRoomBlockDataServlet?pagePath=/content/wrs/en/mandai/about-mandai/media-centre/jcr:content/root/responsivegrid/pressroomblock", "kind": "api", "role": "media_index_api_robots_blocked"}
+      ],
+      "adapter_proposal": {
+        "kind": "sitemap",
+        "source_urls": ["https://www.mandai.com/content/wrs/en.sitemap.xml"],
+        "config_notes": "Use the official English sitemap and filter /en/about-mandai/media-centre/ article URLs; those article pages are server-rendered. The Media Centre index uses a JS filter servlet under /bin/ (robots-disallowed and returning HTTP 500 when called directly), so do not use that API as the adapter path."
+      },
+      "language": "en",
+      "js": {"required": true, "observed": "AEM_SSR_article_pages; media_centre_index_uses_JS_filter_servlet", "reason": "The article URLs are HTML, but the media-centre index shell loads its listing through a first-party JS servlet."},
+      "source_status": "partial",
+      "status_reason": "Mandai's official sitemap exposes a usable first-party media-centre URL set, while the current listing is JS-gated and its /bin API is both robots-disallowed and not a reliable direct endpoint.",
+      "evidence": [
+        {"url": "https://www.mandai.com/en/singapore-zoo.html", "type": "official_zoo_page"},
+        {"url": "https://www.mandai.com/en/about-mandai/media-centre.html", "type": "official_media_centre"},
+        {"url": "https://www.mandai.com/content/wrs/en.sitemap.xml", "type": "official_sitemap"},
+        {"url": "https://www.mandai.com/robots.txt", "type": "official_robots"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "ueno-zoo",
+      "roster_name": "Ueno Zoo",
+      "country_code": "JP",
+      "city": "Tokyo",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.tokyo-zoo.net/ueno/index.html",
+      "official_host": "www.tokyo-zoo.net",
+      "official_sources": [
+        {"url": "https://www.tokyo-zoo.net/ueno/news/index.html", "kind": "archive", "role": "Japanese_news_listing"},
+        {"url": "https://www.tokyo-zoo.net/en/ueno/news/index.html", "kind": "archive", "role": "English_news_listing"},
+        {"url": "https://www.tokyo-zoo.net/sitemap.xml", "kind": "sitemap", "role": "site_navigation"}
+      ],
+      "adapter_proposal": {
+        "kind": "archive",
+        "source_urls": ["https://www.tokyo-zoo.net/ueno/news/index.html"],
+        "config_notes": "The Tokyo Zoological Park Society's Japanese Ueno news archive is server-rendered and uses narrow /ueno/news/ detail paths; the official English mirror may be used as a language-specific alternative. Enable only after the host serves robots.txt, because the current HTTP 404 requires fail-closed blocking."
+      },
+      "language": "ja",
+      "js": {"required": false, "observed": "server_rendered_html"},
+      "source_status": "blocked",
+      "status_reason": "Official Japanese and English Ueno news archives and sitemap are directly available, but https://www.tokyo-zoo.net/robots.txt returns HTTP 404; the default Fetcher therefore cannot proceed.",
+      "evidence": [
+        {"url": "https://www.tokyo-zoo.net/ueno/index.html", "type": "official_zoo_home"},
+        {"url": "https://www.tokyo-zoo.net/ueno/news/index.html", "type": "official_news_archive"},
+        {"url": "https://www.tokyo-zoo.net/en/ueno/news/index.html", "type": "official_english_news_archive"},
+        {"url": "https://www.tokyo-zoo.net/sitemap.xml", "type": "official_sitemap"},
+        {"url": "https://www.tokyo-zoo.net/robots.txt", "type": "official_robots_missing_http_404"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "taipei-zoo",
+      "roster_name": "Taipei Zoo",
+      "country_code": "TW",
+      "city": "Taipei",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoo.gov.taipei/",
+      "official_host": "www.zoo.gov.taipei",
+      "official_sources": [
+        {"url": "https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6", "kind": "archive", "role": "Chinese_news_listing"},
+        {"url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E", "kind": "rss", "role": "official_news_rss"},
+        {"url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A", "kind": "api", "role": "official_news_json"},
+        {"url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=1B8CDF622E1AD51D", "kind": "api", "role": "official_news_xml"}
+      ],
+      "adapter_proposal": {
+        "kind": "rss",
+        "source_urls": ["https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E", "https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A"],
+        "config_notes": "Prefer the municipal zoo's official RSS, with the official JSON endpoint as a structured fallback; retain URLs on www.zoo.gov.taipei and the BD065B2FA7782989 news collection. Both Chinese and English listings are server-rendered, but both official hosts currently return HTTP 404 for robots.txt, so enable only after robots is restored."
+      },
+      "language": "zh",
+      "language_tag": "zh-Hant",
+      "js": {"required": false, "observed": "server_rendered_html; official_RSS_XML_JSON_endpoints"},
+      "source_status": "blocked",
+      "status_reason": "Taipei Zoo has unusually strong official RSS/XML/JSON and HTML news sources, but www.zoo.gov.taipei/robots.txt and english.zoo.gov.taipei/robots.txt both return HTTP 404; fail-closed robots handling blocks the crawl.",
+      "evidence": [
+        {"url": "https://www.zoo.gov.taipei/", "type": "official_municipal_zoo_home"},
+        {"url": "https://english.zoo.gov.taipei/Default.aspx", "type": "official_english_home"},
+        {"url": "https://www.zoo.gov.taipei/News.aspx?n=BD065B2FA7782989&sms=72544237BBE4C5F6", "type": "official_news_archive"},
+        {"url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=8D46BA90548DAD4E", "type": "official_rss"},
+        {"url": "https://www.zoo.gov.taipei/OpenData.aspx?SN=022A4E6F1C7F323A", "type": "official_json"},
+        {"url": "https://www.zoo.gov.taipei/sitemap.xml", "type": "official_sitemap"},
+        {"url": "https://www.zoo.gov.taipei/robots.txt", "type": "official_robots_missing_http_404"},
+        {"url": "https://english.zoo.gov.taipei/robots.txt", "type": "official_english_robots_missing_http_404"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "taronga-zoo-sydney",
+      "roster_name": "Taronga Zoo Sydney",
+      "country_code": "AU",
+      "city": "Sydney",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.taronga.org.au/",
+      "official_host": "www.taronga.org.au",
+      "official_sources": [
+        {"url": "https://www.taronga.org.au/about/newsroom", "kind": "archive", "role": "newsroom_listing"},
+        {"url": "https://www.taronga.org.au/about/newsroom/media-releases", "kind": "archive", "role": "media_release_listing"},
+        {"url": "https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358", "kind": "api", "role": "first_party_article_search"},
+        {"url": "https://www.taronga.org.au/sitemap.xml", "kind": "sitemap", "role": "site_navigation"}
+      ],
+      "adapter_proposal": {
+        "kind": "api",
+        "source_urls": ["https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358"],
+      "config_notes": "The first-party JSON article-search endpoint is structured but operator-wide. No Sydney-specific category or path filter was verified: the checked page yielded zero verified Sydney-specific candidates. Keep this as a partial/unsupported plan; do not infer Sydney identity or add an unverified query parameter."
+      },
+      "language": "en",
+      "js": {"required": true, "observed": "SSR_newsroom_shell_plus_first_party_JSON_API", "reason": "The newsroom shell is present in HTML, while article results are loaded and paginated by the official SearchApi endpoint."},
+      "source_status": "partial",
+      "status_reason": "The official Taronga newsroom and first-party article-search API are available and robots.txt permits the host, but the operator-wide API returned zero verified Sydney-specific candidates and no safe Sydney identity filter was established.",
+      "evidence": [
+        {"url": "https://www.taronga.org.au/", "type": "official_operator_home"},
+        {"url": "https://www.taronga.org.au/sydney-zoo/", "type": "official_sydney_zoo_page"},
+        {"url": "https://www.taronga.org.au/about/newsroom", "type": "official_newsroom"},
+        {"url": "https://www.taronga.org.au/about/newsroom/media-releases", "type": "official_media_releases"},
+        {"url": "https://www.taronga.org.au/api/SearchApi/article-search?page=1&pageSize=9&pageId=15358", "type": "official_api"},
+        {"url": "https://www.taronga.org.au/robots.txt", "type": "official_robots"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "sao-paulo-zoo",
+      "roster_name": "São Paulo Zoo",
+      "country_code": "BR",
+      "city": "São Paulo",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.zoologico.com.br/",
+      "official_host": "www.zoologico.com.br",
+      "official_sources": [
+        {"url": "https://www.zoologico.com.br/noticias", "kind": "archive", "role": "NextJS_press_listing"},
+        {"url": "https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC", "kind": "api", "role": "first_party_press_api"}
+      ],
+      "adapter_proposal": {
+        "kind": "api",
+        "source_urls": ["https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC"],
+        "config_notes": "Use only INTERNAL_NEWS records from the public first-party API, paginate with x-page-index, and send the public x-api-key and x-source-id headers exposed by the official Next.js bundle. Reject EXTERNAL_NEWS records whose links leave the official host. Enable only after www.zoologico.com.br serves a valid robots.txt; current HTTP 404 is fail-closed."
+      },
+      "language": "pt",
+      "language_tag": "pt-BR",
+      "js": {"required": true, "observed": "NextJS_press_page_plus_first_party_JSON_API; API_requires_public_headers", "reason": "The press listing is a Next.js page and its structured entries are returned by /v1/press."},
+      "source_status": "blocked",
+      "status_reason": "The official Next.js press page and first-party JSON API are verified, but www.zoologico.com.br/robots.txt and zoologico.com.br/robots.txt both return HTTP 404; fail-closed robots handling blocks the crawl.",
+      "evidence": [
+        {"url": "https://www.zoologico.com.br/", "type": "official_zoo_home"},
+        {"url": "https://www.zoologico.com.br/en", "type": "official_english_home"},
+        {"url": "https://www.zoologico.com.br/noticias", "type": "official_press_listing"},
+        {"url": "https://www.zoologico.com.br/v1/press?language=pt&tag=INTERNAL_NEWS&type=desktop&order=DESC", "type": "official_api"},
+        {"url": "https://www.zoologico.com.br/robots.txt", "type": "official_robots_missing_http_404"},
+        {"url": "https://zoologico.com.br/robots.txt", "type": "official_canonical_robots_missing_http_404"}
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "national-zoological-garden",
+      "roster_name": "National Zoological Garden",
+      "country_code": "ZA",
+      "city": "Pretoria",
+      "groups": ["core30", "global_top10"],
+      "tier": "Core",
+      "official_website_url": "https://www.pretoriazoo.org/",
+      "official_host": "www.pretoriazoo.org",
+      "official_sources": [
+        {"url": "https://www.pretoriazoo.org/homepage/newsroom/", "kind": "archive", "role": "official_newsroom"},
+        {"url": "https://www.pretoriazoo.org/feed/", "kind": "rss", "role": "official_wordpress_rss"},
+        {"url": "https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories", "kind": "api", "role": "official_wordpress_api"},
+        {"url": "https://www.pretoriazoo.org/sitemap.xml", "kind": "sitemap", "role": "site_navigation"}
+      ],
+      "adapter_proposal": {
+        "kind": "rss",
+        "source_urls": ["https://www.pretoriazoo.org/feed/", "https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories"],
+        "config_notes": "The official RSS and REST API are retained as evidence, but their observed article links are root slugs with no stable news/article path. Keep both disabled; do not use a broad root-slug rule or infer identity from unrelated SANBI pages."
+      },
+      "language": "en",
+      "js": {"required": false, "observed": "WordPress_SSR_plus_RSS_WP_REST_API"},
+      "source_status": "partial",
+      "status_reason": "The official Pretoria Zoo/SANBI site identifies the National Zoological Garden and exposes first-party RSS and WordPress JSON, but both verified article sets use root-level slugs with no stable news/article path. The broad root-slug URL rule is not safe for this importer, so both sources remain disabled pending a narrower verified path or source-specific URL policy.",
+      "evidence": [
+        {"url": "https://www.pretoriazoo.org/", "type": "official_zoo_home"},
+        {"url": "https://www.sanbi.org/gardens/zoo/", "type": "official_sanbi_institution_page"},
+        {"url": "https://www.pretoriazoo.org/homepage/newsroom/", "type": "official_newsroom"},
+        {"url": "https://www.pretoriazoo.org/feed/", "type": "official_rss"},
+        {"url": "https://www.pretoriazoo.org/wp-json/wp/v2/posts?per_page=10&_fields=id,date,modified,link,slug,title,content,categories", "type": "official_api"},
+        {"url": "https://www.pretoriazoo.org/sitemap.xml", "type": "official_sitemap"},
+        {"url": "https://www.pretoriazoo.org/robots.txt", "type": "official_robots"}
+      ],
+      "checked_at": "2026-08-14"
+    }
+  ],
+  "gaps": [
+    {"stable_id": "toronto-zoo", "kind": "robots", "detail": "Official press archive is available, but robots.txt returns HTTP 404; fail-closed crawling is blocked."},
+    {"stable_id": "ueno-zoo", "kind": "robots", "detail": "Official Japanese/English news archives are available, but robots.txt returns HTTP 404; fail-closed crawling is blocked."},
+    {"stable_id": "taipei-zoo", "kind": "robots", "detail": "Official RSS/XML/JSON and HTML sources are available, but robots.txt returns HTTP 404 on both Chinese and English hosts; fail-closed crawling is blocked."},
+    {"stable_id": "sao-paulo-zoo", "kind": "robots", "detail": "Official Next.js press API is available with public headers, but robots.txt returns HTTP 404 on both canonical hosts; fail-closed crawling is blocked."},
+    {"stable_id": "smithsonians-national-zoo", "kind": "robots_scope", "detail": "Current /news is usable, but the official historical archive paths are explicitly disallowed by robots.txt; no official RSS/API was found."},
+    {"stable_id": "singapore-zoo", "kind": "js_api", "detail": "Mandai's media-centre index is JS-gated and its /bin servlet is robots-disallowed; the English sitemap remains a usable partial source."},
+    {"stable_id": "taronga-zoo-sydney", "kind": "identity_filter", "detail": "The first-party API and sitemap are operator-wide; the checked API response yielded zero verified Sydney-specific candidates and no Sydney filter contract was verified."},
+    {"stable_id": "national-zoological-garden", "kind": "url_policy", "detail": "RSS/API article links are root-level slugs without a stable news/article prefix; both source plans are disabled rather than using a broad root-slug allow rule."},
+    {"stable_id": "san-diego-zoo", "kind": "sitemap_quality", "detail": "The official Alliance sitemap includes stale http://live-sdzwa.pantheonsite.io locations; use the Story Hub archive instead and filter canonical URLs."}
+  ]
+}

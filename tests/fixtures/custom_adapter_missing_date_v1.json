@@ -1,0 +1,9 @@
+{
+  "items": [
+    {
+      "url": "/news/custom-missing-date",
+      "title": "Custom adapter without a date",
+      "summary": "A missing optional publication date stays null."
+    }
+  ]
+}

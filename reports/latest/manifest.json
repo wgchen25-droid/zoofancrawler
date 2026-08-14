@@ -1,0 +1,1016 @@
+{
+  "code_state_fingerprint": "5c60facfecce4460d7f896bffa727d6507fbd143009cf728369483ecb8e8f0da",
+  "files": {
+    "acceptance/index.html": {
+      "bytes": 909926,
+      "sha256": "414a6eb34d5999da577251624f99297a7d4b58fa0b2e7762422016a8cdbf2d9a"
+    },
+    "articles.json": {
+      "bytes": 141433,
+      "sha256": "5907d76536c6ffa5249d635224c1ef4290999f04994680151babd3626b4dc1c3"
+    },
+    "run-summary.json": {
+      "bytes": 1200166,
+      "sha256": "fafd268bc7b74c66ff8f753cdfa0e9fc3cecc31785c483b516d99f6a45cde669"
+    },
+    "run-summary.md": {
+      "bytes": 76526,
+      "sha256": "778c7a3c9565249727ec05e9b1748ba9a9ca239623c221d0e503a976eb8117a0"
+    },
+    "zoo-status.csv": {
+      "bytes": 711774,
+      "sha256": "406a4bbaf3c6585a82e888f4b6b9aae3aae262c90a3831774f498a728811581f"
+    }
+  },
+  "generated_at": "2026-08-14T09:40:40.968736+00:00",
+  "generation_id": "c49257ece8394a83ae072175f9c05483",
+  "git_commit": "ec65921",
+  "git_dirty": true,
+  "schema_version": 1,
+  "scope": {
+    "authoritative_roster": {
+      "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+      "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+      "version": "Phase0 v0.1"
+    },
+    "authoritative_roster_available": true,
+    "authoritative_roster_provenance": {
+      "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+      "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+      "version": "Phase0 v0.1"
+    },
+    "configured_count": 73,
+    "configured_group_membership_count": 146,
+    "configured_membership_count": 73,
+    "configured_zoo_count": 73,
+    "configured_zoos": 73,
+    "enabled_zoo_count": 73,
+    "enabled_zoos": 73,
+    "expanded_count": 73,
+    "expanded_membership_count": 73,
+    "expanded_roster_available": true,
+    "expanded_roster_count": 73,
+    "expanded_roster_status": "available",
+    "expanded_zoo_count": 73,
+    "expanded_zoos": 73,
+    "kind": "authoritative_expanded_roster",
+    "label": "Authoritative Phase0 v0.1 roster",
+    "limitation": null,
+    "roster_path": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_provenance": {
+      "aachener-tierpark-euregiozoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 56,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "adlerwarte-berlebeck": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 74,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "affen-und-vogelpark-eckenhagen": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 67,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "allwetterzoo-muenster": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 55,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "apenheul": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 83,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "aquazoo-loebbecke-museum": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 58,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "biotopwildpark-anholter-schweiz": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 69,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "bird-park-de-lorkeershoeve": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 89,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "bronx-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 36,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "brook-valley-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 78,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "burgers-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 31,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "chester-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 25,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "copenhagen-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 32,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "dierenpark-de-bontekoe": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 91,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "dierenpark-t-goor": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 86,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "diergaarde-blijdorp": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 30,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "erlebnis-zoo-hannover": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 22,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "gaiazoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 75,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "gruener-zoo-wuppertal": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 52,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "heimat-tierpark-olderdissen": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 65,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "hertenspoor-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 81,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "het-dierenrijck": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 80,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "hochwildpark-rheinland": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 72,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "hof-van-eckberge": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 84,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "kasteelpark-born": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 76,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "kleindierwandelpark-hedel": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 87,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "koeln-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 18,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "mini-animal-park-deventer": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 92,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "mini-zoo-venray": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 82,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "mondo-verde": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 77,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "national-zoological-garden": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 44,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "naturwildpark-granat": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 70,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "naturzoo-rheine": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 59,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "onze-beestenboel": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 79,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "pairi-daiza": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 29,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "prague-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 27,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "safariland-stukenbrock": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 66,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "san-diego-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 35,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "sao-paulo-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 43,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "sea-life-oberhausen": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 63,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "singapore-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 39,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "smithsonians-national-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 37,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "taipei-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 41,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "taman-indonesia": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 88,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "taronga-zoo-sydney": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 42,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "ten-kates-dierenpark": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 90,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "terrazoo-rheinberg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 62,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-kleve": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 60,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-moenchengladbach": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 61,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-nuernberg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 23,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergarten-schonbrunn": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 28,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tiergehege-kaisergarten": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 64,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-berlin": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 16,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-fossilium-bochum": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 57,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-hagenbeck": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 24,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "tierpark-hellabrunn": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 21,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "toronto-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 38,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "ueno-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "global_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 40,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "uilen-en-dierenpark-de-paay": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "dutch_border",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 85,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "wildpark-grafenberg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 68,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "wildwald-vosswinkel": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 71,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "wilhelma": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 20,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-berlin": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 15,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-dortmund": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 54,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-duisburg": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 50,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-frankfurt": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 19,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-im-brueckenkopfpark": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 73,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-krefeld": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 51,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-leipzig": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "germany_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 17,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoo-zurich": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 33,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zoom-erlebniswelt": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "NRW",
+          "scope": "Regional Lab",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 53,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zooparc-de-beauval": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 34,
+          "version": "Phase0 v0.1"
+        }
+      ],
+      "zsl-london-zoo": [
+        {
+          "authority": "user_designated_authoritative_membership_list",
+          "checked_at": "2026-08-14",
+          "expanded_count": 73,
+          "membership": "europe_top10",
+          "scope": "core30",
+          "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+          "source": "data/zoofan_phase0_zoo_list_v0_1.md",
+          "source_line": 26,
+          "version": "Phase0 v0.1"
+        }
+      ]
+    },
+    "roster_sha": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "roster_sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "roster_source": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "roster_version": "Phase0 v0.1"
+  }
+}

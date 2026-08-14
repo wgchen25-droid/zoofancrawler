@@ -1,0 +1,1237 @@
+zoos:
+- id: zoo-duisburg
+  slug: zoo-duisburg
+  name: Zoo Duisburg
+  region: NRW
+  city: Duisburg
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 50
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://zoo-duisburg.de/
+  metadata:
+    official_host: zoo-duisburg.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: zoo-duisburg-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://zoo-duisburg.de/unser-zoo/aktuelles
+    config:
+      official_host: zoo-duisburg.de
+      source_status_reason: The official archive is retained, but its robots.txt returned
+        HTTP 404. Fetcher fail-closed, so no HTML selector is promoted without a robots-readable
+        response.
+      evidence_urls:
+      - https://zoo-duisburg.de/unser-zoo/aktuelles
+      - https://zoo-duisburg.de/robots.txt
+      checked_at: '2026-08-14'
+- id: zoo-krefeld
+  slug: zoo-krefeld
+  name: Zoo Krefeld
+  region: NRW
+  city: Krefeld
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 51
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.zookrefeld.de/
+  metadata:
+    official_host: www.zookrefeld.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: zoo-krefeld-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://www.zookrefeld.de/aktuelles
+    config:
+      official_host: www.zookrefeld.de
+      source_status_reason: The official archive is retained, but its robots.txt returned
+        HTTP 404. Fetcher fail-closed, so no HTML selector is promoted without a robots-readable
+        response.
+      evidence_urls:
+      - https://www.zookrefeld.de/aktuelles
+      - https://www.zookrefeld.de/robots.txt
+      checked_at: '2026-08-14'
+- id: gruener-zoo-wuppertal
+  slug: gruener-zoo-wuppertal
+  name: Grüner Zoo Wuppertal
+  region: NRW
+  city: Wuppertal
+  groups:
+  - regional_lab
+  - nrw
+  source_status: blocked
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 52
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.wuppertal.de/microsite/zoo/index.php
+  metadata:
+    official_host: www.wuppertal.de
+    tier: Priority
+    source_research_status: blocked
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    id_aliases_reviewed:
+    - gruener-zoo-wuppertal
+    - grüner-zoo-wuppertal
+  sources:
+  - id: gruener-zoo-wuppertal-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: blocked
+    enabled: false
+    url: https://www.wuppertal.de/microsite/zoo/Aktuelles/aktuelles.php
+    config:
+      official_host: www.wuppertal.de
+      source_status_reason: The official municipal archive is known, but direct HTTP
+        returned a Cloudflare challenge. No browser/JS bypass or speculative selectors
+        are allowed.
+      evidence_urls:
+      - https://www.wuppertal.de/microsite/zoo/Aktuelles/aktuelles.php
+      - https://www.wuppertal.de/microsite/zoo/sitemap.php
+      checked_at: '2026-08-14'
+      javascript_required: true
+- id: zoom-erlebniswelt
+  slug: zoom-erlebniswelt
+  name: ZOOM Erlebniswelt
+  region: NRW
+  city: Gelsenkirchen
+  groups:
+  - regional_lab
+  - nrw
+  source_status: success
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 53
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.zoom-erlebniswelt.de/
+  metadata:
+    official_host: www.zoom-erlebniswelt.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: ready
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: zoom-erlebniswelt-press
+    language: de
+    name: news
+    kind: archive
+    source_status: success
+    enabled: true
+    url: https://www.zoom-erlebniswelt.de/presse/
+    config:
+      official_host: www.zoom-erlebniswelt.de
+      article_selector: div.t-entry
+      link_selector: a[href*="/presse-2026/"]
+      title_selector: h3.t-entry-title
+      date_selector: span.t-entry-date
+      allow_regex:
+      - ^https://www\.zoom-erlebniswelt\.de/presse-2026/[^/?#]+/?$
+      exclude_regex:
+      - ^https://www\.zoom-erlebniswelt\.de/(?:presse/?|tierische-neuigkeiten/?|newsletter/?|kontakt/?|impressum/?)$
+      max_pages: 1
+- id: zoo-dortmund
+  slug: zoo-dortmund
+  name: Zoo Dortmund
+  region: NRW
+  city: Dortmund
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 54
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/
+  metadata:
+    official_host: www.dortmund.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: zoo-dortmund-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/
+    config:
+      official_host: www.dortmund.de
+      source_status_reason: The official municipal Zoo Dortmund page is retained,
+        but the city robots endpoint exceeded the redirect limit. Fail-closed discovery
+        cannot promote selectors.
+      evidence_urls:
+      - https://www.dortmund.de/themen/freizeit-und-kultur/parks-seen-und-zoo/zoo-dortmund/
+      - https://www.dortmund.de/robots.txt
+      checked_at: '2026-08-14'
+- id: allwetterzoo-muenster
+  slug: allwetterzoo-muenster
+  name: Allwetterzoo Münster
+  region: NRW
+  city: Münster
+  groups:
+  - regional_lab
+  - nrw
+  source_status: unsupported
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 55
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.allwetterzoo.de/
+  metadata:
+    official_host: www.allwetterzoo.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    id_aliases_reviewed:
+    - allwetterzoo-muenster
+    - allwetterzoo-münster
+  sources:
+  - id: allwetterzoo-muenster-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: unsupported
+    enabled: false
+    url: https://www.allwetterzoo.de/de/ueber-den-zoo/news/
+    config:
+      official_host: www.allwetterzoo.de
+      source_status_reason: The robots-readable page returned HTTP 200 and 12 visible
+        news cards, but card links are data-href attributes on div.news-teaser-link
+        rather than a[href]. The built-in archive parser cannot consume this contract;
+        no feed/API was evidenced.
+      evidence_urls:
+      - https://www.allwetterzoo.de/de/ueber-den-zoo/news/
+      checked_at: '2026-08-14'
+- id: aachener-tierpark-euregiozoo
+  slug: aachener-tierpark-euregiozoo
+  name: Aachener Tierpark Euregiozoo
+  region: NRW
+  city: Aachen
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 56
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.euregiozoo.de/
+  metadata:
+    official_host: www.euregiozoo.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: aachener-tierpark-euregiozoo-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://www.euregiozoo.de/de/kontakt/rss.php
+    config:
+      official_host: www.euregiozoo.de
+      source_status_reason: The official RSS URL is known, but robots.txt returned
+        HTTP 404. The feed is not promoted until fail-closed fetching can verify it.
+      evidence_urls:
+      - https://www.euregiozoo.de/de/kontakt/rss.php
+      - https://www.euregiozoo.de/robots.txt
+      checked_at: '2026-08-14'
+- id: tierpark-fossilium-bochum
+  slug: tierpark-fossilium-bochum
+  name: Tierpark + Fossilium Bochum
+  region: NRW
+  city: Bochum
+  groups:
+  - regional_lab
+  - nrw
+  source_status: success
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 57
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.tierpark-bochum.de/
+  metadata:
+    official_host: www.tierpark-bochum.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: ready
+    recommended: true
+    verified_live: true
+    success_claim: true
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    bounded_live_retest:
+      checked_at: '2026-08-14T09:05:18.970547+00:00'
+      source_id: tierpark-fossilium-bochum-news
+      source_http_status: 200
+      pass1_run_id: 0c2ed2d8d0954098a18230cffb1b7147
+      pass2_run_id: 9b35f084a4094bee8d694b4f1ad287fa
+      pass1_status: completed
+      pass2_status: completed
+      pass1_discovered: 50
+      pass1_fetched: 1
+      pass1_parsed: 1
+      pass1_stored: 1
+      pass1_inserted: 1
+      pass1_updated: 0
+      pass2_discovered: 50
+      pass2_fetched: 0
+      pass2_parsed: 0
+      pass2_stored: 0
+      pass2_inserted: 0
+      pass2_updated: 0
+      pass2_already_known: 1
+      error_count: 0
+      parser_warning_count: 0
+      navigation_errors: 0
+      content_errors: 0
+      date_errors: 0
+      article_url: https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026
+      article_title: Lernen, staunen, entdecken
+      article_published_at: '2026-08-11T00:00:00+00:00'
+      article_content_chars: 3271
+      article_parse_status: success
+      article_quality_warning_count: 0
+      evidence_artifacts:
+      - /tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass1.json
+      - /tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass2.json
+      - /tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass1.log
+      - /tmp/zoofan-bochum-live.J5146k/tierpark-fossilium-bochum-pass2.log
+  sources:
+  - id: tierpark-fossilium-bochum-news
+    language: de
+    name: news
+    kind: archive
+    source_status: success
+    enabled: true
+    recommended: true
+    verified_live: true
+    success_claim: true
+    url: https://www.tierpark-bochum.de/neuigkeiten/aktuelles
+    config:
+      official_host: www.tierpark-bochum.de
+      article_selector: div.news
+      link_selector: div.more a[href*="/neuigkeiten/aktuelles/detail/"]
+      title_selector: h4
+      date_selector: span.date
+      article_content_selector: 'main .ais-news-details > .col-md-12'
+      allow_regex:
+      - ^https://www\.tierpark-bochum\.de/neuigkeiten/aktuelles/detail/[^/?#]+/?$
+      exclude_regex:
+      - ^https://www\.tierpark-bochum\.de/neuigkeiten/aktuelles/?$
+      max_pages: 1
+      recommended: true
+      verified_live: true
+      success_claim: true
+      quality_retest_checked_at: '2026-08-14T09:05:18.970547+00:00'
+      quality_retest_pass1_run_id: 0c2ed2d8d0954098a18230cffb1b7147
+      quality_retest_pass2_run_id: 9b35f084a4094bee8d694b4f1ad287fa
+      quality_retest_article_url: https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026
+      quality_retest_article_title: Lernen, staunen, entdecken
+      quality_retest_article_published_at: '2026-08-11T00:00:00+00:00'
+      quality_retest_article_content_chars: 3271
+      quality_retest_article_parse_status: success
+      quality_retest_quality_warning_count: 0
+      quality_retest_parser_warning_count: 0
+      quality_retest_navigation_errors: 0
+      quality_retest_content_errors: 0
+      quality_retest_date_errors: 0
+- id: aquazoo-loebbecke-museum
+  slug: aquazoo-loebbecke-museum
+  name: Aquazoo Löbbecke Museum
+  region: NRW
+  city: Düsseldorf
+  groups:
+  - regional_lab
+  - nrw
+  source_status: success
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 58
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://aquazoo-duesseldorf.de/
+  metadata:
+    official_host: aquazoo-duesseldorf.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: ready
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    id_aliases_reviewed:
+    - aquazoo-loebbecke-museum
+    - aquazoo-löbbecke-museum
+  sources:
+  - id: aquazoo-loebbecke-museum-news
+    language: de
+    name: news
+    kind: archive
+    source_status: success
+    enabled: true
+    url: https://aquazoo-duesseldorf.de/aktuelles
+    config:
+      official_host: aquazoo-duesseldorf.de
+      article_selector: div.col-12.col-md-6.col-xl-4
+      link_selector: a[href*="/aktuelles/"]
+      title_selector: a.mb-2
+      date_selector: div.tile > div > p
+      allow_regex:
+      - ^https://aquazoo-duesseldorf\.de/aktuelles/[^/?#]+/?$
+      exclude_regex:
+      - ^https://aquazoo-duesseldorf\.de/aktuelles/?$
+      max_pages: 1
+- id: naturzoo-rheine
+  slug: naturzoo-rheine
+  name: NaturZoo Rheine
+  region: NRW
+  city: Rheine
+  groups:
+  - regional_lab
+  - nrw
+  source_status: success
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 59
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.naturzoo.de/
+  metadata:
+    official_host: www.naturzoo.de
+    tier: Priority
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: ready
+    recommended: true
+    verified_live: true
+    success_claim: true
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    bounded_live_retest:
+      checked_at: '2026-08-14T08:45:30.048299+00:00'
+      source_id: naturzoo-rheine-news
+      source_http_status: 200
+      pass1_run_id: 67f3b8d49d1b4bf79b9965cab0e93764
+      pass2_run_id: 99415d6aabbb4206951fac24dd3ee51a
+      pass1_status: completed
+      pass2_status: completed
+      pass1_discovered: 10
+      pass1_fetched: 1
+      pass1_parsed: 1
+      pass1_stored: 1
+      pass1_inserted: 1
+      pass1_updated: 0
+      pass2_discovered: 10
+      pass2_fetched: 0
+      pass2_parsed: 0
+      pass2_stored: 0
+      pass2_inserted: 0
+      pass2_updated: 0
+      pass2_already_known: 1
+      error_count: 0
+      navigation_errors: 0
+      content_errors: 0
+      date_errors: 0
+      article_url: https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu
+      article_title: Bunt, giftig und neu
+      article_published_at: '2026-05-29T10:55:00+02:00'
+      article_content_chars: 661
+      article_parse_status: success
+      article_quality_warning_count: 0
+      contamination_tokens: []
+      evidence_artifacts:
+      - /tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass1.json
+      - /tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass2.json
+      - /tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass1.log
+      - /tmp/zoofan-live-retest.c8xlNs/naturzoo-rheine-pass2.log
+  sources:
+  - id: naturzoo-rheine-news
+    language: de
+    name: news
+    kind: archive
+    source_status: success
+    enabled: true
+    recommended: true
+    verified_live: true
+    success_claim: true
+    url: https://www.naturzoo.de/aktuelles/
+    config:
+      official_host: www.naturzoo.de
+      article_selector: div.row.news-list-item
+      link_selector: a[href*="/aktuelles/artikel/"]
+      title_selector: h3[itemprop="headline"]
+      date_selector: time[itemprop="datePublished"]
+      article_content_selector: '#main > .content .news-single .news-text-wrap'
+      pagination_selector: a[href*="tx_news_pi1"][href*="currentPage"]
+      allow_regex:
+      - ^https://www\.naturzoo\.de/aktuelles/artikel/[^/?#]+/?$
+      exclude_regex:
+      - ^https://www\.naturzoo\.de/aktuelles/?$
+      max_pages: 2
+      recommended: true
+      verified_live: true
+      success_claim: true
+      quality_retest_checked_at: '2026-08-14T08:45:30.048299+00:00'
+      quality_retest_pass1_run_id: 67f3b8d49d1b4bf79b9965cab0e93764
+      quality_retest_pass2_run_id: 99415d6aabbb4206951fac24dd3ee51a
+      quality_retest_article_url: https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu
+      quality_retest_article_title: Bunt, giftig und neu
+      quality_retest_article_published_at: '2026-05-29T10:55:00+02:00'
+      quality_retest_article_content_chars: 661
+      quality_retest_article_parse_status: success
+      quality_retest_quality_warning_count: 0
+      quality_retest_navigation_errors: 0
+      quality_retest_content_errors: 0
+      quality_retest_date_errors: 0
+- id: tiergarten-kleve
+  slug: tiergarten-kleve
+  name: Tiergarten Kleve
+  region: NRW
+  city: Kleve
+  groups:
+  - regional_lab
+  - nrw
+  source_status: unsupported
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 60
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://tiergarten-kleve.de/
+  metadata:
+    official_host: tiergarten-kleve.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: tiergarten-kleve-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: unsupported
+    enabled: false
+    url: https://tiergarten-kleve.de/feed/
+    config:
+      official_host: tiergarten-kleve.de
+      source_status_reason: The verified RSS feed is parseable, but all 10 observed
+        links are generic one-segment root slugs. No stable /news/, /artikel/, category,
+        or post-type path is evidenced, so the broad root-slug rule is disabled rather
+        than promoted.
+      evidence_urls:
+      - https://tiergarten-kleve.de/feed/
+      - https://tiergarten-kleve.de/aktuelles/
+      - https://tiergarten-kleve.de/wp-json/wp/v2/posts
+      checked_at: '2026-08-14'
+- id: tiergarten-moenchengladbach
+  slug: tiergarten-moenchengladbach
+  name: Tiergarten Mönchengladbach
+  region: NRW
+  city: Mönchengladbach
+  groups:
+  - regional_lab
+  - nrw
+  source_status: unsupported
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 61
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.tiergarten-moenchengladbach.de/
+  metadata:
+    official_host: www.tiergarten-moenchengladbach.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    id_aliases_reviewed:
+    - tiergarten-moenchengladbach
+    - tiergarten-mönchengladbach
+  sources:
+  - id: tiergarten-moenchengladbach-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: unsupported
+    enabled: false
+    url: https://www.tiergarten-moenchengladbach.de/feed/
+    config:
+      official_host: www.tiergarten-moenchengladbach.de
+      source_status_reason: The verified RSS feed is parseable, but all 10 observed
+        links are generic one-segment root slugs. No stable /news/, /artikel/, category,
+        or post-type path is evidenced, so the broad root-slug rule is disabled rather
+        than promoted.
+      evidence_urls:
+      - https://www.tiergarten-moenchengladbach.de/feed/
+      - https://www.tiergarten-moenchengladbach.de/neuigkeiten/
+      - https://www.tiergarten-moenchengladbach.de/wp-json/wp/v2/posts
+      checked_at: '2026-08-14'
+- id: terrazoo-rheinberg
+  slug: terrazoo-rheinberg
+  name: TerraZoo Rheinberg
+  region: NRW
+  city: Rheinberg
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 62
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.terrazoo.de/
+  metadata:
+    official_host: www.terrazoo.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: terrazoo-rheinberg-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://www.terrazoo.de/?format=feed&type=rss
+    config:
+      official_host: www.terrazoo.de
+      source_status_reason: Official RSS/Atom endpoints are retained, but robots.txt
+        returned HTTP 404. No feed parser plan is enabled until fail-closed access
+        is verifiable.
+      evidence_urls:
+      - https://www.terrazoo.de/?format=feed&type=rss
+      - https://www.terrazoo.de/?format=feed&type=atom
+      - https://www.terrazoo.de/robots.txt
+      checked_at: '2026-08-14'
+- id: sea-life-oberhausen
+  slug: sea-life-oberhausen
+  name: SEA LIFE Oberhausen
+  region: NRW
+  city: Oberhausen
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 63
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.visitsealife.com/oberhausen/
+  metadata:
+    official_host: www.visitsealife.com
+    tier: Secondary
+    source_research_status: partial
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: sea-life-oberhausen-press
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://www.visitsealife.com/oberhausen/informationen/presse/
+    config:
+      official_host: www.visitsealife.com
+      source_status_reason: The official press/information identity is clear, but
+        no dedicated RSS/Atom/API or parser-compatible narrow article listing was
+        verified. The press page is retained as a health/registry source only.
+      evidence_urls:
+      - https://www.visitsealife.com/oberhausen/informationen/presse/
+      - https://www.visitsealife.com/oberhausen/informationen/
+      checked_at: '2026-08-14'
+- id: tiergehege-kaisergarten
+  slug: tiergehege-kaisergarten
+  name: Tiergehege Kaisergarten
+  region: NRW
+  city: Oberhausen
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 64
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.tiergehege-kaisergarten.de/tg/
+  metadata:
+    official_host: www.tiergehege-kaisergarten.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: tiergehege-kaisergarten-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://www.tiergehege-kaisergarten.de/tg/feed/
+    config:
+      official_host: www.tiergehege-kaisergarten.de
+      source_status_reason: The official feed URL returned HTTP 200 but redirected
+        to /tg/ and parsed zero RSS items. The category/API URLs are retained as evidence,
+        not speculative adapters.
+      evidence_urls:
+      - https://www.tiergehege-kaisergarten.de/tg/feed/
+      - https://www.tiergehege-kaisergarten.de/tg/category/tiergehege/news/
+      - https://www.tiergehege-kaisergarten.de/tg/wp-json/wp/v2/posts
+      checked_at: '2026-08-14'
+- id: heimat-tierpark-olderdissen
+  slug: heimat-tierpark-olderdissen
+  name: Heimat-Tierpark Olderdissen
+  region: NRW
+  city: Bielefeld
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 65
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.bielefeld.de/tierpark
+  metadata:
+    official_host: www.bielefeld.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: heimat-tierpark-olderdissen-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://www.bielefeld.de/tierpark
+    config:
+      official_host: www.bielefeld.de
+      source_status_reason: The official municipal identity page is retained, but
+        robots.txt was malformed (rule without a user-agent). Fail-closed discovery
+        cannot promote municipal selectors.
+      evidence_urls:
+      - https://www.bielefeld.de/tierpark
+      - https://www.bielefeld.de/robots.txt
+      - https://www.bielefeld.de/pressedienst
+      checked_at: '2026-08-14'
+- id: safariland-stukenbrock
+  slug: safariland-stukenbrock
+  name: Safariland Stukenbrock
+  region: NRW
+  city: Schloß Holte-Stukenbrock
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 66
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://safariland-stukenbrock.de/
+  metadata:
+    official_host: safariland-stukenbrock.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: safariland-stukenbrock-press
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://safariland-stukenbrock.de/infos/presse.html
+    config:
+      official_host: safariland-stukenbrock.de
+      source_status_reason: The official press surface is retained, but robots.txt
+        returned HTTP 404. No HTML selectors are promoted while fail-closed fetching
+        cannot verify the source.
+      evidence_urls:
+      - https://safariland-stukenbrock.de/infos/presse.html
+      - https://safariland-stukenbrock.de/robots.txt
+      checked_at: '2026-08-14'
+- id: affen-und-vogelpark-eckenhagen
+  slug: affen-und-vogelpark-eckenhagen
+  name: Affen- und Vogelpark Eckenhagen
+  region: NRW
+  city: Reichshof
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 67
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://affen-und-vogelpark.de/
+  metadata:
+    official_host: affen-und-vogelpark.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: affen-und-vogelpark-eckenhagen-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://affen-und-vogelpark.de/feed/
+    config:
+      official_host: affen-und-vogelpark.de
+      source_status_reason: The official feed is robots-readable but contains only
+        one WordPress default ‘Hallo Welt!’ item dated 2016. It is retained for registry
+        health, not promoted as a news adapter.
+      evidence_urls:
+      - https://affen-und-vogelpark.de/feed/
+      - https://affen-und-vogelpark.de/
+      checked_at: '2026-08-14'
+- id: wildpark-grafenberg
+  slug: wildpark-grafenberg
+  name: Wildpark Grafenberg
+  region: NRW
+  city: Düsseldorf
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 68
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.duesseldorf.de/stadtgruen/wald/wildpark
+  metadata:
+    official_host: www.duesseldorf.de
+    tier: Secondary
+    source_research_status: partial
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: wildpark-grafenberg-registry
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://www.duesseldorf.de/stadtgruen/wald/wildpark
+    config:
+      official_host: www.duesseldorf.de
+      source_status_reason: The Düsseldorf municipal page confirms the exact Wildpark
+        identity, but no Wildpark-specific feed or stable article listing was verified.
+        The broad city news index is not a safe substitute.
+      evidence_urls:
+      - https://www.duesseldorf.de/stadtgruen/wald/wildpark
+      - https://www.duesseldorf.de/aktuelles/news
+      checked_at: '2026-08-14'
+- id: biotopwildpark-anholter-schweiz
+  slug: biotopwildpark-anholter-schweiz
+  name: Biotopwildpark Anholter Schweiz
+  region: NRW
+  city: Isselburg
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 69
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.wildpark-nrw.de/
+  metadata:
+    official_host: www.wildpark-nrw.de
+    tier: Secondary
+    source_research_status: partial
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: biotopwildpark-anholter-schweiz-registry
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://www.wildpark-nrw.de/feed/
+    config:
+      official_host: www.wildpark-nrw.de
+      source_status_reason: The canonical wildpark-nrw.de identity and legacy anholter-schweiz.de
+        identity are retained, but the host migration was not promoted to an executable
+        feed plan without a fresh robots-compliant source check.
+      evidence_urls:
+      - https://www.wildpark-nrw.de/feed/
+      - https://www.wildpark-nrw.de/
+      - https://www.anholter-schweiz.de/besucherinformationen/
+      checked_at: '2026-08-14'
+      official_host_aliases:
+      - www.anholter-schweiz.de
+- id: naturwildpark-granat
+  slug: naturwildpark-granat
+  name: Naturwildpark Granat
+  region: NRW
+  city: Haltern am See
+  groups:
+  - regional_lab
+  - nrw
+  source_status: unsupported
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 70
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.naturwildpark.de/
+  metadata:
+    official_host: www.naturwildpark.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: naturwildpark-granat-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: unsupported
+    enabled: false
+    url: https://www.naturwildpark.de/feed/
+    config:
+      official_host: www.naturwildpark.de
+      source_status_reason: The verified RSS feed is parseable, but all six observed
+        links are generic one-segment root slugs and the latest is stale (2018-11-26).
+        No stable /news/, /artikel/, category, or post-type path is evidenced, so
+        the source is disabled rather than broadened.
+      evidence_urls:
+      - https://www.naturwildpark.de/feed/
+      - https://www.naturwildpark.de/presse/
+      checked_at: '2026-08-14'
+- id: wildwald-vosswinkel
+  slug: wildwald-vosswinkel
+  name: Wildwald Vosswinkel
+  region: NRW
+  city: Arnsberg
+  groups:
+  - regional_lab
+  - nrw
+  source_status: robots_disallowed
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 71
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://wildwald.de/
+  metadata:
+    official_host: wildwald.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: wildwald-vosswinkel-news
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: robots_disallowed
+    enabled: false
+    url: https://wildwald.de/aktuelles/
+    config:
+      official_host: wildwald.de
+      source_status_reason: The official URL redirects to www.wildwald.de, whose robots.txt
+        was malformed (rule without a user-agent). Fetcher fail-closed, so no archive
+        selector is promoted.
+      evidence_urls:
+      - https://wildwald.de/aktuelles/
+      - https://wildwald.de/robots.txt
+      - https://www.wildwald.de/robots.txt
+      checked_at: '2026-08-14'
+      official_host_aliases:
+      - www.wildwald.de
+- id: hochwildpark-rheinland
+  slug: hochwildpark-rheinland
+  name: Hochwildpark Rheinland
+  region: NRW
+  city: Mechernich
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 72
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.hochwildpark-rheinland.de/
+  metadata:
+    official_host: www.hochwildpark-rheinland.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: hochwildpark-rheinland-news-rss
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://www.hochwildpark-rheinland.de/feed/
+    config:
+      official_host: www.hochwildpark-rheinland.de
+      source_status_reason: The official RSS URL is robots-readable and returned HTTP
+        200, but parse_feed found zero items. No article selector is invented from
+        the home page.
+      evidence_urls:
+      - https://www.hochwildpark-rheinland.de/feed/
+      - https://www.hochwildpark-rheinland.de/
+      - https://www.mechernich.de/tourismus-und-freizeit/erlebenswert/hochwildpark-kommern
+      checked_at: '2026-08-14'
+- id: zoo-im-brueckenkopfpark
+  slug: zoo-im-brueckenkopfpark
+  name: Zoo im Brückenkopfpark
+  region: NRW
+  city: Jülich
+  groups:
+  - regional_lab
+  - nrw
+  source_status: source_not_found
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 73
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://brueckenkopf-park.de/
+  metadata:
+    official_host: brueckenkopf-park.de
+    tier: Secondary
+    source_research_status: partial
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: unsupported
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    id_aliases_reviewed:
+    - zoo-im-brueckenkopfpark
+    - zoo-im-brückenkopfpark
+  sources:
+  - id: zoo-im-brueckenkopfpark-registry
+    language: de
+    name: unavailable
+    kind: unsupported
+    source_status: source_not_found
+    enabled: false
+    url: https://brueckenkopf-park.de/events/
+    config:
+      official_host: brueckenkopf-park.de
+      source_status_reason: The official park identifies the zoo and exposes event
+        pages, but no dedicated zoo-news feed or stable article-list contract was
+        evidenced. Events are not silently treated as news.
+      evidence_urls:
+      - https://brueckenkopf-park.de/
+      - https://brueckenkopf-park.de/events/
+      - https://brueckenkopf-park.de/tiere/
+      checked_at: '2026-08-14'
+- id: adlerwarte-berlebeck
+  slug: adlerwarte-berlebeck
+  name: Adlerwarte Berlebeck
+  region: NRW
+  city: Detmold
+  groups:
+  - regional_lab
+  - nrw
+  source_status: success
+  list_provenance:
+  - source: data/zoofan_phase0_zoo_list_v0_1.md
+    version: Phase0 v0.1
+    sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+    source_line: 74
+    scope: Regional Lab
+    membership: NRW
+  country_code: DE
+  language: de
+  website_url: https://www.detmold-adlerwarte.de/
+  metadata:
+    official_host: www.detmold-adlerwarte.de
+    tier: Secondary
+    source_research_status: success
+    source_research_checked_at: '2026-08-14'
+    adapter_plan_status: ready
+    roster_sha256: 6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd
+  sources:
+  - id: adlerwarte-berlebeck-news
+    language: de
+    name: news
+    kind: archive
+    source_status: success
+    enabled: true
+    url: https://www.detmold-adlerwarte.de/aktuelles/
+    config:
+      official_host: www.detmold-adlerwarte.de
+      article_selector: div.card.card--linked
+      link_selector: a[href*="/news/"]
+      title_selector: .card-title [itemprop="headline"]
+      date_selector: time[itemprop="datePublished"]
+      allow_regex:
+      - ^https://www\.detmold-adlerwarte\.de/news/[^/?#]+/?$
+      exclude_regex:
+      - ^https://www\.detmold-adlerwarte\.de/aktuelles/?$
+      max_pages: 1

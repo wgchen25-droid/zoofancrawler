@@ -1,0 +1,25 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "fixture-1",
+        "url": "/news/json-article/",
+        "title": "JSON API article",
+        "publishedAt": "2025-04-03T09:30:00Z",
+        "summary": "JSON API summary"
+      },
+      {
+        "id": "fixture-navigation",
+        "url": "/tickets/",
+        "title": "Navigation noise",
+        "publishedAt": "2025-04-03"
+      },
+      {
+        "id": "fixture-external",
+        "url": "https://outside.example/news/external/",
+        "title": "External noise",
+        "publishedAt": "2025-04-03"
+      }
+    ]
+  }
+}

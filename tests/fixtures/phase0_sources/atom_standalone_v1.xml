@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Phase0 Atom conformance fixture</title>
+  <entry>
+    <title>Atom article</title>
+    <link rel="alternate" href="/news/atom-article/" />
+    <published>2025-04-03T09:30:00Z</published>
+    <updated>2025-04-03T10:00:00Z</updated>
+    <summary>Atom summary</summary>
+  </entry>
+</feed>

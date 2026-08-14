@@ -1,0 +1,884 @@
+{
+  "report_id": "core-europe-source-research",
+  "scope": "The 10 Europe rows in Core 30 / Europe Top 10",
+  "checked_at": "2026-08-14",
+  "roster_source": {
+    "path": "data/zoofan_phase0_zoo_list_v0_1.md",
+    "sha256": "6c470233559657cc39e91c50ba5c12786c33af05bbe13c95c91b317ff76d63dd",
+    "authority": "User-designated authoritative membership list",
+    "rows_expected": 10,
+    "rows_researched": 10
+  },
+  "stable_id_derivation": "Lowercase the exact roster name, apply Unicode NFKD transliteration to ASCII, remove punctuation, and join words with hyphens. IDs are derived from roster_name and are independent of website URLs.",
+  "counts": {
+    "rows": 10,
+    "unique_stable_ids": 10,
+    "duplicate_stable_ids": 0,
+    "groups": {
+      "core30": 10,
+      "europe_top10": 10,
+      "core30_and_europe_top10": 10
+    },
+    "official_website_urls_verified": 10,
+    "news_or_archive_sources_verified": 10,
+    "sitemap_institutions_with_verified_source": 8,
+    "sitemap_endpoints_verified": 9,
+    "sitemap_advertised_but_probe_blocked": 1,
+    "sitemap_not_observed": 1,
+    "rss_sources_verified": 0,
+    "api_sources_verified": 0,
+    "official_press_or_media_pages": 7
+  },
+  "gaps": [
+    "No public RSS or Atom endpoint was verified for any of the 10 institutions.",
+    "No public JSON/API source was verified for any of the 10 institutions. Copenhagen Zoo and ZooParc de Beauval explicitly disallow or block common API paths; those paths are not proposed as crawler sources.",
+    "ZSL London Zoo advertises a sitemap in robots.txt, but the direct sitemap probe returned Cloudflare HTTP 403 on the checked date.",
+    "Tiergarten Schönbrunn did not expose a verified sitemap, RSS, or API endpoint; its German news and press archives are the practical sources.",
+    "Several institutions expose more complete current material in their local language than in English; each record identifies the source language and any stale or sparse English fallback."
+  ],
+  "records": [
+    {
+      "stable_id": "chester-zoo",
+      "roster_name": "Chester Zoo",
+      "roster_country": "United Kingdom",
+      "country_code": "GB",
+      "city": "Chester",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://www.chesterzoo.org/",
+        "host": "www.chesterzoo.org"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["en"],
+        "notes": "English is the observed public site language."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.chesterzoo.org/news",
+            "status": "verified",
+            "notes": "Official news listing; page links expose numbered pagination, currently through page 22, and article links under /news/."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.chesterzoo.org/footer/press-and-media",
+            "status": "verified",
+            "notes": "Official in-house press/media contact page; it describes press releases and media enquiries but is not an article archive."
+          }
+        ],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.chesterzoo.org/sitemap.xml",
+            "status": "verified",
+            "notes": "Official robots.txt advertises this XML endpoint; the adapter must still enforce the official-host URL policy for every loc."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": ["https://www.chesterzoo.org/news"],
+        "pagination": "Follow the numbered page links/query parameter from the listing; page 1 through page 22 were observed.",
+        "article_url_pattern": "https://www.chesterzoo.org/news/<slug>",
+        "selector_notes": "Extract listing links with href beginning /news/; on detail pages parse the heading, publication date, and article body. Use sitemap.xml as a discovery fallback, subject to URLPolicy.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered article links and pagination were visible in HTML.",
+        "framework": "Next.js",
+        "notes": "Normal HTTP fetching is the proposed path; no browser automation is needed."
+      },
+      "evidence_urls": [
+        {"url": "https://www.chesterzoo.org/news", "role": "official news archive"},
+        {"url": "https://www.chesterzoo.org/footer/press-and-media", "role": "official press/media page"},
+        {"url": "https://www.chesterzoo.org/robots.txt", "role": "official crawl policy and sitemap advertisement"},
+        {"url": "https://www.chesterzoo.org/", "role": "official website"}
+      ],
+      "gaps": [
+        "No RSS/Atom or public API endpoint was verified."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zsl-london-zoo",
+      "roster_name": "ZSL London Zoo",
+      "roster_country": "United Kingdom",
+      "country_code": "GB",
+      "city": "London",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://www.londonzoo.org/",
+        "host": "www.londonzoo.org"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["en"],
+        "notes": "English is the observed public zoo and ZSL site language."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.londonzoo.org/zoo-stories/news",
+            "status": "verified",
+            "notes": "Official London Zoo news archive; the rendered listing showed article cards and 15 pages."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.zsl.org/about-zsl/press",
+            "status": "verified",
+            "notes": "Official ZSL media/press office page for the institution that runs London Zoo; it is a press contact page rather than a crawlable release archive."
+          }
+        ],
+        "blog": [
+          {
+            "url": "https://www.londonzoo.org/zoo-stories/blog",
+            "status": "verified",
+            "notes": "Official London Zoo blog listing; the rendered listing showed seven pages."
+          }
+        ],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.londonzoo.org/sitemap.xml",
+            "status": "advertised_but_probe_blocked",
+            "notes": "Official robots.txt advertises this URL; direct HTTP probing returned Cloudflare HTTP 403 on 2026-08-14. Do not treat the block as evidence that the sitemap is absent."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": [
+          "https://www.londonzoo.org/zoo-stories/news",
+          "https://www.londonzoo.org/zoo-stories/blog"
+        ],
+        "pagination": "Follow the archive's internal page controls; news currently exposed 15 pages and blog seven pages in the rendered listing.",
+        "article_url_pattern": "https://www.londonzoo.org/zoo-stories/{news|blog}/<slug>",
+        "selector_notes": "Extract only links whose path remains under /zoo-stories/news/ or /zoo-stories/blog/. Use sitemap.xml only when a normal Fetcher can retrieve it and retain robots fail-closed behavior.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": null,
+        "rendering": "Server-rendered listing was visible through official page retrieval.",
+        "framework": null,
+        "probe_status": "unknown_due_to_cloudflare",
+        "notes": "Direct curl probes for the listing, feed, and sitemap returned Cloudflare HTTP 403 on the checked date, while the official rendered page exposed article links. Do not add browser automation as a crawler fallback."
+      },
+      "evidence_urls": [
+        {"url": "https://www.londonzoo.org/zoo-stories/news", "role": "official zoo news archive"},
+        {"url": "https://www.londonzoo.org/zoo-stories/blog", "role": "official zoo blog archive"},
+        {"url": "https://www.zsl.org/about-zsl/press", "role": "official ZSL press office"},
+        {"url": "https://www.londonzoo.org/plan-your-visit/how-to-get-to-london-zoo", "role": "official address page"},
+        {"url": "https://www.londonzoo.org/robots.txt", "role": "official crawl policy and sitemap advertisement"}
+      ],
+      "gaps": [
+        "No RSS/Atom or public API endpoint was verified.",
+        "The sitemap is advertised but was not retrievable in the direct probe because of Cloudflare HTTP 403.",
+        "ZSL provides a press office page, but no separate public London Zoo press-release archive was verified."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "prague-zoo",
+      "roster_name": "Prague Zoo",
+      "roster_country": "Czechia",
+      "country_code": "CZ",
+      "city": "Prague",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "source_status": "success",
+      "success_claim": true,
+      "official_website": {
+        "url": "https://www.zoopraha.cz/en/",
+        "host": "www.zoopraha.cz"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["cs", "en"],
+        "notes": "The English archive is used for this report; the same official site also exposes Czech pages."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.zoopraha.cz/en/about-zoo/news",
+            "status": "verified",
+        "notes": "Official English news archive; article cards and offset pagination (start=10, start=20, and later offsets) were observed. The exact #maincontent .para source-scoped selector passed the final bounded live retest fd414c1ddbcc4d01b9da4665eac7cf16/ceb3095732134607bbe33edf18376cdd: one clean 4,263-character article was stored, then the same candidate was already known with no errors. The English OG summary is article-specific, and /about-zoo/ no longer produces a false missing-summary warning."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.zoopraha.cz/en/about-zoo/142-contacts",
+            "status": "verified",
+            "notes": "Official contacts page lists public-relations contact details; no separate public press-release archive was verified."
+          }
+        ],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.zoopraha.cz/sitemap.xml",
+            "status": "verified",
+        "notes": "Official XML sitemap endpoint returned successfully; news archive remains the narrower source. The exact #maincontent .para source-scoped selector passed the final bounded live retest fd414c1ddbcc4d01b9da4665eac7cf16/ceb3095732134607bbe33edf18376cdd: one clean 589-character Czech article was stored, then the same candidate was already known with no errors."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": ["https://www.zoopraha.cz/en/about-zoo/news"],
+        "pagination": "Follow offset pagination using the observed ?start=10, ?start=20 style links until the archive has no next page.",
+        "article_url_pattern": "https://www.zoopraha.cz/en/about-zoo/news/<slug-or-id>",
+        "article_content_selector": "#maincontent .para",
+        "content_selector_status": "verified_live",
+        "recommended": true,
+        "success_claim": true,
+        "selector_notes": "Extract links under /en/about-zoo/news/ from the listing; parse title/date/body on detail pages with the exact #maincontent .para root verified by the final live retest. Use the sitemap only as a constrained fallback and reject non-official hosts.",
+        "fallbacks": ["sitemap"]
+      },
+      "content_selector_diagnostic": {
+        "status": "verified_live_retest",
+        "remediation_status": "verified_live",
+        "success_claim": true,
+        "checked_at": "2026-08-14",
+        "check_context": "Final quality bounded live retest from /tmp/zoofan-phase0.9Jx9xK on 2026-08-14 using the normal HTTP/robots-compliant fetcher; pass1/pass2 run_ids fd414c1ddbcc4d01b9da4665eac7cf16 and ceb3095732134607bbe33edf18376cdd.",
+        "article_http_status": 200,
+        "generic_roots_found": {"main": false, "article": false},
+        "article_content_selector": "#maincontent .para",
+        "proposed_article_content_selector": "#maincontent .para",
+        "evidence_urls": [
+          "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year",
+          "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda"
+        ],
+        "limitations": [
+          "The generic parser still finds no main/article root; the exact source-scoped selector is verified by the clean live retest.",
+          "The English listing has no date element, so date_selector remains intentionally omitted."
+        ],
+        "retest": {
+          "run_ids": ["fd414c1ddbcc4d01b9da4665eac7cf16", "ceb3095732134607bbe33edf18376cdd"],
+          "pass1": {"run_id": "fd414c1ddbcc4d01b9da4665eac7cf16", "status": "completed", "fetched": 2, "stored": 2, "content_chars": [4263, 589], "already_known": 0, "errors": []},
+          "pass2": {"run_id": "ceb3095732134607bbe33edf18376cdd", "status": "completed", "fetched": 0, "stored": 0, "content_chars": 0, "already_known": 2, "errors": []},
+          "og_summary": {"english_article_specific": true, "about_zoo_false_warning": false},
+          "success_claim": true
+        }
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed article cards and pagination.",
+        "framework": null,
+        "notes": "The official HTTPS pages were directly retrievable; no JavaScript-only source was needed."
+      },
+      "evidence_urls": [
+        {"url": "https://www.zoopraha.cz/en/about-zoo/news", "role": "official English news archive"},
+        {"url": "https://www.zoopraha.cz/en/about-zoo/142-contacts", "role": "official contacts and public-relations page"},
+        {"url": "https://www.zoopraha.cz/sitemap.xml", "role": "official sitemap"},
+        {"url": "https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year", "role": "bounded HTTP-200 English article diagnostic"},
+        {"url": "https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda", "role": "bounded HTTP-200 Czech sitemap article diagnostic"},
+        {"url": "https://www.zoopraha.cz/en/", "role": "official English website"}
+      ],
+      "gaps": [
+        "No RSS/Atom or public API endpoint was verified.",
+        "No separate public press-release archive was located beyond the official contacts page.",
+        "The exact #maincontent .para selector is verified_live for both enabled Prague article paths by the final clean retest; the generic parser still has no main/article root, and the English listing has no date selector."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "tiergarten-schonbrunn",
+      "roster_name": "Tiergarten Schönbrunn",
+      "roster_country": "Austria",
+      "country_code": "AT",
+      "city": "Vienna",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://www.zoovienna.at/en/",
+        "host": "www.zoovienna.at"
+      },
+      "language": {
+        "primary": "de",
+        "available": ["de", "en"],
+        "notes": "The German news and press archives are current; the English news page was observed but contained only an older sparse set of items."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.zoovienna.at/de/news/",
+            "status": "verified",
+            "notes": "Official current German news archive; older-page pagination uses the seite query parameter."
+          },
+          {
+            "url": "https://www.zoovienna.at/en/news/",
+            "status": "verified_sparse",
+            "canonical_status": "partial",
+            "notes": "Official English news page exists but was sparse/stale compared with the German archive."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.zoovienna.at/presse/",
+            "status": "verified",
+            "notes": "Official German press page with current press releases and press contacts."
+          },
+          {
+            "url": "https://www.zoovienna.at/presse/archiv",
+            "status": "verified",
+            "notes": "Official press-release archive; pagination uses the seite query parameter."
+          }
+        ],
+        "blog": [],
+        "rss": [],
+        "sitemap": [],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": [
+          "https://www.zoovienna.at/de/news/",
+          "https://www.zoovienna.at/presse/archiv"
+        ],
+        "pagination": "Follow ?seite=N and the older-post link from the German news archive; use the same pattern for the press archive.",
+        "article_url_pattern": "https://www.zoovienna.at/de/news/<slug> or https://www.zoovienna.at/presse/<slug>",
+        "selector_notes": "The German news listing exposes item wrappers/links under /de/news/; press archive links remain under /presse/. Prefer German content for completeness and retain source language on each article.",
+        "fallbacks": []
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed current German news and press listings.",
+        "framework": null,
+        "notes": "Direct official pages returned HTML from Apache; no JavaScript-only source was needed."
+      },
+      "evidence_urls": [
+        {"url": "https://www.zoovienna.at/de/news/", "role": "official German news archive"},
+        {"url": "https://www.zoovienna.at/en/news/", "role": "official English news archive"},
+        {"url": "https://www.zoovienna.at/presse/archiv", "role": "official press-release archive"},
+        {"url": "https://www.zoovienna.at/en/zoo-and-visitors/contact/", "role": "official address/contact page"},
+        {"url": "https://www.zoovienna.at/robots.txt", "role": "official crawl policy"}
+      ],
+      "gaps": [
+        "No verified sitemap, RSS/Atom, or public API endpoint was found.",
+        "English news coverage is much sparser than the current German archive; the proposed adapter should use German as primary."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "pairi-daiza",
+      "roster_name": "Pairi Daiza",
+      "roster_country": "Belgium",
+      "country_code": "BE",
+      "city": "Brugelette",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://www.pairidaiza.eu/en/",
+        "host": "www.pairidaiza.eu"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["en", "fr", "nl", "de"],
+        "notes": "English archive is used for the proposed source; the official site exposes French, Dutch, and German language links as well."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.pairidaiza.eu/en/news/",
+            "status": "verified",
+            "notes": "Official English news archive with dated article cards and nine listing pages observed."
+          }
+        ],
+        "press": [],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.pairidaiza.eu/wp-sitemap.xml",
+            "status": "verified",
+            "notes": "Official WordPress sitemap advertised by robots.txt; use only as a constrained discovery fallback."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": ["https://www.pairidaiza.eu/en/news/"],
+        "pagination": "Follow the numbered archive links; nine pages were observed. Do not infer page URLs beyond links actually exposed by the listing.",
+        "article_url_pattern": "https://www.pairidaiza.eu/en/news/<category>/<slug>/",
+        "selector_notes": "Extract card links under /en/news/ and parse the title/date/body from each detail page. Use wp-sitemap.xml as fallback, filtering to the official host and news path.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed dated cards, article links, and pagination.",
+        "framework": null,
+        "notes": "The response contained server-rendered content; client-side enhancement was not required for source discovery."
+      },
+      "evidence_urls": [
+        {"url": "https://www.pairidaiza.eu/en/news/", "role": "official English news archive"},
+        {"url": "https://www.pairidaiza.eu/en/prepare-your-visit/", "role": "official location/address page"},
+        {"url": "https://www.pairidaiza.eu/wp-sitemap.xml", "role": "official sitemap"},
+        {"url": "https://www.pairidaiza.eu/robots.txt", "role": "official crawl policy and sitemap advertisement"}
+      ],
+      "gaps": [
+        "No RSS/Atom, public API, or public press-release archive on pairidaiza.eu was verified."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "diergaarde-blijdorp",
+      "roster_name": "Diergaarde Blijdorp",
+      "roster_country": "Netherlands",
+      "country_code": "NL",
+      "city": "Rotterdam",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://diergaardeblijdorp.nl/en/",
+        "host": "diergaardeblijdorp.nl"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["en", "nl"],
+        "notes": "The official English media archive is used; Dutch is also available and may carry additional coverage. The English site labels the institution Rotterdam Zoo while the roster name remains Diergaarde Blijdorp."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://diergaardeblijdorp.nl/en/media",
+            "status": "verified",
+            "notes": "Official English media/news archive with 12 pages observed and dated article cards."
+          },
+          {
+            "url": "https://diergaardeblijdorp.nl/nl/media",
+            "status": "verified",
+            "notes": "Official Dutch counterpart; use as a language fallback or for more complete coverage."
+          }
+        ],
+        "press": [],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://diergaardeblijdorp.nl/sitemap.xml",
+            "status": "verified",
+            "notes": "Official robots.txt advertises the sitemap; the endpoint returned successfully, although the response content type was text/plain."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": ["https://diergaardeblijdorp.nl/en/media"],
+        "pagination": "Follow the explicit ?page=N links; pages 2 through 12 were observed.",
+        "article_url_pattern": "https://diergaardeblijdorp.nl/en/media/<slug>",
+        "selector_notes": "Extract article links under /en/media/ and parse title/date/body. Use sitemap.xml as a constrained fallback; do not use /api because the official robots policy disallows it.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed article cards and pagination.",
+        "framework": "Next.js",
+        "notes": "Normal HTTP fetching is sufficient for the observed listing."
+      },
+      "evidence_urls": [
+        {"url": "https://diergaardeblijdorp.nl/en/media", "role": "official English media/news archive"},
+        {"url": "https://diergaardeblijdorp.nl/nl/media", "role": "official Dutch media/news archive"},
+        {"url": "https://diergaardeblijdorp.nl/sitemap.xml", "role": "official sitemap"},
+        {"url": "https://diergaardeblijdorp.nl/en/visit", "role": "official visit/location page"},
+        {"url": "https://diergaardeblijdorp.nl/robots.txt", "role": "official crawl policy and sitemap advertisement"}
+      ],
+      "gaps": [
+        "No RSS/Atom, public press archive, or permitted public API endpoint was verified; robots.txt disallows /api."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "burgers-zoo",
+      "roster_name": "Burgers' Zoo",
+      "roster_country": "Netherlands",
+      "country_code": "NL",
+      "city": "Arnhem",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "source_status": "success",
+      "success_claim": true,
+      "official_website": {
+        "url": "https://www.burgerszoo.com/",
+        "host": "www.burgerszoo.com"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["en", "nl", "de"],
+        "notes": "English is used for the proposed source; the official site exposes Dutch and German variants."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.burgerszoo.com/news",
+            "status": "verified",
+            "notes": "Official English news listing with current article cards; the page offers a Load more interaction rather than stable numbered pagination. The exact main#main-content > .container-xl > .longread article root passed the final quality live retest."
+          }
+        ],
+        "press": [],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.burgerszoo.com/sitemap.xml",
+            "status": "verified",
+            "notes": "Official robots.txt advertises this XML sitemap; it is the deterministic fallback for the Load more listing. The exact main#main-content > .container-xl > .longread article root passed the final quality live retest."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": ["https://www.burgerszoo.com/news"],
+        "pagination": "The rendered page uses Load more; inspect only the official HTML link/form target if exposed. Use sitemap.xml as the deterministic discovery fallback rather than guessing an API endpoint.",
+        "article_url_pattern": "https://www.burgerszoo.com/news/YYYY/MM/<slug>",
+        "article_content_selector": "main#main-content > .container-xl > .longread",
+        "content_selector_status": "verified_live",
+        "recommended": true,
+        "success_claim": true,
+        "selector_notes": "Extract article links under /news/ from the initial listing and any server-provided Load more target; parse title/date/body on detail pages with the exact main#main-content > .container-xl > .longread root. Filter sitemap locs to the official host and /news/ path.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered article cards and links were visible in HTML.",
+        "framework": null,
+        "notes": "The Load more control may be enhanced client-side, but initial discovery and sitemap fallback do not require browser automation."
+      },
+      "content_selector_diagnostic": {
+        "status": "verified_live_retest",
+        "remediation_status": "verified_live",
+        "success_claim": true,
+        "checked_at": "2026-08-14",
+        "check_context": "Final quality bounded live retest from /tmp/zoofan-phase0.9Jx9xK on 2026-08-14 using the normal HTTP/robots-compliant fetcher; pass1/pass2 run_ids b9e316e67055447384923d18138b96c3 and 92bbe446849e44f6904153d3e90c80cb.",
+        "article_http_status": 200,
+        "article_content_selector": "main#main-content > .container-xl > .longread",
+        "evidence_urls": ["https://www.burgerszoo.com/news", "https://www.burgerszoo.com/sitemap.xml"],
+        "limitations": ["The Load more control has no validated static pagination target; sitemap remains the deterministic fallback.", "The exact selector claim is limited to the recorded source-scoped retest runs."],
+        "retest": {
+          "run_ids": ["b9e316e67055447384923d18138b96c3", "92bbe446849e44f6904153d3e90c80cb"],
+          "pass1": {"run_id": "b9e316e67055447384923d18138b96c3", "status": "completed", "fetched": 2, "stored": 2, "content_chars": [2151, 2498], "navigation_errors": 0, "content_parse_errors": 0, "date_errors": 0, "errors": []},
+          "pass2": {"run_id": "92bbe446849e44f6904153d3e90c80cb", "status": "completed", "inserted": 0, "updated": 0, "fetched": 0, "stored": 0, "errors": []},
+          "success_claim": true
+        }
+      },
+      "evidence_urls": [
+        {"url": "https://www.burgerszoo.com/news", "role": "official English news archive"},
+        {"url": "https://www.burgerszoo.com/sitemap.xml", "role": "official sitemap"},
+        {"url": "https://www.burgerszoo.com/robots.txt", "role": "official crawl policy and sitemap advertisement"},
+        {"url": "https://www.burgerszoo.com/", "role": "official website and address evidence"}
+      ],
+      "gaps": [
+        "No RSS/Atom, public press archive, or public API endpoint was verified.",
+        "The news archive's Load more control should not be assumed to be an API; use only a target explicitly exposed by the official page. The exact main#main-content > .container-xl > .longread selector is verified_live for both enabled archive and sitemap article paths by the final quality retest."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "copenhagen-zoo",
+      "roster_name": "Copenhagen Zoo",
+      "roster_country": "Denmark",
+      "country_code": "DK",
+      "city": "Copenhagen",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "source_status": "success",
+      "success_claim": true,
+      "official_website": {
+        "url": "https://www.zoo.dk/en",
+        "host": "www.zoo.dk"
+      },
+      "language": {
+        "primary": "da",
+        "available": ["da", "en"],
+        "notes": "The current official news archive is Danish; the English site is available for institution and visitor information but /en/news was not a valid archive."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.zoo.dk/nyheder",
+            "status": "verified",
+            "notes": "Official Danish news archive; the rendered page indicated 15 archive pages and current 2026 items. The union selector div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH and Danish date fields passed the bounded live retest: the archive candidate was stored cleanly in the prior pass and was already known in the final pass."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.zoo.dk/om-zoo/presse",
+            "status": "verified",
+            "notes": "Official Danish press/contact page; no separate release feed was verified."
+          },
+          {
+            "url": "https://www.zoo.dk/en/about-us/contact-us",
+            "status": "verified",
+            "notes": "Official English contact page with press contact information and the Copenhagen Zoo address."
+          }
+        ],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://zoo.dk/sitemap.xml",
+            "status": "verified",
+            "notes": "Official robots.txt advertises the canonical no-www sitemap endpoint; the endpoint returned successfully. The union selector div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH and Danish date fields passed the final bounded sitemap retest: one clean 2,555-character article dated 2023-01-25 was stored, then the candidate was already known."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": ["https://www.zoo.dk/nyheder"],
+        "pagination": "Follow the archive's exposed page/year controls; 15 pages were indicated in the rendered listing. Do not call /api because robots.txt disallows /api/*.",
+        "article_url_pattern": "https://www.zoo.dk/nyheder/<slug>",
+        "article_content_selector": "div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH",
+        "article_date_selector": "p.news-article-header_time__ooR7a",
+        "article_date_pattern": "^(?P<day>\\d{1,2})\\.?\\s+(?P<month>januar|februar|marts|april|maj|juni|juli|august|september|oktober|november|december)\\s+(?P<year>\\d{4})$",
+        "content_selector_status": "verified_live",
+        "recommended": true,
+        "success_claim": true,
+        "selector_notes": "Extract news-card links under /nyheder/ from server-rendered HTML and parse Danish title/date/body with the verified union selector div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH and Danish date selector p.news-article-header_time__ooR7a. Use the canonical sitemap as fallback, restricted to the official host; never use #app or /api/*.",
+        "fallbacks": ["sitemap"]
+      },
+      "content_selector_diagnostic": {
+        "status": "verified_live_retest",
+        "remediation_status": "verified_live",
+        "success_claim": true,
+        "checked_at": "2026-08-14",
+        "check_context": "Final bounded live retest from /tmp/zoofan-phase0.9Jx9xK on 2026-08-14 using the normal HTTP/robots-compliant fetcher, max_candidates_per_source=1 and max_pages=1; archive source evidence is from prior pass1/pass2 run_ids b3d0b2e9c3004b2f9a45069dbbb833d6 and eed731ad9545400f99ad722448e36a49, and final sitemap/archive pass1/pass2 run_ids ec45ad0ab68a4cecb59812ec9716a2f8 and d87cac7c7c234d7caa0a67b1d4c2cdd1.",
+        "article_http_status": 200,
+        "generic_roots_found": {"main": false, "article": false},
+        "article_content_selector": "div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH",
+        "proposed_article_content_selector": "div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH",
+        "article_date_selector": "p.news-article-header_time__ooR7a",
+        "article_date_pattern": "^(?P<day>\\d{1,2})\\.?\\s+(?P<month>januar|februar|marts|april|maj|juni|juli|august|september|oktober|november|december)\\s+(?P<year>\\d{4})$",
+        "rejected_fallbacks": ["#app", "/api/*"],
+        "evidence_urls": [
+          "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej",
+          "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022"
+        ],
+        "limitations": [
+          "The body may be short after keeping the article root narrow; LatestNews and footer content are intentionally excluded.",
+          "The generic parser still finds no main/article root; the exact union selector is verified by clean source-scoped live retests.",
+          "Robots disallow /api/*, so no API fallback is permitted."
+        ],
+        "retest": {
+          "archive": {
+            "run_ids": ["b3d0b2e9c3004b2f9a45069dbbb833d6", "eed731ad9545400f99ad722448e36a49"],
+            "pass1": {"run_id": "b3d0b2e9c3004b2f9a45069dbbb833d6", "status": "completed", "fetched": 1, "stored": 1, "content_chars": 306, "already_known": 0, "errors": []},
+            "pass2": {"run_id": "eed731ad9545400f99ad722448e36a49", "status": "completed", "fetched": 0, "stored": 0, "content_chars": 0, "already_known": 1, "errors": []}
+          },
+          "sitemap": {
+            "run_ids": ["ec45ad0ab68a4cecb59812ec9716a2f8", "d87cac7c7c234d7caa0a67b1d4c2cdd1"],
+            "pass1": {"run_id": "ec45ad0ab68a4cecb59812ec9716a2f8", "status": "completed", "fetched": 1, "stored": 1, "content_chars": 2555, "published_at": "2023-01-25", "already_known": 0, "errors": []},
+            "pass2": {"run_id": "d87cac7c7c234d7caa0a67b1d4c2cdd1", "status": "completed", "fetched": 0, "stored": 0, "content_chars": 0, "already_known": 1, "errors": []}
+          },
+          "success_claim": true
+        }
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed current article cards and archive controls.",
+        "framework": "Next.js",
+        "notes": "The official news page was served by Vercel/Next.js; normal HTTP fetching is the proposed path."
+      },
+      "evidence_urls": [
+        {"url": "https://www.zoo.dk/nyheder", "role": "official Danish news archive"},
+        {"url": "https://www.zoo.dk/en/about-us/contact-us", "role": "official English contact/press page"},
+        {"url": "https://www.zoo.dk/om-zoo/presse", "role": "official Danish press page"},
+        {"url": "https://zoo.dk/sitemap.xml", "role": "official sitemap"},
+        {"url": "https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej", "role": "bounded HTTP-200 news article diagnostic"},
+        {"url": "https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022", "role": "bounded HTTP-200 sitemap article diagnostic"},
+        {"url": "https://www.zoo.dk/robots.txt", "role": "official crawl policy and sitemap advertisement"}
+      ],
+      "gaps": [
+        "No RSS/Atom or permitted public API endpoint was verified; robots.txt disallows /api/*.",
+        "No English news archive was verified; the current source is Danish.",
+        "The verified union selector div.generic-text_component__hr0Ih, p.news-article-header_leadingParagraph__K7SWH plus Danish date selector p.news-article-header_time__ooR7a passed source-scoped live retests for both enabled Copenhagen paths. Keep the body narrow: LatestNews/footer are excluded; #app and /api/* are not fallbacks."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zoo-zurich",
+      "roster_name": "Zoo Zürich",
+      "roster_country": "Switzerland",
+      "country_code": "CH",
+      "city": "Zurich",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://www.zoo.ch/en",
+        "host": "www.zoo.ch"
+      },
+      "language": {
+        "primary": "de",
+        "available": ["de", "en", "fr"],
+        "notes": "The German Zoonews and media pages are current; the English Zoonews page explicitly states that most items are currently only in German and was sparse/stale."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://www.zoo.ch/de/zoonews",
+            "status": "verified",
+            "notes": "Official current German Zoonews archive with dated articles and filters."
+          },
+          {
+            "url": "https://www.zoo.ch/en/zoonews",
+            "status": "verified_sparse",
+            "canonical_status": "partial",
+            "notes": "Official English Zoonews fallback; the page says most items are currently only available in German and showed only a sparse older set."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.zoo.ch/de/medien",
+            "status": "verified",
+            "notes": "Official German media page with media releases/background material and a link to further media releases/archive content."
+          }
+        ],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.zoo.ch/de/sitemap.xml",
+            "status": "verified",
+            "notes": "Official root sitemap URL redirects to this language-prefixed XML endpoint."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": [
+          "https://www.zoo.ch/de/zoonews",
+          "https://www.zoo.ch/de/medien"
+        ],
+        "pagination": "Follow the filters and any paging controls exposed by the German archive; do not assume an English mirror has the same coverage.",
+        "article_url_pattern": "https://www.zoo.ch/de/zoonews/<slug>",
+        "selector_notes": "Extract tile links under /de/zoonews/, parse time[datetime], title, and body; treat the media page's further-media link as a second official archive. Use the language-prefixed sitemap as fallback.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed article tiles, dates, and links.",
+        "framework": "Drupal 11",
+        "notes": "The official page reported Drupal 11 and was directly retrievable as HTML."
+      },
+      "evidence_urls": [
+        {"url": "https://www.zoo.ch/de/zoonews", "role": "official German Zoonews archive"},
+        {"url": "https://www.zoo.ch/en/zoonews", "role": "official English Zoonews fallback"},
+        {"url": "https://www.zoo.ch/de/medien", "role": "official media/press page"},
+        {"url": "https://www.zoo.ch/de/kontakt", "role": "official contact/address page"},
+        {"url": "https://www.zoo.ch/de/sitemap.xml", "role": "official sitemap"}
+      ],
+      "gaps": [
+        "No RSS/Atom or public API endpoint was verified.",
+        "English Zoonews is explicitly less complete; German should be the primary source language."
+      ],
+      "checked_at": "2026-08-14"
+    },
+    {
+      "stable_id": "zooparc-de-beauval",
+      "roster_name": "ZooParc de Beauval",
+      "roster_country": "France",
+      "country_code": "FR",
+      "city": "Saint-Aignan",
+      "groups": ["core30", "europe_top10"],
+      "tier": "Core",
+      "official_website": {
+        "url": "https://www.zoobeauval.com/en/",
+        "host": "www.zoobeauval.com"
+      },
+      "language": {
+        "primary": "en",
+        "available": ["fr", "en"],
+        "notes": "The English press and Actus pages are valid official sources; the French Actus archive is also official and generally richer."
+      },
+      "official_sources": {
+        "news": [
+          {
+            "url": "https://actus.zoobeauval.com/en/",
+            "status": "verified",
+            "notes": "Official Beauval Actus English archive with current dated cards and article links on the official subdomain."
+          },
+          {
+            "url": "https://actus.zoobeauval.com/",
+            "status": "verified",
+            "notes": "Official French Actus archive; use as a language/completeness fallback."
+          }
+        ],
+        "press": [
+          {
+            "url": "https://www.zoobeauval.com/en/press/",
+            "status": "verified",
+            "notes": "Official English press area with press releases, kits, media galleries, and latest-news links."
+          },
+          {
+            "url": "https://www.zoobeauval.com/en/press/press-releases",
+            "status": "verified",
+            "notes": "Official English press-release listing."
+          },
+          {
+            "url": "https://www.zoobeauval.com/presse/communiques",
+            "status": "verified",
+            "notes": "Official French press-release listing; useful completeness fallback."
+          }
+        ],
+        "blog": [],
+        "rss": [],
+        "sitemap": [
+          {
+            "url": "https://www.zoobeauval.com/sitemap.xml",
+            "status": "verified",
+            "notes": "Official main-site sitemap."
+          },
+          {
+            "url": "https://actus.zoobeauval.com/sitemap_index.xml",
+            "status": "verified",
+            "notes": "Official Actus sitemap index; use it instead of the disallowed WordPress JSON API."
+          }
+        ],
+        "api": []
+      },
+      "adapter_proposal": {
+        "primary_kind": "archive",
+        "entry_urls": [
+          "https://actus.zoobeauval.com/en/",
+          "https://www.zoobeauval.com/en/press/press-releases"
+        ],
+        "pagination": "Follow the Actus archive's official pagination links and the press-release listing controls; do not guess WordPress REST endpoints.",
+        "article_url_pattern": "https://actus.zoobeauval.com/en/<slug>/",
+        "selector_notes": "Extract Actus card links under the official actus.zoobeauval.com host, parse the time/title/body, and optionally ingest press-release pages separately. Use both official sitemaps as constrained fallbacks; /wp-json paths are disallowed/blocked.",
+        "fallbacks": ["sitemap"]
+      },
+      "js_source_status": {
+        "js_required": false,
+        "rendering": "Server-rendered HTML exposed Actus cards, dates, and article links.",
+        "framework": null,
+        "notes": "The official main and Actus pages were directly retrievable; no browser automation or REST API is proposed."
+      },
+      "evidence_urls": [
+        {"url": "https://www.zoobeauval.com/en/press/", "role": "official English press area"},
+        {"url": "https://www.zoobeauval.com/en/press/press-releases", "role": "official English press-release archive"},
+        {"url": "https://actus.zoobeauval.com/en/", "role": "official English Actus news archive"},
+        {"url": "https://actus.zoobeauval.com/", "role": "official French Actus news archive"},
+        {"url": "https://www.zoobeauval.com/en/prepare-your-visit/access", "role": "official address/location page"},
+        {"url": "https://www.zoobeauval.com/sitemap.xml", "role": "official main sitemap"},
+        {"url": "https://actus.zoobeauval.com/sitemap_index.xml", "role": "official Actus sitemap"}
+      ],
+      "gaps": [
+        "No RSS/Atom endpoint was verified.",
+        "The official Actus WordPress JSON API path is blocked/disallowed and is intentionally not proposed; sitemap and HTML archives are the supported fallbacks."
+      ],
+      "checked_at": "2026-08-14"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>WCS Newsroom</title>
+    <item>
+      <title>Bronx Zoo welcomes a new resident</title>
+      <link>https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/101</link>
+      <description>Updates from the Bronx Zoo animal care team.</description>
+      <pubDate>Thu, 03 Apr 2025 09:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Wildlife conservation update</title>
+      <link>https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/102</link>
+      <description>BRONX,&#160;NY teams report on a spring field project.</description>
+      <pubDate>Fri, 04 Apr 2025 09:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>WCS announces a new global partnership</title>
+      <link>https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/103</link>
+      <description>A conservation partnership serving WCS programs worldwide.</description>
+      <pubDate>Sat, 05 Apr 2025 09:30:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

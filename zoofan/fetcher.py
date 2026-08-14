@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import inspect
+import re
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import urllib.robotparser
+from collections import OrderedDict
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
 from typing import Any, Callable, Mapping, Optional
@@ -37,6 +39,24 @@ class RequestBoundaryError(FetchError):
     """A source-scoped request target was rejected before transport."""
 
 
+_HOST_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$")
+_ROBOTS_DIRECTIVES = frozenset(
+    {
+        "allow",
+        "clean-param",
+        "content-signal",
+        "crawl-delay",
+        "disallow",
+        "host",
+        "noindex",
+        "request-rate",
+        "sitemap",
+        "user-agent",
+        "visit-time",
+    }
+)
+
+
 @dataclass(frozen=True)
 class RequestPolicy:
     """Validate network targets, independently of article-path selection.
@@ -50,32 +70,102 @@ class RequestPolicy:
 
     @classmethod
     def from_zoo_source(cls, zoo: Any, source: Any) -> "RequestPolicy":
-        zoo_metadata = dict(getattr(zoo, "metadata", {}) or {})
-        source_config = dict(getattr(source, "config", {}) or {})
-        config = {**zoo_metadata, **source_config}
+        zoo_metadata_value = getattr(zoo, "metadata", {}) or {}
+        source_config_value = getattr(source, "config", {}) or {}
+        if not isinstance(zoo_metadata_value, Mapping) or not isinstance(source_config_value, Mapping):
+            raise RequestBoundaryError(
+                f"source {getattr(source, 'id', None) or 'unknown-source'} has malformed host configuration"
+            )
+        zoo_metadata = dict(zoo_metadata_value)
+        source_config = dict(source_config_value)
         hosts: list[str] = []
-        for key in ("official_host", "host"):
-            value = config.get(key)
-            if value:
-                hosts.append(str(value))
-        for key in ("official_hosts", "allowed_hosts", "allowed_domains", "host_aliases", "official_host_aliases"):
-            value = config.get(key) or ()
-            if isinstance(value, str):
-                value = [value]
-            hosts.extend(str(item) for item in value if item)
+
+        def add_configured_hosts(config: Mapping[str, Any], destination: list[str]) -> None:
+            for key in (
+                "official_host",
+                "host",
+                "official_hosts",
+                "allowed_hosts",
+                "allowed_domains",
+                "host_aliases",
+                "official_host_aliases",
+            ):
+                if key not in config:
+                    continue
+                value = config[key]
+                if value is None:
+                    raise RequestBoundaryError(
+                        f"source {getattr(source, 'id', None) or 'unknown-source'} has malformed {key} declaration"
+                    )
+                if isinstance(value, str):
+                    values: tuple[Any, ...] = (value,)
+                elif isinstance(value, (list, tuple, set)):
+                    values = tuple(value)
+                else:
+                    raise RequestBoundaryError(
+                        f"source {getattr(source, 'id', None) or 'unknown-source'} has malformed {key} declaration"
+                    )
+                if not values:
+                    raise RequestBoundaryError(
+                        f"source {getattr(source, 'id', None) or 'unknown-source'} has malformed {key} declaration"
+                    )
+                for item in values:
+                    host = cls._configured_host(item)
+                    if not host:
+                        raise RequestBoundaryError(
+                            f"source {getattr(source, 'id', None) or 'unknown-source'} has malformed {key} declaration"
+                        )
+                    if host not in destination:
+                        destination.append(host)
+
+        # Validate both layers independently.  A malformed zoo-level value
+        # must not be hidden by a source-level override before this boundary.
+        add_configured_hosts(zoo_metadata, [])
+        add_configured_hosts(source_config, [])
+        config = {**zoo_metadata, **source_config}
+        add_configured_hosts(config, hosts)
         if not hosts:
             website = getattr(zoo, "website_url", None) or getattr(zoo, "url", None)
             source_url = getattr(source, "url", None)
-            host = urllib.parse.urlsplit(str(website or source_url or "")).hostname
-            if host:
-                hosts.append(host)
-        normalized_hosts: list[str] = []
-        for value in hosts:
-            parsed = urllib.parse.urlsplit(value if "://" in value else "//" + value)
-            host = (parsed.hostname or "").lower().strip(".")
-            if host and host not in normalized_hosts:
-                normalized_hosts.append(host)
-        return cls(str(getattr(source, "id", None) or "unknown-source"), tuple(normalized_hosts))
+            for fallback in (website, source_url):
+                try:
+                    host = urllib.parse.urlsplit(str(fallback or "")).hostname
+                except (TypeError, ValueError):
+                    host = None
+                if host:
+                    normalized = cls._configured_host(host)
+                    if normalized:
+                        hosts.append(normalized)
+                        break
+        return cls(str(getattr(source, "id", None) or "unknown-source"), tuple(hosts))
+
+    @staticmethod
+    def _configured_host(value: Any) -> str:
+        """Normalize a host-only declaration, rejecting ambiguous URL input."""
+
+        if not isinstance(value, str) or not value or value != value.strip():
+            return ""
+        try:
+            parsed = urllib.parse.urlsplit("//" + value)
+            # Accessing ``port`` validates malformed and out-of-range ports.
+            port = parsed.port
+            host = parsed.hostname
+        except (TypeError, ValueError):
+            return ""
+        if (
+            not host
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+            or port is not None
+        ):
+            return ""
+        normalized = host.lower().rstrip(".")
+        if not _HOST_PATTERN.fullmatch(normalized):
+            return ""
+        return normalized
 
     @staticmethod
     def safe_target(url: str) -> str:
@@ -161,6 +251,14 @@ class FetchRequest:
 
 
 Transport = Callable[..., Any]
+Sleep = Callable[[float], None]
+Clock = Callable[[], float]
+
+
+@dataclass(frozen=True)
+class _CachedResponse:
+    expires_at: float
+    response: FetchResponse
 
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -206,7 +304,19 @@ def _coerce_response(value: Any, requested_url: str) -> FetchResponse:
     headers = getattr(value, "headers", {}) or {}
     final_url = getattr(value, "url", requested_url) or requested_url
     reason = getattr(value, "reason", None)
-    return FetchResponse(str(final_url), int(status), bytes(content or b""), headers, reason=reason)
+    raw_history = getattr(value, "history", ()) or ()
+    try:
+        history = tuple(str(getattr(item, "url", item)) for item in raw_history)
+    except TypeError:
+        history = ()
+    return FetchResponse(
+        str(final_url),
+        int(status),
+        bytes(content or b""),
+        headers,
+        reason=reason,
+        history=history,
+    )
 
 
 def scoped_fetch(fetcher: Any, url: str, policy: RequestPolicy) -> Any:
@@ -264,6 +374,13 @@ class Fetcher:
     """
 
     supports_request_policy = True
+    # Keep duplicate same-page requests from a crawl bounded without making a
+    # response stale for long.  Callers that require revalidation can pass
+    # ``cache_ttl=0`` or use ``cache_bypass=True`` for an individual request.
+    DEFAULT_CACHE_TTL = 30.0
+    _RETRYABLE_STATUS_CODES = frozenset(
+        {429, 500, 502, 503, 504, 507, 508, 520, 521, 522, 523, 524}
+    )
 
     def __init__(
         self,
@@ -276,6 +393,11 @@ class Fetcher:
         respect_robots: bool = True,
         robots_transport: Optional[Transport] = None,
         max_redirects: int = 5,
+        sleep: Optional[Sleep] = None,
+        clock: Optional[Clock] = None,
+        wall_clock: Optional[Clock] = None,
+        cache_ttl: float = DEFAULT_CACHE_TTL,
+        cache_max_entries: int = 128,
     ) -> None:
         self.user_agent = user_agent
         self.timeout = float(timeout)
@@ -286,10 +408,20 @@ class Fetcher:
         self.robots_transport = robots_transport
         self.respect_robots = respect_robots
         self.max_redirects = max(0, int(max_redirects))
+        # The positive default coalesces duplicate same-page requests while
+        # the short TTL keeps article/source content reasonably fresh.  Set
+        # ``cache_ttl=0`` to disable caching explicitly.
+        self.cache_ttl = max(0.0, float(cache_ttl))
+        self.cache_max_entries = max(0, int(cache_max_entries))
+        self._sleep = sleep or time.sleep
+        self._clock = clock or time.monotonic
+        self._wall_clock = wall_clock or time.time
         self._domain_locks: dict[str, threading.Lock] = {}
         self._lock_guard = threading.Lock()
         self._last_request: dict[str, float] = {}
-        self._robots: dict[str, Optional[urllib.robotparser.RobotFileParser]] = {}
+        self._robots: dict[str, urllib.robotparser.RobotFileParser] = {}
+        self._cache: OrderedDict[str, _CachedResponse] = OrderedDict()
+        self._cache_lock = threading.Lock()
 
     def _domain_lock(self, domain: str) -> threading.Lock:
         with self._lock_guard:
@@ -357,8 +489,16 @@ class Fetcher:
         return _coerce_response(value, url)
 
     def _validate_response_url(self, response: FetchResponse, requested_url: str, policy: Optional[RequestPolicy]) -> None:
-        requested = policy.validate(requested_url) if policy else normalize_url(requested_url)
-        actual = policy.validate(response.url) if policy else normalize_url(response.url)
+        if policy is not None:
+            requested = policy.validate(requested_url)
+            actual = policy.validate(response.url)
+        else:
+            requested = self._validate_unscoped_target(requested_url)
+            actual = self._validate_unscoped_target(response.url)
+            # Keep the historical identity comparison semantics for response
+            # URL tracking parameters while still requiring a safe URL shape.
+            requested = normalize_url(requested)
+            actual = normalize_url(actual)
         if not actual or actual != requested:
             source = policy.source_id if policy else "unscoped"
             safe = policy.safe_target(response.url) if policy else RequestPolicy.safe_target(response.url)
@@ -366,22 +506,198 @@ class Fetcher:
                 f"source {source} transport response URL changed unexpectedly to {safe}"
             )
 
-    def _robots_parser(self, origin: str, policy: Optional[RequestPolicy]) -> Optional[urllib.robotparser.RobotFileParser]:
+    @staticmethod
+    def _validate_unscoped_target(url: str) -> str:
+        """Validate and canonicalize an unscoped absolute HTTP(S) target."""
+
+        safe = RequestPolicy.safe_target(url)
+        try:
+            raw = str(url).strip()
+            parsed = urllib.parse.urlsplit(raw)
+            parsed.port  # Validate malformed and out-of-range ports.
+            host = parsed.hostname or ""
+            host_for_pattern = host.rstrip(".")
+            if (
+                parsed.scheme.lower() not in {"http", "https"}
+                or not parsed.netloc
+                or not host
+                or parsed.username is not None
+                or parsed.password is not None
+                or (":" not in host and not _HOST_PATTERN.fullmatch(host_for_pattern))
+            ):
+                raise ValueError
+            return RequestPolicy._transport_url(raw)
+        except (TypeError, ValueError):
+            raise ValueError(f"absolute HTTP(S) URL without userinfo required: {safe}") from None
+
+    def _request_with_retries(
+        self,
+        transport: Transport,
+        url: str,
+        headers: Mapping[str, str],
+        policy: Optional[RequestPolicy],
+    ) -> FetchResponse:
+        """Request one hop, retrying only transient transport/HTTP failures."""
+
+        attempts = 0
+        while True:
+            self._wait_for_domain(self._domain(url))
+            try:
+                response = self._call_transport(transport, url, headers)
+            except TransportError:
+                if attempts >= self.retries:
+                    raise
+                self._sleep(self.backoff_factor * (2**attempts))
+                attempts += 1
+                continue
+            self._validate_response_url(response, url, policy)
+            if response.status_code in self._RETRYABLE_STATUS_CODES and attempts < self.retries:
+                wait = self._retry_after(response)
+                if wait is None:
+                    wait = self.backoff_factor * (2**attempts)
+                if wait:
+                    self._sleep(wait)
+                attempts += 1
+                continue
+            return response
+
+    @staticmethod
+    def _clone_response(response: FetchResponse) -> FetchResponse:
+        return FetchResponse(
+            url=response.url,
+            status_code=response.status_code,
+            content=response.content,
+            headers=dict(response.headers),
+            reason=response.reason,
+            history=tuple(response.history),
+        )
+
+    def _cache_get(self, key: str) -> Optional[FetchResponse]:
+        if self.cache_ttl <= 0 or self.cache_max_entries <= 0:
+            return None
+        now = self._clock()
+        with self._cache_lock:
+            entry = self._cache.get(key)
+            if entry is None:
+                return None
+            if entry.expires_at <= now:
+                del self._cache[key]
+                return None
+            self._cache.move_to_end(key)
+            return self._clone_response(entry.response)
+
+    def _cache_put(self, key: str, response: FetchResponse) -> None:
+        if (
+            self.cache_ttl <= 0
+            or self.cache_max_entries <= 0
+            or response.status_code < 200
+            or response.status_code >= 300
+            or response.history
+        ):
+            return
+        entry = _CachedResponse(self._clock() + self.cache_ttl, self._clone_response(response))
+        with self._cache_lock:
+            self._cache[key] = entry
+            self._cache.move_to_end(key)
+            while len(self._cache) > self.cache_max_entries:
+                self._cache.popitem(last=False)
+
+    @staticmethod
+    def _parse_robots_text(text: str, url: str) -> urllib.robotparser.RobotFileParser:
+        """Parse a robots document only when its syntax is recognizably valid.
+
+        ``urllib.robotparser`` intentionally ignores malformed and unknown
+        lines.  That permissive behavior is unsafe here: an empty, truncated,
+        or garbage response would otherwise become an allow-all policy.  Keep
+        support for the common extension directives, while requiring a
+        syntactically valid directive and at least a user-agent or sitemap.
+        """
+
+        if not text or not text.strip():
+            raise RobotsUnavailable(f"robots.txt is empty at {RequestPolicy.safe_target(url)}")
+        saw_directive = False
+        saw_user_agent_or_sitemap = False
+        group_open = False
+        for raw_line in text.splitlines():
+            line = raw_line.split("#", 1)[0].strip()
+            if not line:
+                if not raw_line.strip():
+                    group_open = False
+                continue
+            if ":" not in line:
+                raise RobotsUnavailable(
+                    f"robots.txt contains malformed directive at {RequestPolicy.safe_target(url)}"
+                )
+            name, value = (part.strip() for part in line.split(":", 1))
+            name = name.lower()
+            if not name or name not in _ROBOTS_DIRECTIVES:
+                raise RobotsUnavailable(
+                    f"robots.txt contains unknown directive at {RequestPolicy.safe_target(url)}"
+                )
+            saw_directive = True
+            if name == "user-agent":
+                if not value:
+                    raise RobotsUnavailable(
+                        f"robots.txt contains an empty user-agent at {RequestPolicy.safe_target(url)}"
+                    )
+                saw_user_agent_or_sitemap = True
+                group_open = True
+            elif name == "sitemap":
+                if not value:
+                    raise RobotsUnavailable(
+                        f"robots.txt contains an empty sitemap at {RequestPolicy.safe_target(url)}"
+                    )
+                saw_user_agent_or_sitemap = True
+            elif name in {"allow", "disallow"}:
+                if not group_open:
+                    raise RobotsUnavailable(
+                        f"robots.txt rule has no user-agent at {RequestPolicy.safe_target(url)}"
+                    )
+            elif name == "crawl-delay":
+                if not group_open or not value.isdigit():
+                    raise RobotsUnavailable(
+                        f"robots.txt contains an invalid crawl-delay at {RequestPolicy.safe_target(url)}"
+                    )
+            elif name == "request-rate":
+                parts = value.split("/")
+                if (
+                    not group_open
+                    or len(parts) != 2
+                    or not parts[0].strip().isdigit()
+                    or not parts[1].strip().isdigit()
+                ):
+                    raise RobotsUnavailable(
+                        f"robots.txt contains an invalid request-rate at {RequestPolicy.safe_target(url)}"
+                    )
+            elif not value:
+                raise RobotsUnavailable(
+                    f"robots.txt contains an empty directive at {RequestPolicy.safe_target(url)}"
+                )
+        if not saw_directive or not saw_user_agent_or_sitemap:
+            raise RobotsUnavailable(f"robots.txt has no readable directives at {RequestPolicy.safe_target(url)}")
+        parser = urllib.robotparser.RobotFileParser()
+        parser.set_url(url)
+        try:
+            parser.parse(text.splitlines())
+        except (TypeError, ValueError, UnicodeError) as exc:
+            raise RobotsUnavailable(f"unable to parse robots.txt at {RequestPolicy.safe_target(url)}") from exc
+        return parser
+
+    def _robots_parser(self, origin: str, policy: Optional[RequestPolicy]) -> urllib.robotparser.RobotFileParser:
         if origin in self._robots:
             return self._robots[origin]
         robots_url = urllib.parse.urljoin(origin, "/robots.txt")
         transport = self.robots_transport or self.transport
         try:
-            current_url = policy.validate(robots_url) if policy else normalize_url(robots_url)
+            current_url = policy.validate(robots_url) if policy else self._validate_unscoped_target(robots_url)
             history: list[str] = []
             while True:
-                # robots requests are subject to the same politeness budget.
-                self._wait_for_domain(self._domain(current_url))
-                response = self._call_transport(
-                    transport, current_url,
+                response = self._request_with_retries(
+                    transport,
+                    current_url,
                     {"User-Agent": self.user_agent, "Accept": "text/plain,*/*;q=0.1"},
+                    policy,
                 )
-                self._validate_response_url(response, current_url, policy)
                 if not 300 <= response.status_code < 400:
                     break
                 location = (_header(response, "Location") or "").strip()
@@ -394,20 +710,21 @@ class Fetcher:
                         f"source {policy.source_id if policy else 'unscoped'} robots redirect limit exceeded at {RequestPolicy.safe_target(current_url)}"
                     )
                 next_url = urllib.parse.urljoin(current_url, location)
-                current_url = policy.validate(next_url) if policy else normalize_url(next_url)
+                current_url = policy.validate(next_url) if policy else self._validate_unscoped_target(next_url)
                 history.append(current_url)
         except FetchError as exc:
             if isinstance(exc, RequestBoundaryError):
                 raise
             raise RobotsUnavailable(f"unable to fetch robots.txt for {origin}") from exc
-        if response.status_code == 404:
-            self._robots[origin] = None
-            return None
-        if response.status_code >= 400:
+        if not 200 <= response.status_code < 300:
             raise RobotsUnavailable(f"robots.txt returned HTTP {response.status_code} for {origin}")
-        parser = urllib.robotparser.RobotFileParser()
-        parser.set_url(current_url)
-        parser.parse(response.text.splitlines())
+        try:
+            text = response.content.decode("utf-8-sig")
+        except (AttributeError, UnicodeDecodeError) as exc:
+            raise RobotsUnavailable(
+                f"unable to decode robots.txt for {origin}"
+            ) from exc
+        parser = self._parse_robots_text(text, current_url)
         self._robots[origin] = parser
         return parser
 
@@ -417,19 +734,18 @@ class Fetcher:
             return True
         origin = f"{parsed.scheme}://{parsed.netloc}"
         parser = self._robots_parser(origin, policy)
-        return parser is None or parser.can_fetch(self.user_agent, url)
+        return parser.can_fetch(self.user_agent, url)
 
     def _wait_for_domain(self, domain: str) -> None:
-        now = time.monotonic()
+        now = self._clock()
         previous = self._last_request.get(domain)
         if previous is not None and self.delay:
             remaining = self.delay - (now - previous)
             if remaining > 0:
-                time.sleep(remaining)
-        self._last_request[domain] = time.monotonic()
+                self._sleep(remaining)
+        self._last_request[domain] = self._clock()
 
-    @staticmethod
-    def _retry_after(response: FetchResponse) -> Optional[float]:
+    def _retry_after(self, response: FetchResponse) -> Optional[float]:
         value = _header(response, "Retry-After")
         if not value:
             return None
@@ -438,7 +754,7 @@ class Fetcher:
         except ValueError:
             try:
                 dt = parsedate_to_datetime(value)
-                return max(0.0, dt.timestamp() - time.time())
+                return max(0.0, dt.timestamp() - self._wall_clock())
             except (TypeError, ValueError, OverflowError):
                 return None
 
@@ -449,13 +765,22 @@ class Fetcher:
         timeout: Optional[float] = None,
         respect_robots: Optional[bool] = None,
         request_policy: Optional[RequestPolicy] = None,
+        cache_bypass: bool = False,
     ) -> FetchResponse:
-        """Fetch one URL, returning 404/other terminal HTTP responses intact."""
+        """Fetch one URL, returning 404/other terminal HTTP responses intact.
+
+        ``respect_robots=False`` is an explicit internal/test escape hatch;
+        normal callers should leave it unset so robots remains fail-closed.
+        A successful-response cache is enabled for a conservative 30-second
+        default.  Set ``cache_ttl=0`` to disable it; ``cache_bypass=True``
+        forces a fresh request and refreshes the bounded cache with a
+        successful response.
+        """
 
         if request_policy is not None:
             url = request_policy.validate(url)
-        if not url or not urllib.parse.urlsplit(url).scheme:
-            raise ValueError(f"absolute URL required: {url!r}")
+        else:
+            url = self._validate_unscoped_target(url)
         domain = self._domain(url)
         lock = self._domain_lock(domain)
         original_timeout = self.timeout
@@ -469,14 +794,20 @@ class Fetcher:
                         raise RobotsDisallowed(
                             f"source {source} robots.txt disallows {RequestPolicy.safe_target(url)}"
                         )
+                cache_key = url
+                if not cache_bypass:
+                    cached = self._cache_get(cache_key)
+                    if cached is not None:
+                        # Cached entries are only no-redirect 2xx responses,
+                        # but validate the URL boundary again before reuse.
+                        self._validate_response_url(cached, url, request_policy)
+                        return cached
                 headers = {
                     "User-Agent": self.user_agent,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 }
                 current_url = url
-                current_domain = domain
                 history: list[str] = []
-                attempts = 0
                 while True:
                     request_domain = self._domain(current_url)
                     request_lock = self._domain_lock(request_domain)
@@ -484,24 +815,23 @@ class Fetcher:
                     if owns_request_lock:
                         request_lock.acquire()
                     try:
-                        self._wait_for_domain(request_domain)
                         try:
-                            response = self._call_transport(self.transport, current_url, headers)
+                            response = self._request_with_retries(
+                                self.transport, current_url, headers, request_policy
+                            )
                         except TransportError as exc:
-                            if attempts >= self.retries:
-                                if request_policy:
-                                    raise TransportError(
-                                        f"source {request_policy.source_id} transport failed for {request_policy.safe_target(current_url)}"
-                                    ) from exc
-                                raise
-                            time.sleep(self.backoff_factor * (2**attempts))
-                            attempts += 1
-                            continue
+                            if request_policy:
+                                raise TransportError(
+                                    f"source {request_policy.source_id} transport failed for {request_policy.safe_target(current_url)}"
+                                ) from exc
+                            raise
                     finally:
                         if owns_request_lock:
                             request_lock.release()
-                    response.history = tuple(history)
-                    self._validate_response_url(response, current_url, request_policy)
+                    # Keep any redirect history supplied by a requests-like
+                    # transport in addition to hops followed by this client.
+                    # A response with either kind of history is never cached.
+                    response.history = tuple(history) + tuple(response.history)
                     if 300 <= response.status_code < 400:
                         location = (_header(response, "Location") or "").strip()
                         source = request_policy.source_id if request_policy else "unscoped"
@@ -514,7 +844,11 @@ class Fetcher:
                                 f"source {source} redirect limit exceeded at {RequestPolicy.safe_target(current_url)}"
                             )
                         next_url = urllib.parse.urljoin(current_url, location)
-                        next_url = request_policy.validate(next_url) if request_policy else normalize_url(next_url)
+                        next_url = (
+                            request_policy.validate(next_url)
+                            if request_policy
+                            else self._validate_unscoped_target(next_url)
+                        )
                         # Validate first, then robots, then content transport.
                         if respect_robots if respect_robots is not None else self.respect_robots:
                             if not self._allowed_by_robots(next_url, request_policy):
@@ -523,16 +857,8 @@ class Fetcher:
                                 )
                         history.append(current_url)
                         current_url = next_url
-                        current_domain = self._domain(next_url)
                         continue
-                    if response.status_code in {429, 500, 502, 503, 504, 507, 508, 520, 521, 522, 523, 524} and attempts < self.retries:
-                        wait = self._retry_after(response)
-                        if wait is None:
-                            wait = self.backoff_factor * (2**attempts)
-                        if wait:
-                            time.sleep(wait)
-                        attempts += 1
-                        continue
+                    self._cache_put(cache_key, response)
                     return response
         finally:
             self.timeout = original_timeout

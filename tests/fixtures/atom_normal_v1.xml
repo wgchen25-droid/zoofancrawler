@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="de">
+  <title>Zoo Berlin Nachrichten</title>
+  <entry>
+    <id>tag:zoo-berlin.de,2025:/news/atom-one</id>
+    <title>Jungtier im Regenwald</title>
+    <link rel="alternate" href="/de/aktuelles/news/artikel/atom-one/" />
+    <published>2025-04-03T09:30:00Z</published>
+    <updated>Thu, 03 Apr 2025 10:00:00 GMT</updated>
+    <author><name>Zoo Berlin</name></author>
+    <summary>Ein Jungtier erkundet den Regenwald.</summary>
+  </entry>
+</feed>
