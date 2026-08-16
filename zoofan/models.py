@@ -8,6 +8,7 @@ form to an ISO-8601 string at its boundary.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Mapping, Optional, Union, cast
@@ -317,6 +318,42 @@ class CrawlRun:
     status: str = "running"
     error: Optional[str] = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Console/runtime state is first-class domain data.  These fields are
+    # deliberately nullable: a legacy row, or a newly-started run before its
+    # first state update, has no honest liveness/activity evidence yet.
+    heartbeat_at: Timestamp = None
+    progress_at: Timestamp = None
+    current_phase: Optional[str] = None
+    current_zoo_id: Optional[str] = None
+    current_source_id: Optional[str] = None
+    progress: Optional[dict[str, Any]] = None
+    stop_reason: Optional[str] = None
+    # Constructor compatibility for callers that used the early console
+    # spelling.  Storage treats ``progress`` as canonical on writes.
+    progress_json: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.progress is None and self.progress_json not in (None, ""):
+            try:
+                decoded = json.loads(str(self.progress_json))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                decoded = None
+            if isinstance(decoded, dict):
+                self.progress = decoded
+
+    # Read-only aliases retain the old attribute vocabulary without adding
+    # dynamically-created fields to instances returned by storage.
+    @property
+    def heartbeat(self) -> Timestamp:
+        return self.heartbeat_at
+
+    @property
+    def current_zoo(self) -> Optional[str]:
+        return self.current_zoo_id
+
+    @property
+    def current_source(self) -> Optional[str]:
+        return self.current_source_id
 
 
 @dataclass
@@ -340,6 +377,7 @@ class CrawlRunStat:
     error: Optional[str] = None
     errors: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    stop_reason: Optional[str] = None
 
 
 # A shorter name is convenient for callers and preserves a likely API spelling.
@@ -377,6 +415,7 @@ class CrawlZooResult:
     started_at: Timestamp
     finished_at: Timestamp
     metadata: dict[str, Any]
+    stop_reason: Optional[str]
 
     def __init__(
         self,
@@ -402,6 +441,7 @@ class CrawlZooResult:
         finished_at: Timestamp = None,
         metadata: Optional[dict[str, Any]] = None,
         *,
+        stop_reason: Optional[str] = None,
         run_id: Optional[str] = None,
         discovered_count: Optional[int] = None,
         parsed_count: Optional[int] = None,
@@ -435,6 +475,7 @@ class CrawlZooResult:
         self.http_status = http_status
         self.error_category = error_category
         self.error_summary = error_summary
+        self.stop_reason = stop_reason
         self.started_at = started_at
         self.finished_at = finished_at
         self.metadata = dict(metadata or {})

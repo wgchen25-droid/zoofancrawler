@@ -1,0 +1,26 @@
+{% extends "console_base.html" %}
+{% block title %}Events · Crawler Console{% endblock %}
+{% block heading %}Events and logs{% endblock %}
+{% block subheading %}Structured operational events for fast diagnosis, with incremental polling for active runs.{% endblock %}
+{% block content %}
+  <div class="console-page" data-console-page="events" data-run-id="{{ run_id }}"
+       data-events-url="{% if run_id %}{{ url_for('crawler_console.api_run_events', run_id=run_id) }}{% endif %}"
+       data-status-url="{{ url_for('crawler_console.api_status') }}"
+       data-runs-url="{{ url_for('crawler_console.api_runs') }}">
+    <section class="console-panel" aria-labelledby="events-heading">
+      <div class="console-section-heading">
+        <div><p class="console-eyebrow">Structured observability</p><h2 id="events-heading">Events for <span data-console-events-run>{{ "Run " ~ run_id if run_id else "the latest run" }}</span></h2></div>
+        <span class="console-live-note"><span class="console-live-dot" aria-hidden="true"></span> New events append without replaying history</span>
+      </div>
+      <div class="console-filter-bar" aria-label="Event filters">
+        <label>Level<select data-event-filter="level"><option value="">All levels</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></label>
+        <label>Zoo<input data-event-filter="zoo" type="search" placeholder="zoo id or name"></label>
+        <label>Source<input data-event-filter="source" type="search" placeholder="source id or name"></label>
+        <label>Component<input data-event-filter="component" type="search" placeholder="crawler"></label>
+        <label>Event type<input data-event-filter="event_type" type="search" placeholder="crawl_completed"></label>
+        <label>Search<input data-event-filter="search" type="search" placeholder="message text"></label>
+      </div>
+      <div data-console-events><p class="console-empty">Loading events…</p></div>
+    </section>
+  </div>
+{% endblock %}

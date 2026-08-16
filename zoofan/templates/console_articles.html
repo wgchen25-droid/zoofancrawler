@@ -1,0 +1,19 @@
+{% extends "console_base.html" %}
+{% block title %}Articles · Crawler Console{% endblock %}
+{% block heading %}Article preview{% endblock %}
+{% block subheading %}Inspect stored article metadata without exposing raw HTML in the console.{% endblock %}
+{% block content %}
+  <div class="console-page" data-console-page="articles" data-run-id="{{ run_id }}"
+       data-runs-url="{{ url_for('crawler_console.api_runs') }}"
+       {% if run_id %}data-articles-url="{{ url_for('crawler_console.api_run_articles', run_id=run_id) }}"{% endif %}>
+    <section class="console-panel" aria-labelledby="articles-heading">
+      <div class="console-section-heading">
+        <div><p class="console-eyebrow">Content acceptance</p><h2 id="articles-heading">Stored articles</h2></div>
+        <label class="console-inline-filter" for="article-run">Run
+          <select id="article-run" data-article-run-select><option value="">Loading runs…</option></select>
+        </label>
+      </div>
+      <div data-console-articles><p class="console-empty">Loading article preview…</p></div>
+    </section>
+  </div>
+{% endblock %}

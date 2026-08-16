@@ -1,0 +1,19 @@
+{% extends "console_base.html" %}
+{% block title %}Zoo {{ zoo_id }} · Crawler Console{% endblock %}
+{% block heading %}<span data-console-zoo-title>Zoo {{ zoo_id }}</span>{% endblock %}
+{% block subheading %}Source health and crawl history for one configured zoo.{% endblock %}
+{% block content %}
+  <div class="console-page" data-console-page="zoo-detail" data-zoo-id="{{ zoo_id }}"
+       data-zoo-url="{{ url_for('crawler_console.api_zoo', zoo_id=zoo_id) }}"
+       data-history-url="{{ url_for('crawler_console.api_zoo_history', zoo_id=zoo_id) }}">
+    <div class="console-detail-toolbar"><a class="console-button console-button-secondary" href="{{ url_for('crawler_console.console_overview') }}">← Overview</a></div>
+    <section class="console-panel" aria-labelledby="zoo-info-heading">
+      <div class="console-section-heading"><div><p class="console-eyebrow">Zoo profile</p><h2 id="zoo-info-heading">Configuration and health</h2></div></div>
+      <div data-console-zoo-info><p class="console-empty">Loading zoo details…</p></div>
+    </section>
+    <section aria-labelledby="zoo-history-heading">
+      <div class="console-section-heading"><div><p class="console-eyebrow">Trend</p><h2 id="zoo-history-heading">Crawl history</h2></div></div>
+      <div data-console-zoo-history><p class="console-empty">Loading crawl history…</p></div>
+    </section>
+  </div>
+{% endblock %}

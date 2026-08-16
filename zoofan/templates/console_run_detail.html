@@ -1,0 +1,52 @@
+{% extends "console_base.html" %}
+{% block title %}Run {{ run_id }} · Crawler Console{% endblock %}
+{% block heading %}<span data-console-run-title>Run {{ run_id }}</span>{% endblock %}
+{% block subheading %}Zoo results, stored article preview, and structured operational events.{% endblock %}
+{% block content %}
+  <div class="console-page" data-console-page="run-detail" data-run-id="{{ run_id }}"
+       data-run-url="{{ url_for('crawler_console.api_run', run_id=run_id) }}"
+       data-zoos-url="{{ url_for('crawler_console.api_run_zoos', run_id=run_id) }}"
+       data-sources-url="{{ url_for('crawler_console.api_run_sources', run_id=run_id) }}"
+       data-articles-url="{{ url_for('crawler_console.api_run_articles', run_id=run_id) }}"
+       data-events-url="{{ url_for('crawler_console.api_run_events', run_id=run_id) }}">
+    <div class="console-detail-toolbar">
+      <a class="console-button console-button-secondary" href="{{ url_for('crawler_console.console_runs') }}">← All runs</a>
+      <span data-console-run-status><span class="console-status console-status-loading">Loading</span></span>
+    </div>
+
+    <section class="console-panel" aria-labelledby="run-summary-heading">
+      <div class="console-section-heading"><div><p class="console-eyebrow">Run summary</p><h2 id="run-summary-heading">Outcome</h2></div></div>
+      <div data-console-run-facts><p class="console-empty">Loading run details…</p></div>
+      <div class="console-metrics" data-console-metrics></div>
+    </section>
+
+    <section aria-labelledby="run-zoos-heading">
+      <div class="console-section-heading"><div><p class="console-eyebrow">Breakdown</p><h2 id="run-zoos-heading">Zoo results</h2></div></div>
+      <div data-console-run-zoos><p class="console-empty">Loading zoo results…</p></div>
+    </section>
+
+    <section aria-labelledby="run-articles-heading">
+      <div class="console-section-heading">
+        <div><p class="console-eyebrow">Content acceptance</p><h2 id="run-articles-heading">Stored articles</h2></div>
+        <a class="console-button console-button-secondary" href="{{ url_for('crawler_console.console_articles', run_id=run_id) }}">Open article preview</a>
+      </div>
+      <div data-console-run-articles><p class="console-empty">Loading stored articles…</p></div>
+    </section>
+
+    <section aria-labelledby="run-events-heading">
+      <div class="console-section-heading">
+        <div><p class="console-eyebrow">Operational observability</p><h2 id="run-events-heading">Events and logs</h2></div>
+        <span class="console-live-note">Incremental updates use <code>after_id</code></span>
+      </div>
+      <div class="console-filter-bar" aria-label="Event filters">
+        <label>Level<select data-event-filter="level"><option value="">All levels</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></label>
+        <label>Zoo<input data-event-filter="zoo" type="search" placeholder="zoo id or name"></label>
+        <label>Source<input data-event-filter="source" type="search" placeholder="source id or name"></label>
+        <label>Component<input data-event-filter="component" type="search" placeholder="fetcher"></label>
+        <label>Event type<input data-event-filter="event_type" type="search" placeholder="source_failed"></label>
+        <label>Search<input data-event-filter="search" type="search" placeholder="message text"></label>
+      </div>
+      <div data-console-events><p class="console-empty">Loading events…</p></div>
+    </section>
+  </div>
+{% endblock %}

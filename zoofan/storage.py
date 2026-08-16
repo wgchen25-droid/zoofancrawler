@@ -32,10 +32,17 @@ from .models import (
     Source,
     Zoo,
 )
+from .events import (
+    CrawlEvent,
+    CrawlRunArticle,
+    sanitize_metadata,
+    serialize_metadata,
+)
 from .normalization import normalize_url
 
 
 _LEASE_OWNER_UNSET = object()
+_RUN_STATE_UNSET = object()
 _LEASE_MIN_TTL_SECONDS = 1e-6
 
 
@@ -116,8 +123,13 @@ def _json(value: Any) -> str:
     try:
         # Preserve empty lists/tuples.  New zoo registry fields use JSON list
         # values, and turning [] into {} would make a fresh round-trip lossy.
-        return json.dumps({} if value is None else value, ensure_ascii=False, sort_keys=True, default=str)
-    except (TypeError, ValueError):
+        return json.dumps(
+            {} if value is None else value,
+            ensure_ascii=False,
+            sort_keys=True,
+            default=str,
+        )
+    except (TypeError, ValueError, RecursionError):
         return "{}"
 
 
@@ -127,6 +139,15 @@ def _load_json(value: Optional[str]) -> dict[str, Any]:
         return result if isinstance(result, dict) else {}
     except (TypeError, ValueError, json.JSONDecodeError):
         return {}
+
+
+def _stop_reason(explicit: Any, metadata: Any) -> Optional[str]:
+    """Return the first usable stop reason from the column or legacy metadata."""
+
+    reason = explicit
+    if reason in (None, "") and isinstance(metadata, Mapping):
+        reason = metadata.get("stop_reason")
+    return None if reason in (None, "") else str(reason)
 
 
 def _load_json_value(value: Optional[str], default: Any = None) -> Any:
@@ -210,7 +231,7 @@ def _content_identity_key(content_hash: Optional[str], title: Optional[str]) -> 
 class SQLiteStorage:
     """Transactional storage for crawl state and article records."""
 
-    SCHEMA_VERSION = 8
+    SCHEMA_VERSION = 12
     # A single named lease is shared by the crawl CLI, scheduler, and
     # control-plane callers. Keeping the name in storage (rather than
     # hard-coding it in each caller) leaves room for future scoped leases.
@@ -319,6 +340,8 @@ class SQLiteStorage:
         z, s, a = f"zoos{suffix}", f"sources{suffix}", f"articles{suffix}"
         d, r, rs = f"article_discoveries{suffix}", f"crawl_runs{suffix}", f"crawl_run_stats{suffix}"
         azi, zr = f"article_zoo_identities{suffix}", f"crawl_zoo_results{suffix}"
+        events = f"crawl_run_events{suffix}"
+        run_articles = f"crawl_run_articles{suffix}"
         leases = f"crawler_leases{suffix}"
         extra_declarations = extra_declarations or {}
         columns = {
@@ -326,10 +349,12 @@ class SQLiteStorage:
             "sources": ["id TEXT PRIMARY KEY", "zoo_id TEXT", "url TEXT", "normalized_url TEXT", "kind TEXT DEFAULT 'rss'", "name TEXT", "language TEXT", "config_json TEXT DEFAULT '{}'", "enabled INTEGER DEFAULT 1", "status TEXT DEFAULT 'pending'", "success INTEGER", "last_checked TEXT", "last_success TEXT", "last_error TEXT", "last_http_status INTEGER", "created_at TEXT", "updated_at TEXT"],
             "articles": ["id TEXT PRIMARY KEY", "canonical_url TEXT", "normalized_url TEXT", "source_url TEXT", "source_url_raw TEXT", "title TEXT", "published_at TEXT", "published_at_raw TEXT", "updated_at_source TEXT", "author TEXT", "summary TEXT", "content TEXT", "content_html TEXT", "image_url TEXT", "parse_status TEXT", "content_hash TEXT", "content_identity_key TEXT", "html_hash TEXT", "raw_html TEXT", "language TEXT", "http_status INTEGER", "crawl_status TEXT", "last_fetched_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
             "article_discoveries": ["id TEXT PRIMARY KEY", "article_id TEXT", "source_id TEXT", "discovered_url TEXT", "discovered_url_raw TEXT", "discovered_key TEXT NOT NULL DEFAULT ''", "discovered_at TEXT", "last_discovered_at TEXT", "metadata_json TEXT DEFAULT '{}'"],
-            "crawl_runs": ["id TEXT PRIMARY KEY", "batch_id TEXT UNIQUE", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "status TEXT DEFAULT 'running'", "error TEXT", "metadata_json TEXT DEFAULT '{}'"],
-            "crawl_run_stats": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT", "zoo_id TEXT", "source_id TEXT", "status TEXT DEFAULT 'running'", "discovered_count INTEGER DEFAULT 0", "fetched_count INTEGER DEFAULT 0", "stored_count INTEGER DEFAULT 0", "already_known_count INTEGER DEFAULT 0", "duplicate_candidate_count INTEGER DEFAULT 0", "error_count INTEGER DEFAULT 0", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "error TEXT", "errors_json TEXT DEFAULT '[]'", "metadata_json TEXT DEFAULT '{}'"],
+            "crawl_runs": ["id TEXT PRIMARY KEY", "batch_id TEXT UNIQUE", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "status TEXT DEFAULT 'running'", "error TEXT", "metadata_json TEXT DEFAULT '{}'", "heartbeat_at TEXT", "progress_at TEXT", "current_phase TEXT", "current_zoo_id TEXT", "current_source_id TEXT", "progress_json TEXT", "stop_reason TEXT"],
+            "crawl_run_stats": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT", "zoo_id TEXT", "source_id TEXT", "status TEXT DEFAULT 'running'", "discovered_count INTEGER DEFAULT 0", "fetched_count INTEGER DEFAULT 0", "stored_count INTEGER DEFAULT 0", "already_known_count INTEGER DEFAULT 0", "duplicate_candidate_count INTEGER DEFAULT 0", "error_count INTEGER DEFAULT 0", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "error TEXT", "stop_reason TEXT", "errors_json TEXT DEFAULT '[]'", "metadata_json TEXT DEFAULT '{}'"],
             "article_zoo_identities": ["article_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "title_key TEXT NOT NULL", "created_at TEXT", "updated_at TEXT", "PRIMARY KEY(article_id,zoo_id)"],
-            "crawl_zoo_results": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "zoo_slug TEXT", "zoo_name TEXT", "status TEXT DEFAULT 'running'", "source_status TEXT", "discovered INTEGER DEFAULT 0", "parsed INTEGER DEFAULT 0", "inserted INTEGER DEFAULT 0", "updated INTEGER DEFAULT 0", "failed INTEGER DEFAULT 0", "duplicate_filtered INTEGER DEFAULT 0", "duration_ms INTEGER", "source_url TEXT", "http_status INTEGER", "error_category TEXT", "error_summary TEXT", "started_at TEXT", "finished_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
+            "crawl_zoo_results": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "zoo_slug TEXT", "zoo_name TEXT", "status TEXT DEFAULT 'running'", "source_status TEXT", "discovered INTEGER DEFAULT 0", "parsed INTEGER DEFAULT 0", "inserted INTEGER DEFAULT 0", "updated INTEGER DEFAULT 0", "failed INTEGER DEFAULT 0", "duplicate_filtered INTEGER DEFAULT 0", "duration_ms INTEGER", "source_url TEXT", "http_status INTEGER", "error_category TEXT", "error_summary TEXT", "stop_reason TEXT", "started_at TEXT", "finished_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
+            "crawl_run_events": ["id INTEGER PRIMARY KEY AUTOINCREMENT", "run_id TEXT NOT NULL", "zoo_id TEXT", "source_id TEXT", "created_at TEXT NOT NULL", "level TEXT NOT NULL", "component TEXT NOT NULL", "event_type TEXT NOT NULL", "message TEXT NOT NULL", "metadata_json TEXT NOT NULL DEFAULT '{}'"],
+            "crawl_run_articles": ["id INTEGER PRIMARY KEY AUTOINCREMENT", "run_id TEXT NOT NULL", "article_id TEXT NOT NULL", "zoo_id TEXT", "source_id TEXT", "outcome TEXT NOT NULL DEFAULT 'stored'", "created_at TEXT NOT NULL", "updated_at TEXT", "metadata_json TEXT NOT NULL DEFAULT '{}'"],
             "crawler_leases": ["name TEXT PRIMARY KEY", "owner TEXT NOT NULL", "acquired_at TEXT NOT NULL", "lease_until TEXT NOT NULL", "heartbeat_at TEXT NOT NULL"],
         }
         foreign_keys = {
@@ -338,8 +363,10 @@ class SQLiteStorage:
             "crawl_run_stats": [f"FOREIGN KEY(crawl_run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE SET NULL", f"FOREIGN KEY(source_id) REFERENCES {s}(id) ON UPDATE CASCADE ON DELETE SET NULL"],
             "article_zoo_identities": [f"FOREIGN KEY(article_id) REFERENCES {a}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
             "crawl_zoo_results": [f"FOREIGN KEY(crawl_run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
+            "crawl_run_events": [f"FOREIGN KEY(run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE SET NULL", f"FOREIGN KEY(source_id) REFERENCES {s}(id) ON UPDATE CASCADE ON DELETE SET NULL"],
+            "crawl_run_articles": [f"FOREIGN KEY(run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(article_id) REFERENCES {a}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE SET NULL", f"FOREIGN KEY(source_id) REFERENCES {s}(id) ON UPDATE CASCADE ON DELETE SET NULL"],
         }
-        physical = {"zoos": z, "sources": s, "articles": a, "article_discoveries": d, "crawl_runs": r, "crawl_run_stats": rs, "article_zoo_identities": azi, "crawl_zoo_results": zr, "crawler_leases": leases}
+        physical = {"zoos": z, "sources": s, "articles": a, "article_discoveries": d, "crawl_runs": r, "crawl_run_stats": rs, "article_zoo_identities": azi, "crawl_zoo_results": zr, "crawl_run_events": events, "crawl_run_articles": run_articles, "crawler_leases": leases}
         for logical, table in physical.items():
             declarations = columns[logical] + list(extra_declarations.get(logical, [])) + foreign_keys.get(logical, [])
             db.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(declarations)})")
@@ -962,7 +989,7 @@ class SQLiteStorage:
         fields = (
             "status", "source_status", "discovered", "parsed", "inserted", "updated",
             "failed", "duplicate_filtered", "duration_ms", "source_url", "http_status",
-            "error_category", "error_summary", "started_at", "finished_at",
+            "error_category", "error_summary", "stop_reason", "started_at", "finished_at",
         )
         while True:
             duplicate = db.execute(
@@ -1005,6 +1032,63 @@ class SQLiteStorage:
             db.execute(
                 f"UPDATE crawl_zoo_results SET {assignments},metadata_json=? WHERE id=?",
                 (*[merged[name] for name in fields], _json(metadata), keeper["id"]),
+            )
+
+    @classmethod
+    def _consolidate_legacy_run_articles(cls, db: sqlite3.Connection) -> None:
+        """Coalesce duplicate run/article outcomes before the unique index."""
+
+        while True:
+            duplicate = db.execute(
+                """
+                SELECT run_id,article_id,zoo_id,source_id
+                FROM crawl_run_articles
+                GROUP BY run_id,article_id,COALESCE(zoo_id,''),COALESCE(source_id,'')
+                HAVING COUNT(*) > 1
+                LIMIT 1
+                """
+            ).fetchone()
+            if not duplicate:
+                return
+            rows = db.execute(
+                """
+                SELECT rowid AS _rowid,* FROM crawl_run_articles
+                WHERE run_id IS ? AND article_id IS ?
+                  AND zoo_id IS ? AND source_id IS ?
+                ORDER BY rowid
+                """,
+                (
+                    duplicate["run_id"],
+                    duplicate["article_id"],
+                    duplicate["zoo_id"],
+                    duplicate["source_id"],
+                ),
+            ).fetchall()
+            keeper = rows[-1]
+            metadata: dict[str, Any] = {}
+            for row in rows:
+                metadata.update(_load_json(row["metadata_json"]))
+            created_values = [row["created_at"] for row in rows if row["created_at"]]
+            updated_values = [
+                value
+                for row in rows
+                for value in (row["updated_at"], row["created_at"])
+                if value
+            ]
+            created_at = min(created_values) if created_values else None
+            updated_at = max(updated_values) if updated_values else None
+            for donor in rows[:-1]:
+                db.execute(
+                    "DELETE FROM crawl_run_articles WHERE rowid=?",
+                    (donor["_rowid"],),
+                )
+            db.execute(
+                """
+                UPDATE crawl_run_articles
+                SET created_at=?,updated_at=?,metadata_json=?
+                WHERE rowid=?
+                """,
+                (created_at, updated_at, serialize_metadata(metadata), keeper["_rowid"]),
             )
 
     @staticmethod
@@ -1085,10 +1169,12 @@ class SQLiteStorage:
             "sources": {"id": "TEXT", "zoo_id": "TEXT", "url": "TEXT", "normalized_url": "TEXT", "kind": "TEXT DEFAULT 'rss'", "name": "TEXT", "language": "TEXT", "config_json": "TEXT DEFAULT '{}'", "enabled": "INTEGER DEFAULT 1", "status": "TEXT DEFAULT 'pending'", "success": "INTEGER", "last_checked": "TEXT", "last_success": "TEXT", "last_error": "TEXT", "last_http_status": "INTEGER", "created_at": "TEXT", "updated_at": "TEXT"},
             "articles": {"id": "TEXT", "canonical_url": "TEXT", "normalized_url": "TEXT", "source_url": "TEXT", "source_url_raw": "TEXT", "title": "TEXT", "published_at": "TEXT", "published_at_raw": "TEXT", "updated_at_source": "TEXT", "author": "TEXT", "summary": "TEXT", "content": "TEXT", "content_html": "TEXT", "image_url": "TEXT", "parse_status": "TEXT", "content_hash": "TEXT", "content_identity_key": "TEXT", "html_hash": "TEXT", "raw_html": "TEXT", "language": "TEXT", "http_status": "INTEGER", "crawl_status": "TEXT", "last_fetched_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
             "article_discoveries": {"id": "TEXT", "article_id": "TEXT", "source_id": "TEXT", "discovered_url": "TEXT", "discovered_url_raw": "TEXT", "discovered_key": "TEXT NOT NULL DEFAULT ''", "discovered_at": "TEXT", "last_discovered_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
-            "crawl_runs": {"id": "TEXT", "batch_id": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "status": "TEXT DEFAULT 'running'", "error": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
-            "crawl_run_stats": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "source_id": "TEXT", "status": "TEXT DEFAULT 'running'", "discovered_count": "INTEGER DEFAULT 0", "fetched_count": "INTEGER DEFAULT 0", "stored_count": "INTEGER DEFAULT 0", "already_known_count": "INTEGER DEFAULT 0", "duplicate_candidate_count": "INTEGER DEFAULT 0", "error_count": "INTEGER DEFAULT 0", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "error": "TEXT", "errors_json": "TEXT DEFAULT '[]'", "metadata_json": "TEXT DEFAULT '{}'"},
+            "crawl_runs": {"id": "TEXT", "batch_id": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "status": "TEXT DEFAULT 'running'", "error": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "heartbeat_at": "TEXT", "progress_at": "TEXT", "current_phase": "TEXT", "current_zoo_id": "TEXT", "current_source_id": "TEXT", "progress_json": "TEXT", "stop_reason": "TEXT"},
+            "crawl_run_stats": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "source_id": "TEXT", "status": "TEXT DEFAULT 'running'", "discovered_count": "INTEGER DEFAULT 0", "fetched_count": "INTEGER DEFAULT 0", "stored_count": "INTEGER DEFAULT 0", "already_known_count": "INTEGER DEFAULT 0", "duplicate_candidate_count": "INTEGER DEFAULT 0", "error_count": "INTEGER DEFAULT 0", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "error": "TEXT", "stop_reason": "TEXT", "errors_json": "TEXT DEFAULT '[]'", "metadata_json": "TEXT DEFAULT '{}'"},
             "article_zoo_identities": {"article_id": "TEXT", "zoo_id": "TEXT", "title_key": "TEXT", "created_at": "TEXT", "updated_at": "TEXT"},
-            "crawl_zoo_results": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "zoo_slug": "TEXT", "zoo_name": "TEXT", "status": "TEXT DEFAULT 'running'", "source_status": "TEXT", "discovered": "INTEGER DEFAULT 0", "parsed": "INTEGER DEFAULT 0", "inserted": "INTEGER DEFAULT 0", "updated": "INTEGER DEFAULT 0", "failed": "INTEGER DEFAULT 0", "duplicate_filtered": "INTEGER DEFAULT 0", "duration_ms": "INTEGER", "source_url": "TEXT", "http_status": "INTEGER", "error_category": "TEXT", "error_summary": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
+            "crawl_zoo_results": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "zoo_slug": "TEXT", "zoo_name": "TEXT", "status": "TEXT DEFAULT 'running'", "source_status": "TEXT", "discovered": "INTEGER DEFAULT 0", "parsed": "INTEGER DEFAULT 0", "inserted": "INTEGER DEFAULT 0", "updated": "INTEGER DEFAULT 0", "failed": "INTEGER DEFAULT 0", "duplicate_filtered": "INTEGER DEFAULT 0", "duration_ms": "INTEGER", "source_url": "TEXT", "http_status": "INTEGER", "error_category": "TEXT", "error_summary": "TEXT", "stop_reason": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
+            "crawl_run_events": {"id": "INTEGER", "run_id": "TEXT", "zoo_id": "TEXT", "source_id": "TEXT", "created_at": "TEXT", "level": "TEXT", "component": "TEXT", "event_type": "TEXT", "message": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
+            "crawl_run_articles": {"id": "INTEGER", "run_id": "TEXT", "article_id": "TEXT", "zoo_id": "TEXT", "source_id": "TEXT", "outcome": "TEXT DEFAULT 'stored'", "created_at": "TEXT", "updated_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'"},
             "crawler_leases": {"name": "TEXT", "owner": "TEXT", "acquired_at": "TEXT", "lease_until": "TEXT", "heartbeat_at": "TEXT"},
         }
         legacy_zoo_columns = self._columns(db, "zoos")
@@ -1167,7 +1253,121 @@ class SQLiteStorage:
             )
         self._consolidate_legacy_discoveries(db)
         db.execute("UPDATE crawl_runs SET started_at=COALESCE(started_at,?), status=COALESCE(status,'running'), metadata_json=COALESCE(metadata_json,'{}')", (now,))
+        db.execute(
+            "UPDATE crawl_runs SET progress_json=NULL WHERE progress_json=''"
+        )
+        # An earlier console migration used ``started_at`` as a synthetic
+        # heartbeat and stored an empty progress object.  Once the run has no
+        # phase, scope, or explicit progress timestamp, those values are not
+        # trustworthy liveness evidence; clear them so legacy reads expose an
+        # honest unknown state instead of a fake recent activity signal.
+        db.execute(
+            "UPDATE crawl_runs SET heartbeat_at=NULL,progress_json=NULL "
+            "WHERE heartbeat_at IS NOT NULL AND progress_at IS NULL "
+            "AND current_phase IS NULL AND current_zoo_id IS NULL "
+            "AND current_source_id IS NULL "
+            "AND (progress_json IS NULL OR progress_json='{}') "
+            "AND started_at IS NOT NULL AND heartbeat_at=started_at"
+        )
         db.execute("UPDATE crawl_run_stats SET discovered_count=COALESCE(discovered_count,0), fetched_count=COALESCE(fetched_count,0), stored_count=COALESCE(stored_count,0), already_known_count=COALESCE(already_known_count,0), duplicate_candidate_count=COALESCE(duplicate_candidate_count,0), error_count=COALESCE(error_count,0)")
+        db.execute(
+            "UPDATE crawl_run_articles SET outcome=COALESCE(NULLIF(outcome,''),'stored'), "
+            "created_at=COALESCE(created_at,?), updated_at=COALESCE(updated_at,created_at,?), "
+            "metadata_json=COALESCE(NULLIF(metadata_json,''),'{}')",
+            (now, now),
+        )
+        db.execute(
+            "UPDATE crawl_run_articles SET zoo_id=(SELECT zoo_id FROM sources "
+            "WHERE sources.id=crawl_run_articles.source_id) "
+            "WHERE zoo_id IS NULL AND source_id IS NOT NULL"
+        )
+        db.execute(
+            "UPDATE crawl_run_events SET zoo_id=NULLIF(TRIM(zoo_id),''), "
+            "source_id=NULLIF(TRIM(source_id),'')"
+        )
+        db.execute(
+            "UPDATE crawl_run_articles SET zoo_id=NULLIF(TRIM(zoo_id),''), "
+            "source_id=NULLIF(TRIM(source_id),'')"
+        )
+        # Optional provenance references may legitimately outlive a deleted
+        # zoo/source.  Apply the same SET NULL semantics during migration that
+        # the canonical foreign keys provide on future deletes.  Required run
+        # and article references are intentionally left untouched so an
+        # already-corrupt legacy database fails closed instead of inventing a
+        # parent record.
+        db.execute(
+            "UPDATE crawl_run_events SET zoo_id=NULL "
+            "WHERE zoo_id IS NOT NULL AND NOT EXISTS "
+            "(SELECT 1 FROM zoos WHERE zoos.id=crawl_run_events.zoo_id)"
+        )
+        db.execute(
+            "UPDATE crawl_run_events SET source_id=NULL "
+            "WHERE source_id IS NOT NULL AND NOT EXISTS "
+            "(SELECT 1 FROM sources WHERE sources.id=crawl_run_events.source_id)"
+        )
+        db.execute(
+            "UPDATE crawl_run_articles SET zoo_id=NULL "
+            "WHERE zoo_id IS NOT NULL AND NOT EXISTS "
+            "(SELECT 1 FROM zoos WHERE zoos.id=crawl_run_articles.zoo_id)"
+        )
+        db.execute(
+            "UPDATE crawl_run_articles SET source_id=NULL "
+            "WHERE source_id IS NOT NULL AND NOT EXISTS "
+            "(SELECT 1 FROM sources WHERE sources.id=crawl_run_articles.source_id)"
+        )
+        for row in db.execute(
+            "SELECT rowid AS _rowid,created_at,level,component,event_type,message,metadata_json "
+            "FROM crawl_run_events"
+        ).fetchall():
+            db.execute(
+                "UPDATE crawl_run_events SET created_at=COALESCE(created_at,?),"
+                "level=COALESCE(NULLIF(level,''),'INFO'),"
+                "component=COALESCE(NULLIF(component,''),'crawler'),"
+                "event_type=COALESCE(NULLIF(event_type,''),'event'),"
+                "message=COALESCE(message,''),metadata_json=? WHERE rowid=?",
+                (
+                    row["created_at"] or now,
+                    serialize_metadata(_load_json(row["metadata_json"])),
+                    row["_rowid"],
+                ),
+            )
+        for table in ("crawl_run_stats", "crawl_zoo_results"):
+            for row in db.execute(
+                f"SELECT rowid AS _rowid,stop_reason,metadata_json FROM {table}"
+            ).fetchall():
+                reason = row["stop_reason"]
+                if reason in (None, ""):
+                    reason = _load_json(row["metadata_json"]).get("stop_reason")
+                if reason not in (None, ""):
+                    db.execute(
+                        f"UPDATE {table} SET stop_reason=? WHERE rowid=?",
+                        (str(reason), row["_rowid"]),
+                    )
+        for row in db.execute(
+            "SELECT rowid AS _rowid,stop_reason,metadata_json FROM crawl_runs"
+        ).fetchall():
+            reason = row["stop_reason"]
+            if reason in (None, ""):
+                reason = _load_json(row["metadata_json"]).get("stop_reason")
+            if reason not in (None, ""):
+                db.execute(
+                    "UPDATE crawl_runs SET stop_reason=? WHERE rowid=?",
+                    (str(reason), row["_rowid"]),
+                )
+        for row in db.execute(
+            "SELECT rowid AS _rowid,created_at,updated_at,metadata_json FROM crawl_run_articles"
+        ).fetchall():
+            db.execute(
+                "UPDATE crawl_run_articles SET created_at=COALESCE(created_at,?),"
+                "updated_at=COALESCE(updated_at,created_at,?),"
+                "metadata_json=? WHERE rowid=?",
+                (
+                    row["created_at"] or now,
+                    row["updated_at"] or row["created_at"] or now,
+                    serialize_metadata(_load_json(row["metadata_json"])),
+                    row["_rowid"],
+                ),
+            )
         self._backfill_durations(db, "crawl_runs")
         self._backfill_durations(db, "crawl_run_stats")
         self._consolidate_legacy_articles(db)
@@ -1176,6 +1376,7 @@ class SQLiteStorage:
         self._backfill_article_zoo_identities(db)
         self._consolidate_legacy_title_identities(db)
         self._consolidate_legacy_zoo_results(db)
+        self._consolidate_legacy_run_articles(db)
         self._consolidate_legacy_leases(db)
         # Recompute keys from authoritative hash/title fields even on an
         # already-v6 database.  Dropping the old derived index first lets a
@@ -1187,6 +1388,40 @@ class SQLiteStorage:
         # schema versions created a unique index here; replace it within the
         # migration transaction so benign boilerplate collisions can coexist.
         db.execute("DROP INDEX IF EXISTS ux_articles_content_hash")
+        db.execute("DROP INDEX IF EXISTS ux_crawl_run_articles_identity")
+        for index_name in (
+            "ux_sources_zoo_normalized_url",
+            "ux_articles_canonical_url",
+            "ux_articles_normalized_url",
+            "ux_articles_content_identity_key",
+            "ux_discoveries_identity",
+            "idx_sources_status",
+            "idx_articles_normalized_url",
+            "idx_articles_content_hash",
+            "idx_discoveries_source",
+            "ux_article_zoo_title",
+            "idx_article_zoo_article",
+            "ux_crawl_zoo_results_run_zoo",
+            "idx_crawl_zoo_results_zoo",
+            "idx_crawl_run_events_run_id_id",
+            "idx_crawl_run_events_run_scope_id",
+            "idx_crawl_run_events_zoo",
+            "idx_crawl_run_events_source",
+            "idx_crawl_run_events_created_at",
+            "ux_crawl_run_articles_identity",
+            "idx_crawl_run_articles_run_created_id",
+            "idx_crawl_run_articles_article",
+            "idx_crawl_run_articles_zoo",
+            "idx_crawl_run_articles_source",
+            "idx_crawl_runs_status_heartbeat",
+            "idx_crawl_run_stats_run",
+            "idx_crawl_run_stats_zoo",
+            "idx_crawl_run_stats_source",
+            "idx_crawl_zoo_results_run",
+            "ux_crawler_leases_name",
+            "idx_crawler_leases_until",
+        ):
+            db.execute("DROP INDEX IF EXISTS " + index_name)
         indexes = (
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_sources_zoo_normalized_url ON sources(zoo_id, normalized_url)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_articles_canonical_url ON articles(canonical_url)",
@@ -1201,6 +1436,21 @@ class SQLiteStorage:
             "CREATE INDEX IF NOT EXISTS idx_article_zoo_article ON article_zoo_identities(article_id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_crawl_zoo_results_run_zoo ON crawl_zoo_results(crawl_run_id,zoo_id)",
             "CREATE INDEX IF NOT EXISTS idx_crawl_zoo_results_zoo ON crawl_zoo_results(zoo_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_events_run_id_id ON crawl_run_events(run_id,id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_events_run_scope_id ON crawl_run_events(run_id,zoo_id,source_id,id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_events_zoo ON crawl_run_events(zoo_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_events_source ON crawl_run_events(source_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_events_created_at ON crawl_run_events(created_at)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_crawl_run_articles_identity ON crawl_run_articles(run_id,article_id,COALESCE(zoo_id,''),COALESCE(source_id,''))",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_articles_run_created_id ON crawl_run_articles(run_id,created_at,id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_articles_article ON crawl_run_articles(article_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_articles_zoo ON crawl_run_articles(zoo_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_articles_source ON crawl_run_articles(source_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_runs_status_heartbeat ON crawl_runs(status,heartbeat_at)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_stats_run ON crawl_run_stats(crawl_run_id,id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_stats_zoo ON crawl_run_stats(zoo_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_run_stats_source ON crawl_run_stats(source_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crawl_zoo_results_run ON crawl_zoo_results(crawl_run_id,id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_crawler_leases_name ON crawler_leases(name)",
             "CREATE INDEX IF NOT EXISTS idx_crawler_leases_until ON crawler_leases(lease_until)",
         )
@@ -1232,6 +1482,7 @@ class SQLiteStorage:
         tables = (
             "zoos", "sources", "articles", "article_discoveries", "crawl_runs",
             "crawl_run_stats", "article_zoo_identities", "crawl_zoo_results",
+            "crawl_run_events", "crawl_run_articles",
         )
         expected = {
             "sources": {("zoo_id", "zoos", "id", "CASCADE", "RESTRICT")},
@@ -1251,6 +1502,17 @@ class SQLiteStorage:
             "crawl_zoo_results": {
                 ("crawl_run_id", "crawl_runs", "id", "CASCADE", "CASCADE"),
                 ("zoo_id", "zoos", "id", "CASCADE", "CASCADE"),
+            },
+            "crawl_run_events": {
+                ("run_id", "crawl_runs", "id", "CASCADE", "CASCADE"),
+                ("zoo_id", "zoos", "id", "CASCADE", "SET NULL"),
+                ("source_id", "sources", "id", "CASCADE", "SET NULL"),
+            },
+            "crawl_run_articles": {
+                ("run_id", "crawl_runs", "id", "CASCADE", "CASCADE"),
+                ("article_id", "articles", "id", "CASCADE", "CASCADE"),
+                ("zoo_id", "zoos", "id", "CASCADE", "SET NULL"),
+                ("source_id", "sources", "id", "CASCADE", "SET NULL"),
             },
         }
         actual = {
@@ -2420,17 +2682,77 @@ class SQLiteStorage:
 
     @staticmethod
     def _run_from_row(row: sqlite3.Row) -> CrawlRun:
-        return CrawlRun(id=row["id"], batch_id=row["batch_id"], started_at=_decoded_timestamp(row["started_at"]), finished_at=_decoded_timestamp(row["finished_at"]), duration_ms=row["duration_ms"], status=row["status"], error=row["error"], metadata=_load_json(row["metadata_json"]))
+        columns = set(row.keys()) if hasattr(row, "keys") else set()
+        heartbeat_raw = row["heartbeat_at"] if "heartbeat_at" in columns else None
+        progress_raw = row["progress_json"] if "progress_json" in columns else None
+        progress = _load_json(progress_raw) if progress_raw not in (None, "") else None
+        metadata = _load_json(row["metadata_json"])
+        stop_reason = row["stop_reason"] if "stop_reason" in columns else None
+        if stop_reason in (None, ""):
+            stop_reason = metadata.get("stop_reason")
+        run = CrawlRun(
+            id=row["id"],
+            batch_id=row["batch_id"],
+            started_at=_decoded_timestamp(row["started_at"]),
+            finished_at=_decoded_timestamp(row["finished_at"]),
+            duration_ms=row["duration_ms"],
+            status=row["status"],
+            error=row["error"],
+            metadata=metadata,
+            heartbeat_at=_decoded_timestamp(heartbeat_raw),
+            progress_at=(
+                _decoded_timestamp(row["progress_at"])
+                if "progress_at" in columns
+                else None
+            ),
+            current_phase=row["current_phase"] if "current_phase" in columns else None,
+            current_zoo_id=row["current_zoo_id"] if "current_zoo_id" in columns else None,
+            current_source_id=(
+                row["current_source_id"] if "current_source_id" in columns else None
+            ),
+            progress=progress,
+            stop_reason=stop_reason,
+            progress_json=progress_raw,
+        )
+        return run
 
     def start_crawl_run(self, run: Optional[CrawlRun] = None, **kwargs: Any) -> CrawlRun:
         run = run or CrawlRun(**kwargs)
         run.id = _id(run.id)
         run.started_at = run.started_at or datetime.now(timezone.utc)
+        heartbeat_at = run.heartbeat_at
+        progress_at = run.progress_at
+        current_zoo_id = run.current_zoo_id
+        current_source_id = run.current_source_id
+        current_phase = run.current_phase
+        progress = run.progress
+        if progress is None and run.progress_json not in (None, ""):
+            progress = _load_json(run.progress_json)
+        stop_reason = run.stop_reason
+        progress_json = serialize_metadata(progress) if progress is not None else None
         with self._transaction() as db:
             db.execute(
-                "INSERT INTO crawl_runs(id,batch_id,started_at,finished_at,duration_ms,status,error,metadata_json) VALUES(?,?,?,?,?,?,?,?)",
-                (run.id, run.batch_id, _timestamp(run.started_at), _timestamp(run.finished_at), run.duration_ms, run.status, run.error, _json(run.metadata)),
+                "INSERT INTO crawl_runs(id,batch_id,started_at,finished_at,duration_ms,status,error,metadata_json,heartbeat_at,progress_at,current_phase,current_zoo_id,current_source_id,progress_json,stop_reason) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    run.id,
+                    run.batch_id,
+                    _timestamp(run.started_at),
+                    _timestamp(run.finished_at),
+                    run.duration_ms,
+                    run.status,
+                    run.error,
+                    _json(run.metadata),
+                    _timestamp(heartbeat_at),
+                    _timestamp(progress_at),
+                    current_phase,
+                    current_zoo_id,
+                    current_source_id,
+                    progress_json,
+                    stop_reason,
+                ),
             )
+        run.progress = sanitize_metadata(progress) if progress is not None else None
+        run.progress_json = progress_json
         return run
 
     create_crawl_run = start_crawl_run
@@ -2499,35 +2821,641 @@ class SQLiteStorage:
             )
         return self.get_crawl_run(run_id)
 
-    def finish_crawl_run(self, run_id: str, *, status: str = "completed", finished_at: Any = None, error: Optional[str] = None) -> Optional[CrawlRun]:
+    def finish_crawl_run(
+        self,
+        run_id: str,
+        *,
+        status: str = "completed",
+        finished_at: Any = None,
+        error: Optional[str] = None,
+        stop_reason: Any = _RUN_STATE_UNSET,
+        metadata: Any = _RUN_STATE_UNSET,
+        progress: Any = _RUN_STATE_UNSET,
+        progress_at: Any = _RUN_STATE_UNSET,
+        current_phase: Any = _RUN_STATE_UNSET,
+    ) -> Optional[CrawlRun]:
         finish_value = _timestamp(finished_at or datetime.now(timezone.utc))
         with self._transaction() as db:
-            row = db.execute("SELECT started_at FROM crawl_runs WHERE id=?", (run_id,)).fetchone()
+            row = db.execute(
+                "SELECT started_at FROM crawl_runs WHERE id=?", (run_id,)
+            ).fetchone()
             duration = self._duration_ms(row["started_at"], finish_value) if row else None
-            db.execute("UPDATE crawl_runs SET status=?,finished_at=?,duration_ms=?,error=? WHERE id=?", (status, finish_value, duration, error, run_id))
+            assignments = [
+                "status=?",
+                "finished_at=?",
+                "duration_ms=?",
+                "error=?",
+                "heartbeat_at=?",
+                "progress_at=?",
+                "current_phase=?",
+            ]
+            values: list[Any] = [
+                status,
+                finish_value,
+                duration,
+                error,
+                finish_value,
+                (
+                    finish_value
+                    if progress_at is _RUN_STATE_UNSET
+                    else _timestamp(progress_at)
+                ),
+                None if current_phase is _RUN_STATE_UNSET else current_phase,
+            ]
+            if stop_reason is not _RUN_STATE_UNSET:
+                reason = None if stop_reason is None else str(stop_reason).strip() or None
+                assignments.append("stop_reason=?")
+                values.append(reason)
+            if metadata is not _RUN_STATE_UNSET:
+                values_metadata = self._metadata_object(metadata)
+                assignments.append("metadata_json=?")
+                values.append(_json(values_metadata))
+            if progress is not _RUN_STATE_UNSET:
+                assignments.append("progress_json=?")
+                values.append(
+                    None
+                    if progress is None
+                    else serialize_metadata(progress)
+                )
+            values.append(run_id)
+            db.execute(
+                f"UPDATE crawl_runs SET {','.join(assignments)} WHERE id=?",
+                values,
+            )
         return self.get_crawl_run(run_id)
 
     def get_crawl_run(self, run_id: str) -> Optional[CrawlRun]:
         row = self._connection.execute("SELECT * FROM crawl_runs WHERE id=?", (str(run_id),)).fetchone()
         return self._run_from_row(row) if row else None
 
+    def update_crawl_run_state(
+        self,
+        run_id: str,
+        *,
+        heartbeat_at: Any = _RUN_STATE_UNSET,
+        current_zoo_id: Any = _RUN_STATE_UNSET,
+        current_source_id: Any = _RUN_STATE_UNSET,
+        current_zoo: Any = _RUN_STATE_UNSET,
+        current_source: Any = _RUN_STATE_UNSET,
+        progress: Any = _RUN_STATE_UNSET,
+        progress_json: Any = _RUN_STATE_UNSET,
+        progress_at: Any = _RUN_STATE_UNSET,
+        current_phase: Any = _RUN_STATE_UNSET,
+        stop_reason: Any = _RUN_STATE_UNSET,
+    ) -> Optional[CrawlRun]:
+        """Update the additive active-run state without replacing run metadata."""
+
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise ValueError("crawl run id is required")
+        run_id = run_id.strip()
+        if current_zoo_id is _RUN_STATE_UNSET and current_zoo is not _RUN_STATE_UNSET:
+            current_zoo_id = current_zoo
+        if current_source_id is _RUN_STATE_UNSET and current_source is not _RUN_STATE_UNSET:
+            current_source_id = current_source
+        if progress is _RUN_STATE_UNSET and progress_json is not _RUN_STATE_UNSET:
+            progress = (
+                _load_json(progress_json)
+                if isinstance(progress_json, str)
+                else progress_json
+            )
+
+        assignments: list[str] = []
+        values: list[Any] = []
+        # A state update is also a liveness signal unless the caller explicitly
+        # supplies a null heartbeat to clear it.
+        heartbeat = datetime.now(timezone.utc) if heartbeat_at is _RUN_STATE_UNSET else heartbeat_at
+        assignments.append("heartbeat_at=?")
+        values.append(_timestamp(heartbeat))
+        progress_touched = any(
+            value is not _RUN_STATE_UNSET
+            for value in (
+                current_zoo_id,
+                current_source_id,
+                progress,
+                current_phase,
+            )
+        )
+        if progress_at is not _RUN_STATE_UNSET or progress_touched:
+            assignments.append("progress_at=?")
+            values.append(
+                _timestamp(
+                    datetime.now(timezone.utc)
+                    if progress_at is _RUN_STATE_UNSET
+                    else progress_at
+                )
+            )
+        if current_phase is not _RUN_STATE_UNSET:
+            value = None if current_phase is None else str(current_phase).strip() or None
+            assignments.append("current_phase=?")
+            values.append(value)
+        if current_zoo_id is not _RUN_STATE_UNSET:
+            value = None if current_zoo_id is None else str(current_zoo_id).strip() or None
+            assignments.append("current_zoo_id=?")
+            values.append(value)
+        if current_source_id is not _RUN_STATE_UNSET:
+            value = None if current_source_id is None else str(current_source_id).strip() or None
+            assignments.append("current_source_id=?")
+            values.append(value)
+        if progress is not _RUN_STATE_UNSET:
+            assignments.append("progress_json=?")
+            values.append(None if progress is None else serialize_metadata(progress))
+        if stop_reason is not _RUN_STATE_UNSET:
+            reason = None if stop_reason is None else str(stop_reason).strip() or None
+            assignments.append("stop_reason=?")
+            values.append(reason)
+        values.append(run_id)
+        with self._transaction() as db:
+            if db.execute("SELECT 1 FROM crawl_runs WHERE id=?", (run_id,)).fetchone() is None:
+                return None
+            db.execute(
+                f"UPDATE crawl_runs SET {','.join(assignments)} WHERE id=?",
+                values,
+            )
+        return self.get_crawl_run(run_id)
+
+    update_run_state = update_crawl_run_state
+    update_crawl_progress = update_crawl_run_state
+
+    def heartbeat_crawl_run(
+        self,
+        run_id: str,
+        heartbeat_at: Any = None,
+        **state: Any,
+    ) -> Optional[CrawlRun]:
+        """Touch a run and optionally update its current activity in one write."""
+
+        return self.update_crawl_run_state(
+            run_id,
+            heartbeat_at=heartbeat_at or datetime.now(timezone.utc),
+            **state,
+        )
+
+    touch_crawl_run = heartbeat_crawl_run
+    heartbeat_run = heartbeat_crawl_run
+
+    def get_active_crawl_run(self) -> Optional[CrawlRun]:
+        row = self._connection.execute(
+            "SELECT * FROM crawl_runs WHERE status IN ('running','active') "
+            "ORDER BY CASE WHEN heartbeat_at IS NULL THEN 1 ELSE 0 END,"
+            "heartbeat_at DESC,id DESC LIMIT 1"
+        ).fetchone()
+        return self._run_from_row(row) if row else None
+
+    get_current_crawl_run = get_active_crawl_run
+    get_active_run = get_active_crawl_run
+
+    def get_crawl_run_state(self, run_id: str) -> Optional[dict[str, Any]]:
+        run = self.get_crawl_run(run_id)
+        if run is None:
+            return None
+        return {
+            "run_id": run.id,
+            "status": run.status,
+            "heartbeat_at": run.heartbeat_at,
+            "heartbeat": run.heartbeat,
+            "progress_at": run.progress_at,
+            "current_phase": run.current_phase,
+            "current_zoo_id": run.current_zoo_id,
+            "current_source_id": run.current_source_id,
+            "current_zoo": run.current_zoo,
+            "current_source": run.current_source,
+            "progress": run.progress,
+            "stop_reason": run.stop_reason,
+        }
+
+    get_active_crawl_run_state = get_crawl_run_state
+
+    # ---- structured crawl events ---------------------------------------
+
+    @staticmethod
+    def _event_from_row(row: sqlite3.Row) -> CrawlEvent:
+        return CrawlEvent(
+            id=int(row["id"]) if row["id"] is not None else None,
+            run_id=str(row["run_id"] or ""),
+            zoo_id=row["zoo_id"],
+            source_id=row["source_id"],
+            created_at=_decoded_timestamp(row["created_at"]),
+            level=row["level"] or "INFO",
+            component=row["component"] or "crawler",
+            event_type=row["event_type"] or "event",
+            message=row["message"] or "",
+            metadata=_load_json(row["metadata_json"]),
+        )
+
+    @staticmethod
+    def _event_pagination_value(value: Any, name: str, *, allow_zero: bool = True) -> Optional[int]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            raise TypeError(f"{name} must be an integer")
+        try:
+            result = int(value)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise TypeError(f"{name} must be an integer") from error
+        if not allow_zero and result < 1:
+            raise ValueError(f"{name} must be at least 1")
+        if allow_zero and result < 0:
+            raise ValueError(f"{name} must not be negative")
+        return result
+
+    @classmethod
+    def _coerce_crawl_event(
+        cls,
+        event: Optional[Union[CrawlEvent, Mapping[str, Any]]],
+        values: Mapping[str, Any],
+    ) -> CrawlEvent:
+        if event is None:
+            payload: dict[str, Any] = {}
+        elif isinstance(event, CrawlEvent):
+            payload = event.as_dict()
+        elif isinstance(event, Mapping):
+            payload = dict(event)
+        else:
+            raise TypeError("event must be a CrawlEvent or mapping")
+        payload.update(dict(values))
+        if "run_id" not in payload and "crawl_run_id" in payload:
+            payload["run_id"] = payload["crawl_run_id"]
+        if "metadata" not in payload and "metadata_json" in payload:
+            payload["metadata"] = _load_json(payload.get("metadata_json"))
+        allowed = {
+            "run_id", "zoo_id", "source_id", "created_at", "level",
+            "component", "event_type", "message", "metadata",
+        }
+        normalized = {key: value for key, value in payload.items() if key in allowed}
+        run_id = normalized.get("run_id")
+        if run_id is None or not str(run_id).strip():
+            raise ValueError("crawl event run_id is required")
+        normalized["run_id"] = str(run_id).strip()
+        for key in ("zoo_id", "source_id"):
+            value = normalized.get(key)
+            normalized[key] = None if value is None else str(value).strip() or None
+        normalized["metadata"] = sanitize_metadata(normalized.get("metadata"))
+        return CrawlEvent(**normalized)
+
+    def record_crawl_event(
+        self,
+        event: Optional[Union[CrawlEvent, Mapping[str, Any]]] = None,
+        **kwargs: Any,
+    ) -> CrawlEvent:
+        """Insert one structured operational event through the storage boundary."""
+
+        item = self._coerce_crawl_event(event, kwargs)
+        created_at = _timestamp(item.created_at or datetime.now(timezone.utc))
+        metadata_json = serialize_metadata(item.metadata)
+        with self._transaction() as db:
+            cursor = db.execute(
+                """
+                INSERT INTO crawl_run_events(
+                    run_id,zoo_id,source_id,created_at,level,component,
+                    event_type,message,metadata_json
+                ) VALUES(?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    item.run_id,
+                    item.zoo_id,
+                    item.source_id,
+                    created_at,
+                    item.level,
+                    item.component,
+                    item.event_type,
+                    item.message,
+                    metadata_json,
+                ),
+            )
+            event_id = cursor.lastrowid
+            if event_id is None:
+                raise RuntimeError("crawl event insert did not return an id")
+        return self.get_crawl_event(event_id) or CrawlEvent(
+            id=event_id,
+            run_id=item.run_id,
+            zoo_id=item.zoo_id,
+            source_id=item.source_id,
+            created_at=created_at,
+            level=item.level,
+            component=item.component,
+            event_type=item.event_type,
+            message=item.message,
+            metadata=item.metadata,
+        )
+
+    insert_crawl_event = record_crawl_event
+    record_event = record_crawl_event
+    save_crawl_event = record_crawl_event
+
+    def get_crawl_event(self, event_id: Any) -> Optional[CrawlEvent]:
+        event_id = self._event_pagination_value(event_id, "event_id", allow_zero=False)
+        row = self._connection.execute(
+            "SELECT * FROM crawl_run_events WHERE id=?",
+            (event_id,),
+        ).fetchone()
+        return self._event_from_row(row) if row else None
+
+    def list_crawl_run_events(
+        self,
+        run_id: Optional[str] = None,
+        after_id: Optional[int] = None,
+        limit: Optional[int] = None,
+        *,
+        offset: int = 0,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
+        zoo_id: Optional[str] = None,
+        source_id: Optional[str] = None,
+        level: Optional[str] = None,
+        component: Optional[str] = None,
+        event_type: Optional[str] = None,
+        search: Optional[str] = None,
+        query: Optional[str] = None,
+    ) -> list[CrawlEvent]:
+        """Read events in ascending id order with incremental pagination."""
+
+        after_id = self._event_pagination_value(after_id, "after_id")
+        offset_value = self._event_pagination_value(offset, "offset") or 0
+        page_value = self._event_pagination_value(page, "page", allow_zero=False)
+        page_size_value = self._event_pagination_value(page_size, "page_size", allow_zero=False)
+        limit_value = self._event_pagination_value(limit, "limit")
+        if page_value is not None:
+            if page_size_value is None:
+                page_size_value = limit_value or 100
+            if limit_value is None:
+                limit_value = page_size_value
+            offset_value += (page_value - 1) * page_size_value
+        elif page_size_value is not None and limit_value is None:
+            limit_value = page_size_value
+
+        clauses: list[str] = []
+        args: list[Any] = []
+        if run_id is not None:
+            clauses.append("run_id=?")
+            args.append(str(run_id))
+        if after_id is not None:
+            clauses.append("id>?" )
+            args.append(after_id)
+        for column, value in (
+            ("zoo_id", zoo_id),
+            ("source_id", source_id),
+            ("component", component),
+            ("event_type", event_type),
+        ):
+            if value is not None:
+                clauses.append(f"{column}=?")
+                args.append(str(value))
+        if level is not None:
+            clauses.append("level=?")
+            args.append(str(level).strip().upper())
+        search_value = query if query is not None else search
+        if search_value:
+            clauses.append("message LIKE ?")
+            args.append(f"%{str(search_value)}%")
+        sql = "SELECT * FROM crawl_run_events"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY id ASC"
+        if limit_value is not None:
+            sql += " LIMIT ?"
+            args.append(limit_value)
+        if offset_value:
+            if limit_value is None:
+                sql += " LIMIT -1"
+            sql += " OFFSET ?"
+            args.append(offset_value)
+        rows = self._connection.execute(sql, args).fetchall()
+        return [self._event_from_row(row) for row in rows]
+
+    list_crawl_events = list_crawl_run_events
+    list_run_events = list_crawl_run_events
+    get_crawl_run_events = list_crawl_run_events
+    get_events = list_crawl_run_events
+
+    # ---- run/article associations --------------------------------------
+
+    @staticmethod
+    def _run_article_from_row(row: sqlite3.Row) -> CrawlRunArticle:
+        return CrawlRunArticle(
+            id=int(row["id"]) if row["id"] is not None else None,
+            run_id=str(row["run_id"] or ""),
+            article_id=str(row["article_id"] or ""),
+            zoo_id=row["zoo_id"],
+            source_id=row["source_id"],
+            outcome=row["outcome"] or "stored",
+            created_at=_decoded_timestamp(row["created_at"]),
+            updated_at=_decoded_timestamp(row["updated_at"]),
+            metadata=_load_json(row["metadata_json"]),
+        )
+
+    @classmethod
+    def _coerce_run_article(
+        cls,
+        relation: Optional[Union[CrawlRunArticle, Mapping[str, Any]]],
+        values: Mapping[str, Any],
+    ) -> CrawlRunArticle:
+        if relation is None:
+            payload: dict[str, Any] = {}
+        elif isinstance(relation, CrawlRunArticle):
+            payload = relation.as_dict()
+        elif isinstance(relation, Mapping):
+            payload = dict(relation)
+        else:
+            raise TypeError("relation must be a CrawlRunArticle or mapping")
+        payload.update(dict(values))
+        if "run_id" not in payload and "crawl_run_id" in payload:
+            payload["run_id"] = payload["crawl_run_id"]
+        if "metadata" not in payload and "metadata_json" in payload:
+            payload["metadata"] = _load_json(payload.get("metadata_json"))
+        allowed = {
+            "run_id", "article_id", "zoo_id", "source_id", "outcome", "created_at", "updated_at", "metadata"
+        }
+        normalized = {key: value for key, value in payload.items() if key in allowed}
+        for key in ("run_id", "article_id"):
+            value = normalized.get(key)
+            if value is None or not str(value).strip():
+                raise ValueError(f"crawl run article {key} is required")
+            normalized[key] = str(value).strip()
+        source_id = normalized.get("source_id")
+        normalized["source_id"] = None if source_id is None else str(source_id).strip() or None
+        zoo_id = normalized.get("zoo_id")
+        normalized["zoo_id"] = None if zoo_id is None else str(zoo_id).strip() or None
+        normalized["outcome"] = str(normalized.get("outcome") or "stored").strip() or "stored"
+        normalized["metadata"] = sanitize_metadata(normalized.get("metadata"))
+        normalized.pop("updated_at", None)
+        return CrawlRunArticle(**normalized)
+
+    def record_crawl_run_article(
+        self,
+        relation: Optional[Union[CrawlRunArticle, Mapping[str, Any]]] = None,
+        *,
+        run_id: Any = _RUN_STATE_UNSET,
+        article_id: Any = _RUN_STATE_UNSET,
+        zoo_id: Any = _RUN_STATE_UNSET,
+        source_id: Any = _RUN_STATE_UNSET,
+        outcome: Any = _RUN_STATE_UNSET,
+        created_at: Any = _RUN_STATE_UNSET,
+        metadata: Any = _RUN_STATE_UNSET,
+    ) -> CrawlRunArticle:
+        """Idempotently upsert an article's outcome within one crawl run."""
+
+        values = {
+            key: value
+            for key, value in {
+                "run_id": run_id,
+                "article_id": article_id,
+                "zoo_id": zoo_id,
+                "source_id": source_id,
+                "outcome": outcome,
+                "created_at": created_at,
+                "metadata": metadata,
+            }.items()
+            if value is not _RUN_STATE_UNSET
+        }
+        item = self._coerce_run_article(relation, values)
+        if item.zoo_id is None and item.source_id is not None:
+            source = self.get_source(item.source_id)
+            source_zoo_id = source.zoo_id if source is not None else None
+            if source_zoo_id:
+                item = CrawlRunArticle(
+                    id=item.id,
+                    run_id=item.run_id,
+                    article_id=item.article_id,
+                    zoo_id=source_zoo_id,
+                    source_id=item.source_id,
+                    outcome=item.outcome,
+                    created_at=item.created_at,
+                    updated_at=item.updated_at,
+                    metadata=item.metadata,
+                )
+        created_value = _timestamp(
+            item.created_at if item.created_at is not None else datetime.now(timezone.utc)
+        )
+        metadata_json = serialize_metadata(item.metadata)
+        updated_value = datetime.now(timezone.utc).isoformat()
+        with self._transaction() as db:
+            existing = db.execute(
+                "SELECT id,created_at FROM crawl_run_articles "
+                "WHERE run_id=? AND article_id=? AND zoo_id IS ? AND source_id IS ? LIMIT 1",
+                (item.run_id, item.article_id, item.zoo_id, item.source_id),
+            ).fetchone()
+            if existing:
+                relation_id = int(existing["id"])
+                created_value = existing["created_at"] or created_value
+                db.execute(
+                    "UPDATE crawl_run_articles SET zoo_id=?,source_id=?,outcome=?,created_at=?,updated_at=?,metadata_json=? WHERE id=?",
+                    (item.zoo_id, item.source_id, item.outcome, created_value, updated_value, metadata_json, relation_id),
+                )
+            else:
+                cursor = db.execute(
+                    "INSERT INTO crawl_run_articles(run_id,article_id,zoo_id,source_id,outcome,created_at,updated_at,metadata_json) VALUES(?,?,?,?,?,?,?,?)",
+                    (item.run_id, item.article_id, item.zoo_id, item.source_id, item.outcome, created_value, updated_value, metadata_json),
+                )
+                new_relation_id = cursor.lastrowid
+                if new_relation_id is None:
+                    raise RuntimeError("crawl run article insert did not return an id")
+                relation_id = new_relation_id
+        return self.get_crawl_run_article(relation_id) or CrawlRunArticle(
+            id=relation_id,
+            run_id=item.run_id,
+            article_id=item.article_id,
+            zoo_id=item.zoo_id,
+            source_id=item.source_id,
+            outcome=item.outcome,
+            created_at=created_value,
+            updated_at=updated_value,
+            metadata=item.metadata,
+        )
+
+    upsert_crawl_run_article = record_crawl_run_article
+    record_run_article = record_crawl_run_article
+    save_crawl_run_article = record_crawl_run_article
+    record_article_for_run = record_crawl_run_article
+    upsert_run_article = record_crawl_run_article
+
+    def get_crawl_run_article(self, relation_id: Any) -> Optional[CrawlRunArticle]:
+        relation_id = self._event_pagination_value(
+            relation_id, "relation_id", allow_zero=False
+        )
+        row = self._connection.execute(
+            "SELECT * FROM crawl_run_articles WHERE id=?", (relation_id,)
+        ).fetchone()
+        return self._run_article_from_row(row) if row else None
+
+    def list_crawl_run_articles(
+        self,
+        run_id: Optional[str] = None,
+        *,
+        article_id: Optional[str] = None,
+        zoo_id: Optional[str] = None,
+        source_id: Optional[str] = None,
+        outcome: Optional[str] = None,
+        after_id: Optional[int] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> list[CrawlRunArticle]:
+        """List durable run/article associations without time-based inference."""
+
+        after_id = self._event_pagination_value(after_id, "after_id")
+        limit_value = self._event_pagination_value(limit, "limit")
+        offset_value = self._event_pagination_value(offset, "offset") or 0
+        clauses: list[str] = []
+        args: list[Any] = []
+        if run_id is not None:
+            clauses.append("run_id=?")
+            args.append(str(run_id))
+        if article_id is not None:
+            clauses.append("article_id=?")
+            args.append(str(article_id))
+        if zoo_id is not None:
+            clauses.append("zoo_id=?")
+            args.append(str(zoo_id))
+        if source_id is not None:
+            clauses.append("source_id=?")
+            args.append(str(source_id))
+        if outcome is not None:
+            clauses.append("outcome=?")
+            args.append(str(outcome))
+        if after_id is not None:
+            clauses.append("id>?")
+            args.append(after_id)
+        sql = "SELECT * FROM crawl_run_articles"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY created_at ASC,id ASC"
+        if limit_value is not None:
+            sql += " LIMIT ?"
+            args.append(limit_value)
+        if offset_value:
+            if limit_value is None:
+                sql += " LIMIT -1"
+            sql += " OFFSET ?"
+            args.append(offset_value)
+        rows = self._connection.execute(sql, args).fetchall()
+        return [self._run_article_from_row(row) for row in rows]
+
+    list_run_articles = list_crawl_run_articles
+    get_crawl_run_articles = list_crawl_run_articles
+    list_articles_for_run = list_crawl_run_articles
+
     def record_run_stat(self, stat: Union[CrawlRunStat, Mapping[str, Any]]) -> CrawlRunStat:
-        if not isinstance(stat, CrawlRunStat):
-            stat = CrawlRunStat(**dict(stat))
+        if isinstance(stat, CrawlRunStat):
+            stop_reason = stat.stop_reason
+        else:
+            payload = dict(stat)
+            stop_reason = payload.pop("stop_reason", None)
+            stat = CrawlRunStat(**payload)
+        stop_reason = _stop_reason(stop_reason, stat.metadata)
         stat.id = _id(stat.id)
         with self._transaction() as db:
             existing = db.execute("SELECT id FROM crawl_run_stats WHERE id=? OR (crawl_run_id=? AND zoo_id IS ? AND source_id IS ?) LIMIT 1", (stat.id, stat.crawl_run_id, stat.zoo_id, stat.source_id)).fetchone()
             if existing:
                 stat.id = existing["id"]
                 db.execute(
-                    """UPDATE crawl_run_stats SET crawl_run_id=?,zoo_id=?,source_id=?,status=?,discovered_count=?,fetched_count=?,stored_count=?,already_known_count=?,duplicate_candidate_count=?,error_count=?,started_at=?,finished_at=?,duration_ms=?,error=?,errors_json=?,metadata_json=? WHERE id=?""",
-                    (stat.crawl_run_id, stat.zoo_id, stat.source_id, stat.status, stat.discovered_count, stat.fetched_count, stat.stored_count, stat.already_known_count, stat.duplicate_candidate_count, stat.error_count, _timestamp(stat.started_at), _timestamp(stat.finished_at), stat.duration_ms if stat.duration_ms is not None else self._duration_ms(_timestamp(stat.started_at), _timestamp(stat.finished_at)), stat.error, json.dumps(stat.errors, ensure_ascii=False), _json(stat.metadata), stat.id),
+                    """UPDATE crawl_run_stats SET crawl_run_id=?,zoo_id=?,source_id=?,status=?,discovered_count=?,fetched_count=?,stored_count=?,already_known_count=?,duplicate_candidate_count=?,error_count=?,started_at=?,finished_at=?,duration_ms=?,error=?,stop_reason=?,errors_json=?,metadata_json=? WHERE id=?""",
+                    (stat.crawl_run_id, stat.zoo_id, stat.source_id, stat.status, stat.discovered_count, stat.fetched_count, stat.stored_count, stat.already_known_count, stat.duplicate_candidate_count, stat.error_count, _timestamp(stat.started_at), _timestamp(stat.finished_at), stat.duration_ms if stat.duration_ms is not None else self._duration_ms(_timestamp(stat.started_at), _timestamp(stat.finished_at)), stat.error, stop_reason, json.dumps(stat.errors, ensure_ascii=False), _json(stat.metadata), stat.id),
                 )
             else:
                 db.execute(
-                    """INSERT INTO crawl_run_stats(id,crawl_run_id,zoo_id,source_id,status,discovered_count,fetched_count,stored_count,already_known_count,duplicate_candidate_count,error_count,started_at,finished_at,duration_ms,error,errors_json,metadata_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (stat.id, stat.crawl_run_id, stat.zoo_id, stat.source_id, stat.status, stat.discovered_count, stat.fetched_count, stat.stored_count, stat.already_known_count, stat.duplicate_candidate_count, stat.error_count, _timestamp(stat.started_at), _timestamp(stat.finished_at), stat.duration_ms if stat.duration_ms is not None else self._duration_ms(_timestamp(stat.started_at), _timestamp(stat.finished_at)), stat.error, json.dumps(stat.errors, ensure_ascii=False), _json(stat.metadata)),
+                    """INSERT INTO crawl_run_stats(id,crawl_run_id,zoo_id,source_id,status,discovered_count,fetched_count,stored_count,already_known_count,duplicate_candidate_count,error_count,started_at,finished_at,duration_ms,error,stop_reason,errors_json,metadata_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (stat.id, stat.crawl_run_id, stat.zoo_id, stat.source_id, stat.status, stat.discovered_count, stat.fetched_count, stat.stored_count, stat.already_known_count, stat.duplicate_candidate_count, stat.error_count, _timestamp(stat.started_at), _timestamp(stat.finished_at), stat.duration_ms if stat.duration_ms is not None else self._duration_ms(_timestamp(stat.started_at), _timestamp(stat.finished_at)), stat.error, stop_reason, json.dumps(stat.errors, ensure_ascii=False), _json(stat.metadata)),
                 )
+        stat.stop_reason = stop_reason
         return self.get_run_stat(stat.id) or stat
 
     save_run_stat = record_run_stat
@@ -2543,7 +3471,8 @@ class SQLiteStorage:
             errors = json.loads(row["errors_json"] or "[]")
         except (TypeError, ValueError, json.JSONDecodeError):
             errors = []
-        return CrawlRunStat(id=row["id"], crawl_run_id=row["crawl_run_id"], zoo_id=row["zoo_id"], source_id=row["source_id"], status=row["status"], discovered_count=row["discovered_count"], fetched_count=row["fetched_count"], stored_count=row["stored_count"], already_known_count=row["already_known_count"], duplicate_candidate_count=row["duplicate_candidate_count"], error_count=row["error_count"], started_at=_decoded_timestamp(row["started_at"]), finished_at=_decoded_timestamp(row["finished_at"]), duration_ms=row["duration_ms"], error=row["error"], errors=errors if isinstance(errors, list) else [], metadata=_load_json(row["metadata_json"]))
+        metadata = _load_json(row["metadata_json"])
+        return CrawlRunStat(id=row["id"], crawl_run_id=row["crawl_run_id"], zoo_id=row["zoo_id"], source_id=row["source_id"], status=row["status"], discovered_count=row["discovered_count"], fetched_count=row["fetched_count"], stored_count=row["stored_count"], already_known_count=row["already_known_count"], duplicate_candidate_count=row["duplicate_candidate_count"], error_count=row["error_count"], started_at=_decoded_timestamp(row["started_at"]), finished_at=_decoded_timestamp(row["finished_at"]), duration_ms=row["duration_ms"], error=row["error"], errors=errors if isinstance(errors, list) else [], metadata=metadata, stop_reason=_stop_reason(row["stop_reason"], metadata))
 
     def list_run_stats(self, crawl_run_id: Optional[str] = None) -> list[CrawlRunStat]:
         if crawl_run_id:
@@ -2556,7 +3485,8 @@ class SQLiteStorage:
 
     @staticmethod
     def _zoo_result_from_row(row: sqlite3.Row) -> CrawlZooResult:
-        return CrawlZooResult(
+        metadata = _load_json(row["metadata_json"])
+        result = CrawlZooResult(
             id=row["id"],
             crawl_run_id=row["crawl_run_id"],
             zoo_id=row["zoo_id"],
@@ -2577,16 +3507,23 @@ class SQLiteStorage:
             error_summary=row["error_summary"],
             started_at=_decoded_timestamp(row["started_at"]),
             finished_at=_decoded_timestamp(row["finished_at"]),
-            metadata=_load_json(row["metadata_json"]),
+            metadata=metadata,
+            stop_reason=_stop_reason(row["stop_reason"], metadata),
         )
+        return result
 
     def upsert_zoo_run_result(
         self, result: Union[CrawlZooResult, Mapping[str, Any]]
     ) -> CrawlZooResult:
         """Insert or update the unique ``(crawl_run_id, zoo_id)`` result."""
 
-        if not isinstance(result, CrawlZooResult):
-            result = CrawlZooResult(**dict(result))
+        if isinstance(result, CrawlZooResult):
+            stop_reason = result.stop_reason
+        else:
+            payload = dict(result)
+            stop_reason = payload.pop("stop_reason", None)
+            result = CrawlZooResult(**payload)
+        stop_reason = _stop_reason(stop_reason, result.metadata)
         run_id = result.crawl_run_id
         zoo_id = result.zoo_id
         if not run_id:
@@ -2612,18 +3549,19 @@ class SQLiteStorage:
                 result.id = str(existing["id"])
                 db.execute(
                     """
-                    UPDATE crawl_zoo_results SET crawl_run_id=?,zoo_id=?,zoo_slug=?,zoo_name=?,status=?,source_status=?,discovered=?,parsed=?,inserted=?,updated=?,failed=?,duplicate_filtered=?,duration_ms=?,source_url=?,http_status=?,error_category=?,error_summary=?,started_at=?,finished_at=?,metadata_json=?,updated_at=? WHERE id=?
+                    UPDATE crawl_zoo_results SET crawl_run_id=?,zoo_id=?,zoo_slug=?,zoo_name=?,status=?,source_status=?,discovered=?,parsed=?,inserted=?,updated=?,failed=?,duplicate_filtered=?,duration_ms=?,source_url=?,http_status=?,error_category=?,error_summary=?,stop_reason=?,started_at=?,finished_at=?,metadata_json=?,updated_at=? WHERE id=?
                     """,
-                    (run_id, zoo_id, result.zoo_slug, result.zoo_name, result.status, result.source_status, result.discovered, result.parsed, result.inserted, result.updated, result.failed, result.duplicate_filtered, duration, source_url, result.http_status, result.error_category, result.error_summary, started, finished, _json(result.metadata), now, result.id),
+                    (run_id, zoo_id, result.zoo_slug, result.zoo_name, result.status, result.source_status, result.discovered, result.parsed, result.inserted, result.updated, result.failed, result.duplicate_filtered, duration, source_url, result.http_status, result.error_category, result.error_summary, stop_reason, started, finished, _json(result.metadata), now, result.id),
                 )
             else:
                 db.execute(
                     """
-                    INSERT INTO crawl_zoo_results(id,crawl_run_id,zoo_id,zoo_slug,zoo_name,status,source_status,discovered,parsed,inserted,updated,failed,duplicate_filtered,duration_ms,source_url,http_status,error_category,error_summary,started_at,finished_at,metadata_json,created_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    INSERT INTO crawl_zoo_results(id,crawl_run_id,zoo_id,zoo_slug,zoo_name,status,source_status,discovered,parsed,inserted,updated,failed,duplicate_filtered,duration_ms,source_url,http_status,error_category,error_summary,stop_reason,started_at,finished_at,metadata_json,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
-                    (result.id, run_id, zoo_id, result.zoo_slug, result.zoo_name, result.status, result.source_status, result.discovered, result.parsed, result.inserted, result.updated, result.failed, result.duplicate_filtered, duration, source_url, result.http_status, result.error_category, result.error_summary, started, finished, _json(result.metadata), now, now),
+                    (result.id, run_id, zoo_id, result.zoo_slug, result.zoo_name, result.status, result.source_status, result.discovered, result.parsed, result.inserted, result.updated, result.failed, result.duplicate_filtered, duration, source_url, result.http_status, result.error_category, result.error_summary, stop_reason, started, finished, _json(result.metadata), now, now),
                 )
+        result.stop_reason = stop_reason
         return self.get_zoo_run_result(run_id, zoo_id) or result
 
     save_zoo_run_result = upsert_zoo_run_result

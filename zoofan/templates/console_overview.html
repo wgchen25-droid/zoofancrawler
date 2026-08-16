@@ -1,0 +1,48 @@
+{% extends "console_base.html" %}
+{% block title %}Overview · Crawler Console{% endblock %}
+{% block heading %}Crawler Console{% endblock %}
+{% block subheading %}A fast read-only view of live runs, zoo activity, and recent outcomes.{% endblock %}
+{% block content %}
+  <div class="console-page" data-console-page="overview"
+       data-status-url="{{ url_for('crawler_console.api_status') }}"
+       data-runs-url="{{ url_for('crawler_console.api_runs') }}">
+    <section class="console-panel console-current-panel" aria-labelledby="current-run-heading">
+      <div class="console-section-heading">
+        <div>
+          <p class="console-eyebrow">Now</p>
+          <h2 id="current-run-heading">Current run</h2>
+        </div>
+        <span class="console-live-note"><span class="console-live-dot" aria-hidden="true"></span> Polls every 2.5 seconds while active</span>
+      </div>
+      <div data-console-current-run>
+        <p class="console-empty">Loading current run…</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="run-metrics-heading">
+      <div class="console-section-heading"><h2 id="run-metrics-heading">Run metrics</h2></div>
+      <div class="console-metrics" data-console-metrics>
+        <div class="console-skeleton" aria-label="Loading metrics"></div>
+        <div class="console-skeleton" aria-hidden="true"></div>
+        <div class="console-skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="activity-heading">
+      <div class="console-section-heading"><h2 id="activity-heading">Current activity</h2></div>
+      <div class="console-activity-grid" data-console-activity>
+        <p class="console-empty">Loading activity…</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="recent-runs-heading">
+      <div class="console-section-heading">
+        <div><p class="console-eyebrow">History</p><h2 id="recent-runs-heading">Recent runs</h2></div>
+        <a class="console-button console-button-secondary" href="{{ url_for('crawler_console.console_runs') }}">View all runs</a>
+      </div>
+      <div data-console-recent-runs>
+        <p class="console-empty">Loading recent runs…</p>
+      </div>
+    </section>
+  </div>
+{% endblock %}

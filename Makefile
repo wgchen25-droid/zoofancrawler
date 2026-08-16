@@ -18,7 +18,7 @@ OFFLINE_GATE_TEST_ENV = env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u PYTHON -u
 # ``tests/test_*.py`` module belongs to exactly one taxonomy group.
 FIXTURE_TESTS ?= tests/test_fetcher.py tests/test_live_markup_regressions.py tests/test_normalization.py tests/test_parsers.py tests/test_phase0_numeric_dates.py tests/test_phase0_sources.py tests/test_url_policy.py
 CONFIG_TESTS ?= tests/test_config.py
-INTEGRATION_TESTS ?= tests/test_cli.py tests/test_control.py tests/test_crawler.py tests/test_dashboard.py tests/test_failure_isolation.py tests/test_live_smoke.py tests/test_module_cli.py tests/test_start_script.py tests/test_storage.py
+INTEGRATION_TESTS ?= tests/test_cli.py tests/test_control.py tests/test_console_api.py tests/test_console_crawler_events.py tests/test_console_events_storage.py tests/test_console_services.py tests/test_console_ui.py tests/test_crawler.py tests/test_dashboard.py tests/test_failure_isolation.py tests/test_live_smoke.py tests/test_module_cli.py tests/test_start_script.py tests/test_storage.py
 GOLDEN_TESTS ?= tests/test_endgoal.py tests/test_reporting.py
 QUALITY_TESTS ?= tests/test_packaging.py tests/test_quality_gates.py
 

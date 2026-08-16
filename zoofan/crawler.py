@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import hashlib
+import importlib
 import inspect
 import threading
 import uuid
@@ -16,7 +17,7 @@ from copy import copy
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Iterable, Iterator, Mapping, Optional, cast
+from typing import Any, Iterable, Iterator, Mapping, Optional, Protocol, cast
 
 from .discovery import (
     DiscoveryCandidate,
@@ -28,6 +29,7 @@ from .discovery import (
     _as_candidate,
     source_priority,
 )
+from .events import sanitize_metadata
 from .fetcher import Fetcher, RequestPolicy, scoped_fetch
 from .models import Article, CrawlRun, CrawlRunStat, Source, Zoo
 from .normalization import normalize_url
@@ -50,6 +52,81 @@ LOGGER = logging.getLogger(__name__)
 # bounded per-source default so one source cannot monopolise a run.
 DEFAULT_NEXT_BATCH_LIMIT = 10
 DEFAULT_CRAWLER_LEASE_TTL_SECONDS = 300.0
+
+# Keep this vocabulary in the crawler boundary so callers can make decisions
+# from run/source state instead of parsing log messages.  The values describe
+# why a source/run stopped, not every possible error classification.
+STOP_REASONS = (
+    "exhausted",
+    "no_new_urls",
+    "article_limit",
+    "url_discovery_limit",
+    "page_limit",
+    "runtime_limit",
+    "retry_exhausted",
+    "robots_blocked",
+    "http_error",
+    "parser_error",
+    "disabled",
+    "unknown_error",
+)
+
+
+class EventSink(Protocol):
+    """Minimal structured-event contract accepted by :class:`Crawler`.
+
+    The crawler intentionally depends only on this small duck-typed surface.
+    A recorder can persist to SQLite, forward to another process, or simply
+    collect events in memory without importing Flask, an HTTP client, or a
+    dashboard module.
+    """
+
+    def emit(self, event: Mapping[str, Any]) -> Any:
+        """Consume one JSON-safe event mapping."""
+
+
+class CrawlEventRecorder:
+    """Small in-memory recorder useful for integrations and deterministic tests.
+
+    Production callers may inject any object with ``emit``/``record`` (or a
+    callable) instead.  Keeping this fallback local means an optional external
+    recorder import can be absent without making the crawler unavailable.
+    """
+
+    def __init__(self, sink: Optional[Any] = None) -> None:
+        self.sink = sink
+        self.events: list[dict[str, Any]] = []
+
+    def emit(self, event: Mapping[str, Any]) -> None:
+        if self.sink is not None:
+            record = getattr(self.sink, "record_crawl_event", None)
+            if callable(record):
+                record(dict(event))
+                return
+        self.events.append(dict(event))
+
+    record = emit
+    record_event = emit
+    record_crawl_event = emit
+
+
+# The repository may provide a richer storage-backed recorder, while older
+# deployments may not have ``zoofan.events`` at all.  Resolve that optional
+# implementation through a private factory so the fallback protocol/class
+# names remain stable to mypy and to callers importing this module.
+_EVENTS_MODULE: Any = None
+try:  # pragma: no cover - the normal repository path has this module
+    _EVENTS_MODULE = importlib.import_module(".events", __package__)
+except (ImportError, AttributeError):  # pragma: no cover - legacy package path
+    pass
+
+_EVENT_RECORDER_FACTORY: Any = getattr(
+    _EVENTS_MODULE, "CrawlEventRecorder", CrawlEventRecorder
+)
+
+
+def _event_metadata(metadata: Optional[Mapping[str, Any]]) -> dict[str, Any]:
+    return sanitize_metadata(metadata)
 
 
 class CrawlerLeaseError(RuntimeError):
@@ -143,6 +220,7 @@ class _FallbackZooResult:
     source_url: Optional[str] = None
     http_status: Optional[int] = None
     error_summary: Optional[str] = None
+    stop_reason: Optional[str] = None
     started_at: Any = None
     finished_at: Any = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -161,6 +239,58 @@ def _status_code(error: BaseException) -> Optional[int]:
         return int(value) if value is not None else None
     except (TypeError, ValueError):
         return None
+
+
+def _exception_chain(error: BaseException) -> Iterator[BaseException]:
+    """Yield an exception and its causes without looping forever."""
+
+    seen: set[int] = set()
+    current: Optional[BaseException] = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        yield current
+        current = current.__cause__ or current.__context__
+
+
+def _retry_exhausted(error: BaseException) -> bool:
+    """Recognize explicit retry exhaustion without changing error classes."""
+
+    for item in _exception_chain(error):
+        for name in ("retry_exhausted", "retries_exhausted", "attempts_exhausted"):
+            if bool(getattr(item, name, False)):
+                return True
+        text = str(item).lower()
+        if "retry" in text and any(
+            marker in text for marker in ("exhaust", "limit", "attempt")
+        ):
+            return True
+    return False
+
+
+def _stop_reason_for_error(error: BaseException, category: Optional[str] = None) -> str:
+    """Map runtime failure evidence to the stable stop-reason vocabulary."""
+
+    if _retry_exhausted(error):
+        return "retry_exhausted"
+    category = str(category or classify_error(error)).strip().lower().replace("-", "_")
+    if category == "configuration_error" and "disabled" in str(error).lower():
+        return "disabled"
+    return _stop_reason_for_category(category)
+
+
+def _stop_reason_for_category(category: str) -> str:
+    category = str(category).strip().lower().replace("-", "_")
+    if category in {"robots_disallowed"}:
+        return "robots_blocked"
+    if category in {"date_parse_error", "content_parse_error", "parse_error"}:
+        return "parser_error"
+    if category in {
+        "http_error", "blocked", "timeout", "dns_error", "tls_error",
+    }:
+        return "http_error"
+    if category in {"javascript_required", "unsupported"}:
+        return "disabled"
+    return "unknown_error"
 
 
 def _positive_limit(value: Any, name: str) -> Optional[int]:
@@ -352,6 +482,13 @@ class CrawlResult:
         return self.remaining_estimate
 
     @property
+    def stop_reason(self) -> Optional[str]:
+        """Return the structured reason selected for this run, if any."""
+
+        value = self.metadata.get("stop_reason")
+        return str(value) if value else None
+
+    @property
     def error_classifications(self) -> list[str]:
         """Return stable runtime categories represented by this run."""
 
@@ -458,6 +595,7 @@ class CrawlResult:
             "candidates_limited": self.candidates_limited_count,
             "batch_limit": self.metadata.get("batch_limit"),
             "remaining_estimate": self.remaining_estimate,
+            "stop_reason": self.stop_reason,
             "error_classifications": self.error_classifications,
             "error_categories": self.error_classifications,
             "parsed_count": self.parsed_count,
@@ -572,10 +710,24 @@ class Crawler:
         max_candidates_per_source: Optional[int] = DEFAULT_NEXT_BATCH_LIMIT,
         max_pages: Optional[int] = None,
         lease_ttl_seconds: int | float = DEFAULT_CRAWLER_LEASE_TTL_SECONDS,
+        event_sink: Optional[EventSink] = None,
+        event_recorder: Optional[Any] = None,
+        recorder: Optional[Any] = None,
     ) -> None:
         self.config = config
         self.logger = logger or LOGGER
         self.storage = storage
+        # ``event_recorder`` and ``recorder`` are compatibility aliases for
+        # callers that adopted the concept before the sink name stabilized.
+        # Event delivery is best-effort and never becomes a crawl boundary.
+        self.event_sinks: list[Any] = []
+        self._event_sink_explicit = any(
+            candidate is not None for candidate in (event_sink, event_recorder, recorder)
+        )
+        for candidate in (event_sink, event_recorder, recorder):
+            if candidate is not None and all(candidate is not item for item in self.event_sinks):
+                self.event_sinks.append(candidate)
+        self.event_sink = self.event_sinks[0] if self.event_sinks else None
         if (
             isinstance(lease_ttl_seconds, bool)
             or not isinstance(lease_ttl_seconds, (int, float))
@@ -613,6 +765,107 @@ class Crawler:
             logger=self.logger,
             adapter_registry=self.adapter_registry,
         )
+
+    def _ensure_event_recorder(self) -> None:
+        """Attach the optional storage-backed recorder when one is available."""
+
+        if self._event_sink_explicit or self.event_sinks or self.storage is None:
+            return
+        record = getattr(self.storage, "record_crawl_event", None)
+        if not callable(record):
+            return
+        try:
+            self.event_sinks.append(_EVENT_RECORDER_FACTORY(self.storage))
+        except TypeError:
+            # The local compatibility recorder has no sink argument; the
+            # storage-shaped API is still a valid direct event sink.
+            self.event_sinks.append(self.storage)
+
+    def _emit_event(
+        self,
+        event_type: str,
+        *,
+        level: str = "INFO",
+        component: str = "crawler",
+        message: str = "",
+        run: Optional[CrawlRun] = None,
+        zoo: Optional[Zoo] = None,
+        source: Optional[Source] = None,
+        zoo_id: Optional[str] = None,
+        source_id: Optional[str] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        """Best-effort delivery of one small, structured operational event."""
+
+        self._ensure_event_recorder()
+        if not self.event_sinks:
+            return
+        payload: dict[str, Any] = {
+            "created_at": _now().isoformat(),
+            "level": str(level).upper(),
+            "component": str(component),
+            "event_type": str(event_type),
+            "message": str(message)[:512],
+            "run_id": (
+                str(getattr(run, "id", None))
+                if getattr(run, "id", None) is not None
+                else None
+            ),
+            "zoo_id": zoo_id or (str(getattr(zoo, "id", None) or getattr(zoo, "slug", "")) or None),
+            "source_id": source_id or (str(getattr(source, "id", "")) or None),
+            "metadata": _event_metadata(metadata),
+        }
+        for sink in tuple(self.event_sinks):
+            try:
+                self._deliver_event(sink, payload)
+            except Exception as exc:
+                # Observability must not change source isolation or make an
+                # otherwise successful crawl fail because a recorder is
+                # missing, unavailable, or implemented with an old signature.
+                self.logger.warning(
+                    "crawl event delivery failed event=%s error=%s",
+                    event_type,
+                    sanitize_error(str(exc)),
+                )
+
+    @staticmethod
+    def _deliver_event(sink: Any, event: Mapping[str, Any]) -> None:
+        """Call common recorder shapes without importing a recorder module."""
+
+        method = None
+        for name in ("emit", "record", "record_event", "record_crawl_event", "append"):
+            candidate = getattr(sink, name, None)
+            if callable(candidate):
+                method = candidate
+                break
+        if method is None and callable(sink):
+            method = sink
+        if method is None:
+            raise TypeError("event sink must be callable or expose emit/record")
+
+        try:
+            parameters = list(inspect.signature(method).parameters.values())
+        except (TypeError, ValueError):
+            parameters = []
+        positional = [
+            parameter
+            for parameter in parameters
+            if parameter.kind
+            in {inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD}
+        ]
+        has_var_kwargs = any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters
+        )
+        if positional and positional[0].name in {"event", "payload", "entry", "record"} and len(positional) == 1:
+            method(dict(event))
+        elif positional and positional[0].name in {"event_type", "type", "kind"}:
+            values = dict(event)
+            first = values.pop("event_type")
+            method(first, **values)
+        elif has_var_kwargs or (positional and all(key in {item.name for item in positional} for key in event)):
+            method(**dict(event))
+        else:
+            method(dict(event))
 
     def _ensure_storage(self) -> Any:
         if self.storage is not None:
@@ -1020,6 +1273,232 @@ class Crawler:
             # failed batch.
             self.logger.warning("crawl run metadata persistence failed: %s", sanitize_error(str(exc)))
 
+    @staticmethod
+    def _invoke_compatible_method(method: Any, payload: Mapping[str, Any]) -> Any:
+        """Invoke a small optional storage hook across legacy signatures."""
+
+        try:
+            parameters = [
+                parameter
+                for parameter in inspect.signature(method).parameters.values()
+                if parameter.name != "self"
+            ]
+        except (TypeError, ValueError):
+            return method(dict(payload))
+        names = {parameter.name for parameter in parameters}
+        if any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters):
+            return method(**dict(payload))
+        aliases = {
+            "run_id": ("run_id", "crawl_run_id", "crawl_id"),
+            "article_id": ("article_id", "article"),
+            "zoo_id": ("current_zoo_id", "current_zoo", "zoo_id", "zoo"),
+            "source_id": ("current_source_id", "current_source", "source_id", "source"),
+            "created_at": ("created_at", "occurred_at", "timestamp"),
+            "progress": ("progress", "state", "metadata"),
+            "heartbeat_at": ("heartbeat_at", "updated_at", "timestamp"),
+            "progress_at": ("progress_at", "updated_at", "timestamp"),
+            "current_phase": ("current_phase", "phase", "activity"),
+        }
+        kwargs: dict[str, Any] = {}
+        for source_name, value in payload.items():
+            for target_name in aliases.get(source_name, (source_name,)):
+                if target_name in names:
+                    kwargs[target_name] = value
+                    break
+        required = [
+            parameter
+            for parameter in parameters
+            if parameter.kind
+            in {inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD}
+            and parameter.default is inspect.Parameter.empty
+        ]
+        if all(parameter.name in kwargs for parameter in required):
+            if any(parameter.kind is inspect.Parameter.POSITIONAL_ONLY for parameter in required):
+                return method(*(kwargs[parameter.name] for parameter in required))
+            return method(**kwargs)
+        if len(parameters) >= 2:
+            first, second = parameters[0].name, parameters[1].name
+            first_value = kwargs.get(first, payload.get("run_id"))
+            second_value = kwargs.get(second, payload.get("article_id"))
+            return method(first_value, second_value)
+        if len(parameters) == 1:
+            parameter = parameters[0]
+            value = kwargs.get(parameter.name)
+            if value is None:
+                value = payload.get(parameter.name, payload.get("run_id"))
+            return method(value)
+        return method()
+
+    def _record_run_article_relation(
+        self,
+        run: Optional[CrawlRun],
+        article: Any,
+        *,
+        zoo: Zoo,
+        source: Source,
+        stat: Optional[CrawlRunStat] = None,
+        outcome: str = "stored",
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        """Associate one article outcome with this run when supported.
+
+        The current console repository also understands exact article-id lists
+        in run/stat metadata.  We maintain those lists even for older storage
+        adapters, while trying the explicit relation hook used by newer ones;
+        neither path relies on a timestamp window.
+        """
+
+        article_id = _first_attr(article, "id", "article_id", default=None)
+        run_id = getattr(run, "id", None)
+        if not article_id or not run_id:
+            return
+        article_id = str(article_id)
+        if outcome == "stored":
+            metadata_targets = [
+                (getattr(run, "metadata", None), "stored_article_ids"),
+                (getattr(run, "metadata", None), "article_ids"),
+                (getattr(stat, "metadata", None), "stored_article_ids"),
+                (getattr(stat, "metadata", None), "article_ids"),
+            ]
+            for container, key in metadata_targets:
+                if not isinstance(container, dict):
+                    continue
+                values = container.get(key)
+                if not isinstance(values, list):
+                    values = []
+                    container[key] = values
+                if article_id not in values:
+                    values.append(article_id)
+
+        storage = self.storage
+        relation_payload = {
+            "run_id": str(run_id),
+            "crawl_run_id": str(run_id),
+            "article_id": article_id,
+            "zoo_id": str(zoo.id or zoo.slug),
+            "source_id": str(source.id or ""),
+            "outcome": str(outcome or "stored"),
+            "created_at": _now().isoformat(),
+            "metadata": sanitize_metadata(metadata),
+        }
+        relation_methods = (
+            "record_crawl_run_article",
+            "add_crawl_run_article",
+            "link_crawl_run_article",
+            "record_run_article",
+            "add_run_article",
+            "link_run_article",
+            "associate_article_with_run",
+        )
+        method = next(
+            (
+                getattr(storage, name, None)
+                for name in relation_methods
+                if callable(getattr(storage, name, None))
+            ),
+            None,
+        ) if storage is not None else None
+        if method is not None:
+            try:
+                self._invoke_compatible_method(method, relation_payload)
+            except Exception as exc:
+                # The exact metadata relation remains available to the
+                # console; a legacy optional hook must not undo an article
+                # already committed by the storage upsert.
+                self.logger.warning(
+                    "crawl run article relation failed run=%s article=%s error=%s",
+                    run_id,
+                    article_id,
+                    sanitize_error(str(exc)),
+                )
+                self._emit_event(
+                    "run_article_relation_failed",
+                    level="WARNING",
+                    component="storage",
+                    message="Run/article relation could not be recorded",
+                    run=run,
+                    zoo=zoo,
+                    source=source,
+                    metadata={"article_id": article_id, "error": sanitize_error(str(exc))},
+                )
+
+    def _update_run_runtime_state(
+        self,
+        run: Optional[CrawlRun],
+        *,
+        zoo: Optional[Zoo] = None,
+        source: Optional[Source] = None,
+        stat: Optional[CrawlRunStat] = None,
+        phase: Optional[str] = None,
+    ) -> None:
+        """Publish current activity/progress through optional run hooks."""
+
+        if run is None:
+            return
+        progress = {
+            "discovered": int(getattr(stat, "discovered_count", 0) or 0),
+            "fetched": int(getattr(stat, "fetched_count", 0) or 0),
+            "stored": int(getattr(stat, "stored_count", 0) or 0),
+            "already_known": int(getattr(stat, "already_known_count", 0) or 0),
+            "duplicates": int(getattr(stat, "duplicate_candidate_count", 0) or 0),
+            "errors": int(getattr(stat, "error_count", 0) or 0),
+        }
+        now = _now().isoformat()
+        state: dict[str, Any] = {
+            "current_zoo_id": str(zoo.id or zoo.slug) if zoo is not None else None,
+            "current_source_id": str(source.id) if source is not None and source.id else None,
+            "current_phase": phase or ("discovery" if source is not None else "finish"),
+            "heartbeat_at": now,
+            "progress_at": now,
+            "progress": progress,
+        }
+        run.current_zoo_id = state["current_zoo_id"]
+        run.current_source_id = state["current_source_id"]
+        run.current_phase = state["current_phase"]
+        run.heartbeat_at = now
+        run.progress_at = now
+        run.progress = progress
+        payload = {
+            "run_id": str(getattr(run, "id", "")),
+            "current_zoo_id": state["current_zoo_id"],
+            "current_source_id": state["current_source_id"],
+            "current_phase": state["current_phase"],
+            "heartbeat_at": state["heartbeat_at"],
+            "progress_at": state["progress_at"],
+            "progress": progress,
+        }
+        state_method_available = False
+        for name in (
+            "update_crawl_run_state",
+            "update_run_state",
+            "update_crawl_progress",
+            "heartbeat_crawl_run",
+            "heartbeat_run",
+            "touch_crawl_run",
+            "update_crawl_run_progress",
+            "update_run_progress",
+            "set_crawl_run_progress",
+        ):
+            method = getattr(self.storage, name, None) if self.storage is not None else None
+            if not callable(method):
+                continue
+            state_method_available = True
+            try:
+                self._invoke_compatible_method(method, payload)
+            except Exception as exc:
+                self.logger.warning(
+                    "crawl run progress update failed run=%s error=%s",
+                    getattr(run, "id", None),
+                    sanitize_error(str(exc)),
+                )
+            else:
+                break
+        if not state_method_available:
+            # Older adapters only expose metadata writes.  Keep the
+            # compatibility fallback, but the SQLite adapter above receives
+            # the first-class state columns.
+            self._update_run_metadata(run, state)
+
     def _record_stat(self, stat: CrawlRunStat) -> CrawlRunStat:
         if self.storage is not None and hasattr(self.storage, "record_run_stat"):
             return self.storage.record_run_stat(stat)
@@ -1204,6 +1683,8 @@ class Crawler:
         *,
         limit: int,
         seen_articles: dict[str, Article],
+        run: Optional[CrawlRun] = None,
+        stat: Optional[CrawlRunStat] = None,
     ) -> _NextBatchSelection:
         """Drop known/duplicate identities before applying the batch limit."""
 
@@ -1240,7 +1721,8 @@ class Crawler:
 
             if existing is not None:
                 identity = str(getattr(existing, "id", None) or key)
-                if identity in known_identity_keys:
+                is_duplicate = identity in known_identity_keys
+                if is_duplicate:
                     selection.duplicate_filtered += 1
                 else:
                     selection.already_known += 1
@@ -1252,6 +1734,18 @@ class Crawler:
                 except Exception as exc:
                     category, message = self._error_detail(exc, phase="storage")
                     selection.storage_errors.append((category, message))
+                self._record_run_article_relation(
+                    run,
+                    existing,
+                    zoo=zoo,
+                    source=source,
+                    stat=stat,
+                    outcome="duplicate" if is_duplicate else "already_known",
+                    metadata={
+                        "reason": "same_batch_duplicate" if is_duplicate else "already_known",
+                        "url": RequestPolicy.safe_target(candidate.url),
+                    },
+                )
                 continue
 
             if any(identity_key in identity_keys_seen for identity_key in identity_keys):
@@ -1495,6 +1989,7 @@ class Crawler:
             "source_url": source_url,
             "http_status": http_status,
             "error_summary": "; ".join(error_summary) if error_summary else None,
+            "stop_reason": (metadata or {}).get("stop_reason"),
             "started_at": started_at,
             "finished_at": finished_at,
             "metadata": dict(metadata or {}),
@@ -1529,6 +2024,7 @@ class Crawler:
                 source_url=cast(Optional[str], values.get("source_url")),
                 http_status=cast(Optional[int], values.get("http_status")),
                 error_summary=cast(Optional[str], values.get("error_summary")),
+                stop_reason=cast(Optional[str], values.get("stop_reason")),
                 started_at=values.get("started_at"),
                 finished_at=values.get("finished_at"),
                 metadata=cast(dict[str, Any], values.get("metadata")),
@@ -1598,6 +2094,130 @@ class Crawler:
         return category, message
 
     @staticmethod
+    def _budget_stop_reason(
+        source: Source,
+        *,
+        stat: CrawlRunStat,
+        max_candidates_per_source: Optional[int],
+        max_pages: Optional[int],
+        batch_limit: Optional[int],
+        page_limit_hit: bool = False,
+    ) -> Optional[str]:
+        """Return a budget reason only when the crawl has evidence it hit one."""
+
+        if page_limit_hit:
+            return "page_limit"
+        if batch_limit is not None and int(stat.metadata.get("candidates_limited", 0) or 0) > 0:
+            return "article_limit"
+        if (
+            batch_limit is not None
+            and stat.discovered_count > 0
+            and int(stat.metadata.get("candidates_processed", 0) or 0) == 0
+            and (stat.already_known_count or stat.duplicate_candidate_count)
+        ):
+            return "no_new_urls"
+        if (
+            batch_limit is None
+            and max_candidates_per_source is not None
+            and int(stat.metadata.get("candidates_limited", 0) or 0) > 0
+        ):
+            return "url_discovery_limit"
+        # A few custom discovery adapters expose an explicit runtime marker in
+        # source config.  Honor it without assuming every configured max-pages
+        # value was actually reached.
+        config = dict(getattr(source, "config", {}) or {})
+        if _config_flag(config.get("runtime_limit_hit")):
+            return "runtime_limit"
+        if _config_flag(config.get("page_limit_hit")) or _config_flag(config.get("pages_limited")):
+            return "page_limit"
+        return None
+
+    @staticmethod
+    def _select_stop_reason(reasons: Iterable[Any]) -> str:
+        """Choose one deterministic run reason from source-level evidence."""
+
+        priority = {
+            "unknown_error": 100,
+            "runtime_limit": 95,
+            "retry_exhausted": 90,
+            "robots_blocked": 85,
+            "http_error": 80,
+            "parser_error": 75,
+            "disabled": 70,
+            "article_limit": 60,
+            "url_discovery_limit": 55,
+            "page_limit": 50,
+            "no_new_urls": 40,
+            "exhausted": 10,
+        }
+        normalized = [str(reason) for reason in reasons if str(reason) in STOP_REASONS]
+        if not normalized:
+            return "exhausted"
+        return max(normalized, key=lambda reason: priority[reason])
+
+    @staticmethod
+    def _discovery_page_limit_hit(discovered: Any) -> bool:
+        """Read optional adapter evidence without requiring a new result type."""
+
+        for name in (
+            "page_limit_hit",
+            "pages_limited",
+            "pagination_limited",
+            "max_pages_hit",
+        ):
+            if _config_flag(getattr(discovered, name, False)):
+                return True
+        metadata = getattr(discovered, "metadata", None)
+        return isinstance(metadata, Mapping) and any(
+            _config_flag(metadata.get(name))
+            for name in ("page_limit_hit", "pages_limited", "pagination_limited", "max_pages_hit")
+        )
+
+    def _emit_failure_event(
+        self,
+        exc: BaseException,
+        *,
+        category: str,
+        phase: str,
+        run: Optional[CrawlRun],
+        zoo: Optional[Zoo] = None,
+        source: Optional[Source] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        """Emit one major failure event in addition to source/run lifecycle."""
+
+        reason = _stop_reason_for_error(exc, category)
+        event_type: Optional[str] = None
+        component = "crawler"
+        if reason == "robots_blocked":
+            event_type, component = "robots_blocked", "fetcher"
+        elif reason == "retry_exhausted":
+            event_type, component = "retry_exhausted", "fetcher"
+        elif reason == "http_error":
+            event_type, component = "http_error", "fetcher"
+        elif reason == "parser_error":
+            event_type, component = "parse_failed", "parser"
+        if event_type is None:
+            return
+        details = {
+            "category": category,
+            "phase": phase,
+            "stop_reason": reason,
+            "status_code": _status_code(exc),
+        }
+        details.update(dict(metadata or {}))
+        self._emit_event(
+            event_type,
+            level="ERROR",
+            component=component,
+            message=sanitize_error(str(exc) or type(exc).__name__),
+            run=run,
+            zoo=zoo,
+            source=source,
+            metadata=details,
+        )
+
+    @staticmethod
     def _mark_zoo_result_storage_failure(
         result: Any, category: str, message: str
     ) -> Any:
@@ -1644,12 +2264,14 @@ class Crawler:
             if str(_first_attr(existing, "zoo_id", default="")) == zoo_id:
                 return existing
         category, message = self._error_detail(exc, phase=phase)
+        stop_reason = _stop_reason_for_error(exc, category)
         website = _first_attr(zoo, "website_url", "url", default=None)
         safe_source = RequestPolicy.safe_target(str(website)) if website else None
         finished_at = _now()
         error_metadata = {
             "error_sources": [safe_source] if safe_source else [],
             "error_categories": [category],
+            "stop_reason": stop_reason,
             "since_filtered": 0,
             "since_filtered_count": 0,
         }
@@ -1681,6 +2303,26 @@ class Crawler:
                 zoo_result, storage_category, storage_message
             )
         result.zoo_results.append(persisted)
+        self._emit_failure_event(
+            exc,
+            category=category,
+            phase=phase,
+            run=run,
+            zoo=zoo,
+        )
+        self._emit_event(
+            "zoo_failed",
+            level="ERROR",
+            component="crawler",
+            message=f"Zoo failed: {message}",
+            run=run,
+            zoo=zoo,
+            metadata={
+                "category": category,
+                "stop_reason": stop_reason,
+                "status_code": _status_code(exc),
+            },
+        )
         self.logger.error(
             "crawl zoo failed zoo=%s category=%s error=%s",
             zoo_id,
@@ -1826,6 +2468,20 @@ class Crawler:
         )
         run = self._new_run(selection)
         result = CrawlResult(run=run)
+        self._emit_event(
+            "crawl_started",
+            level="INFO",
+            component="crawler",
+            message="Crawl started",
+            run=run,
+            metadata={
+                "selection": selection if isinstance(selection, str) else list(selection),
+                "zoos": len(selected_zoos),
+                "max_candidates_per_source": candidate_limit,
+                "max_pages": page_limit,
+                "since_days": since_days,
+            },
+        )
         seen_articles: dict[str, Article] = {}
         pre_run_article_ids = {
             str(article.id) for article in (storage.list_articles() if hasattr(storage, "list_articles") else [])
@@ -1868,6 +2524,13 @@ class Crawler:
         zoo_failures = [item for item in result.zoo_results if str(_first_attr(item, "status", default="")) in {"partial", "failed"}]
         result.status = "completed_with_errors" if zoo_failures or result.error_count else "completed"
         run_classifications = result.error_classifications
+        stop_reasons = [
+            (_first_attr(item, "metadata", default={}) or {}).get("stop_reason")
+            for item in result.zoo_results
+        ] + [
+            (stat.metadata or {}).get("stop_reason") for stat in result.stats
+        ]
+        stop_reason = self._select_stop_reason(stop_reasons)
         result.metadata = {
             "zoos": len(selected_zoos),
             "sources": len(result.stats),
@@ -1891,6 +2554,7 @@ class Crawler:
             "candidates_limited": candidates_limited,
             "error_classifications": run_classifications,
             "error_categories": run_classifications,
+            "stop_reason": stop_reason,
         }
         if zoo_failures:
             summaries: list[str] = []
@@ -1901,10 +2565,65 @@ class Crawler:
                 elif isinstance(summary, Iterable):
                     summaries.extend(str(value) for value in summary)
             result.error = "; ".join(sanitize_error(item) for item in summaries) or None
+        self._update_run_metadata(run, result.metadata)
+        if run is not None:
+            run.stop_reason = stop_reason
         if run is not None and hasattr(storage, "finish_crawl_run"):
-            finished = storage.finish_crawl_run(getattr(run, "id", ""), status=result.status)
+            finish = storage.finish_crawl_run
+            finish_kwargs: dict[str, Any] = {"status": result.status}
+            finish_parameters: Mapping[str, inspect.Parameter] = {}
+            try:
+                finish_parameters = inspect.signature(finish).parameters
+            except (TypeError, ValueError):
+                pass
+            if "metadata" in finish_parameters:
+                finish_kwargs["metadata"] = dict(getattr(run, "metadata", {}) or {})
+            if "error" in finish_parameters:
+                finish_kwargs["error"] = result.error
+            if "stop_reason" in finish_parameters or any(
+                parameter.kind is inspect.Parameter.VAR_KEYWORD
+                for parameter in finish_parameters.values()
+            ):
+                finish_kwargs["stop_reason"] = stop_reason
+            finished = finish(getattr(run, "id", ""), **finish_kwargs)
             if finished is not None:
+                try:
+                    finished.metadata = {
+                        **dict(getattr(finished, "metadata", {}) or {}),
+                        **dict(getattr(run, "metadata", {}) or {}),
+                    }
+                except Exception:
+                    pass
+                finished.stop_reason = stop_reason
                 result.run = finished
+        event_metadata = {
+            "status": result.status,
+            "stop_reason": stop_reason,
+            "zoos": len(selected_zoos),
+            "sources": len(result.stats),
+            "discovered": result.discovered_count,
+            "fetched": result.fetched_count,
+            "stored": result.stored_count,
+            "duplicates": result.duplicate_filtered_count,
+            "errors": result.error_count,
+        }
+        self._emit_event(
+            "crawl_completed",
+            level="INFO" if result.status == "completed" else "WARNING",
+            component="crawler",
+            message="Crawl completed",
+            run=result.run or run,
+            metadata=event_metadata,
+        )
+        if result.status != "completed":
+            self._emit_event(
+                "crawl_failed",
+                level="ERROR",
+                component="crawler",
+                message=result.error or "Crawl completed with errors",
+                run=result.run or run,
+                metadata=event_metadata,
+            )
         self.logger.info(
             "crawl batch status=%s zoos=%d sources=%d discovered=%d fetched=%d stored=%d errors=%d",
             result.status, len(selected_zoos), len(result.stats), result.discovered_count,
@@ -2037,6 +2756,20 @@ class Crawler:
             },
         )
         result = CrawlResult(run=run)
+        self._emit_event(
+            "crawl_started",
+            level="INFO",
+            component="crawler",
+            message="Next batch crawl started",
+            run=run,
+            zoo=zoo,
+            source=source,
+            metadata={
+                "mode": "next_batch",
+                "batch_limit": batch_limit_value,
+                "max_pages": page_limit,
+            },
+        )
         started_at = _now()
         seen_articles: dict[str, Article] = {}
         pre_run_article_ids = {
@@ -2107,6 +2840,13 @@ class Crawler:
             if str(_first_attr(item, "status", default=""))
             in {"partial", "failed"}
         ]
+        stop_reasons = [
+            (_first_attr(item, "metadata", default={}) or {}).get("stop_reason")
+            for item in result.zoo_results
+        ] + [
+            (stat.metadata or {}).get("stop_reason") for stat in result.stats
+        ]
+        stop_reason = self._select_stop_reason(stop_reasons)
         result.status = (
             "completed_with_errors" if zoo_failures or result.error_count else "completed"
         )
@@ -2129,6 +2869,7 @@ class Crawler:
             "max_pages": page_limit,
             "error_classifications": result.error_classifications,
             "error_categories": result.error_classifications,
+            "stop_reason": stop_reason,
         }
         # Keep the compact run metadata useful to Control/reporting callers
         # while the durable stat still carries the canonical count fields.
@@ -2152,6 +2893,8 @@ class Crawler:
             result.error = "; ".join(sanitize_error(item) for item in summaries) or None
 
         self._update_run_metadata(run, result.metadata)
+        if run is not None:
+            run.stop_reason = stop_reason
         if run is not None and hasattr(storage, "finish_crawl_run"):
             finish = storage.finish_crawl_run
             finish_kwargs: dict[str, Any] = {
@@ -2165,6 +2908,11 @@ class Crawler:
                 pass
             if "metadata" in finish_params:
                 finish_kwargs["metadata"] = dict(getattr(run, "metadata", {}) or {})
+            if "stop_reason" in finish_params or any(
+                parameter.kind is inspect.Parameter.VAR_KEYWORD
+                for parameter in finish_params.values()
+            ):
+                finish_kwargs["stop_reason"] = stop_reason
             finished = finish(getattr(run, "id", ""), **finish_kwargs)
             if finished is not None:
                 # Some adapters return a reconstructed run with metadata from
@@ -2174,7 +2922,40 @@ class Crawler:
                     **dict(getattr(finished, "metadata", {}) or {}),
                     **dict(getattr(run, "metadata", {}) or {}),
                 }
+                finished.stop_reason = stop_reason
                 result.run = finished
+        event_metadata = {
+            "mode": "next_batch",
+            "status": result.status,
+            "stop_reason": stop_reason,
+            "batch_limit": batch_limit_value,
+            "discovered": result.discovered_count,
+            "fetched": result.fetched_count,
+            "stored": result.stored_count,
+            "duplicates": result.duplicate_filtered_count,
+            "errors": result.error_count,
+        }
+        self._emit_event(
+            "crawl_completed",
+            level="INFO" if result.status == "completed" else "WARNING",
+            component="crawler",
+            message="Next batch crawl completed",
+            run=result.run or run,
+            zoo=zoo,
+            source=source,
+            metadata=event_metadata,
+        )
+        if result.status != "completed":
+            self._emit_event(
+                "crawl_failed",
+                level="ERROR",
+                component="crawler",
+                message=result.error or "Next batch crawl completed with errors",
+                run=result.run or run,
+                zoo=zoo,
+                source=source,
+                metadata=event_metadata,
+            )
         return result
 
     @staticmethod
@@ -2218,6 +2999,15 @@ class Crawler:
         ``crawl`` keeps its historical source-wide/recheck behavior.
         """
         zoo_id = str(zoo.id or zoo.slug)
+        self._emit_event(
+            "zoo_started",
+            level="INFO",
+            component="crawler",
+            message="Zoo crawl started",
+            run=run,
+            zoo=zoo,
+            metadata={"mode": "next_batch" if batch_limit is not None else "crawl"},
+        )
         try:
             sources = sorted(self.registry.sources_for_zoo(zoo), key=source_priority)
             if source_id is not None:
@@ -2338,6 +3128,17 @@ class Crawler:
                     "evidence_urls": evidence_urls,
                     "source_status_reasons": evidence_reasons,
                     "disabled_source_count": len(evidence_sources),
+                    "stop_reason": (
+                        "disabled"
+                        if evidence_sources and all(not item["enabled"] for item in evidence_sources)
+                        else {
+                            "robots_disallowed": "robots_blocked",
+                            "http_error": "http_error",
+                            "parse_error": "parser_error",
+                            "date_parse_error": "parser_error",
+                            "content_parse_error": "parser_error",
+                        }.get(configured_status, "exhausted")
+                    ),
                     "since_filtered": 0,
                     "since_filtered_count": 0,
                     "candidates_processed": 0,
@@ -2364,6 +3165,9 @@ class Crawler:
                     "evidence_urls": evidence_urls,
                     "source_status_reasons": evidence_reasons,
                     "disabled_source_count": len(evidence_sources),
+                    "stop_reason": "disabled" if evidence_sources and all(
+                        not item["enabled"] for item in evidence_sources
+                    ) else "unknown_error",
                     "since_filtered": 0,
                     "since_filtered_count": 0,
                     "candidates_processed": 0,
@@ -2393,6 +3197,32 @@ class Crawler:
                     zoo_result, category, message
                 )
             result.zoo_results.append(persisted_zoo_result)
+            no_source_reason = str(error_metadata.get("stop_reason") or "unknown_error")
+            if no_source_reason == "disabled":
+                self._emit_event(
+                    "source_disabled",
+                    level="WARNING",
+                    component="crawler",
+                    message="Zoo has no enabled sources",
+                    run=run,
+                    zoo=zoo,
+                    metadata={"stop_reason": "disabled", "disabled_source_count": len(evidence_sources)},
+                )
+            self._emit_event(
+                "zoo_completed",
+                level="INFO" if zoo_status == "success_no_items" else "ERROR",
+                component="crawler",
+                message="Zoo crawl completed" if zoo_status == "success_no_items" else "Zoo crawl failed",
+                run=run,
+                zoo=zoo,
+                metadata={
+                    "status": zoo_status,
+                    "stop_reason": no_source_reason,
+                    "discovered": 0,
+                    "stored": 0,
+                    "errors": failed,
+                },
+            )
             return
 
         for source in sources:
@@ -2404,6 +3234,25 @@ class Crawler:
                 started_at=stat_started, status="running",
                 metadata={"since_filtered_count": 0},
             )
+            self._emit_event(
+                "source_started",
+                level="INFO",
+                component="crawler",
+                message="Source crawl started",
+                run=run,
+                zoo=zoo,
+                source=source,
+                metadata={
+                    "kind": source.kind,
+                    "url": RequestPolicy.safe_target(source.url),
+                    "batch_limit": batch_limit,
+                    "max_candidates_per_source": max_candidates_per_source,
+                    "max_pages": max_pages,
+                },
+            )
+            self._update_run_runtime_state(
+                run, zoo=zoo, source=source, stat=stat, phase="discovery"
+            )
             stat.metadata.update(self._batch_metadata(batch_limit=batch_limit))
             if max_candidates_per_source is not None:
                 stat.metadata["max_candidates_per_source"] = max_candidates_per_source
@@ -2413,6 +3262,9 @@ class Crawler:
             classifications: list[str] = []
             root_http_status: Optional[int] = None
             source_since_filtered = 0
+            page_limit_hit = False
+            source_new_urls = 0
+            budget_reason: Optional[str] = None
             try:
                 if _source_requires_javascript(source):
                     raise JavascriptRequiredError(
@@ -2420,6 +3272,7 @@ class Crawler:
                     )
                 discovery_source = self._bounded_discovery_source(source, max_pages)
                 discovered_candidates = self.discovery.discover(discovery_source, zoo=zoo)
+                page_limit_hit = self._discovery_page_limit_hit(discovered_candidates)
                 if batch_limit is not None:
                     discovered_candidates = self._revalidate_discovery(
                         discovered_candidates,
@@ -2439,6 +3292,24 @@ class Crawler:
                 zoo_duplicate_filtered += stat.duplicate_candidate_count
                 if zoo_http_status is None:
                     zoo_http_status = root_http_status
+                self._emit_event(
+                    "discovery_completed",
+                    level="INFO",
+                    component="discovery",
+                    message="Source discovery completed",
+                    run=run,
+                    zoo=zoo,
+                    source=source,
+                    metadata={
+                        "discovered": stat.discovered_count,
+                        "duplicates": stat.duplicate_candidate_count,
+                        "root_http_status": root_http_status,
+                        "page_limit_hit": page_limit_hit,
+                    },
+                )
+                self._update_run_runtime_state(
+                    run, zoo=zoo, source=source, stat=stat, phase="discovery"
+                )
                 if batch_limit is not None:
                     selection = self._select_next_batch_candidates(
                         discovered_candidates,
@@ -2446,6 +3317,8 @@ class Crawler:
                         zoo,
                         limit=batch_limit,
                         seen_articles=seen_articles,
+                        run=run,
+                        stat=stat,
                     )
                     candidates = selection.candidates
                     stat.already_known_count += selection.already_known
@@ -2462,6 +3335,37 @@ class Crawler:
                     zoo_candidates_processed += len(candidates)
                     zoo_candidates_limited += selection.candidates_limited
                     zoo_remaining_estimate += selection.remaining_estimate
+                    budget_reason = self._budget_stop_reason(
+                        source,
+                        stat=stat,
+                        max_candidates_per_source=max_candidates_per_source,
+                        max_pages=max_pages,
+                        batch_limit=batch_limit,
+                        page_limit_hit=page_limit_hit,
+                    )
+                    if budget_reason:
+                        stat.metadata["stop_reason"] = budget_reason
+                        self._emit_event(
+                            "crawl_budget_hit" if budget_reason != "no_new_urls" else "no_new_urls",
+                            level="WARNING",
+                            component="crawler",
+                            message=(
+                                "No new URLs remained"
+                                if budget_reason == "no_new_urls"
+                                else f"Crawl budget hit: {budget_reason}"
+                            ),
+                            run=run,
+                            zoo=zoo,
+                            source=source,
+                            metadata={
+                                "stop_reason": budget_reason,
+                                "limit": batch_limit,
+                                "discovered": stat.discovered_count,
+                                "processed": len(candidates),
+                                "limited": selection.candidates_limited,
+                                "remaining_estimate": selection.remaining_estimate,
+                            },
+                        )
                     for category, message in selection.storage_errors:
                         safe_source = RequestPolicy.safe_target(source.url)
                         errors.append(message)
@@ -2481,6 +3385,32 @@ class Crawler:
                     stat.metadata["candidates_limited"] = limited_count
                     zoo_candidates_processed += len(candidates)
                     zoo_candidates_limited += limited_count
+                    budget_reason = self._budget_stop_reason(
+                        source,
+                        stat=stat,
+                        max_candidates_per_source=max_candidates_per_source,
+                        max_pages=max_pages,
+                        batch_limit=batch_limit,
+                        page_limit_hit=page_limit_hit,
+                    )
+                    if budget_reason:
+                        stat.metadata["stop_reason"] = budget_reason
+                        self._emit_event(
+                            "crawl_budget_hit",
+                            level="WARNING",
+                            component="crawler",
+                            message=f"Crawl budget hit: {budget_reason}",
+                            run=run,
+                            zoo=zoo,
+                            source=source,
+                            metadata={
+                                "stop_reason": budget_reason,
+                                "limit": max_candidates_per_source,
+                                "discovered": stat.discovered_count,
+                                "processed": len(candidates),
+                                "limited": limited_count,
+                            },
+                        )
                 successful_sources += 1
                 status_error = self._persist_status(
                     source,
@@ -2497,6 +3427,7 @@ class Crawler:
                     zoo_errors.append((status_error[0], status_error[1], RequestPolicy.safe_target(source.url)))
             except Exception as exc:
                 category, message = self._error_detail(exc, phase="discovery")
+                stop_reason = _stop_reason_for_error(exc, category)
                 safe_source = RequestPolicy.safe_target(source.url)
                 errors.append(message)
                 classifications.append(category)
@@ -2507,6 +3438,7 @@ class Crawler:
                 stat.status = "error"
                 stat.metadata["error_classification"] = category
                 stat.metadata["error_classifications"] = [category]
+                stat.metadata["stop_reason"] = stop_reason
                 _set_optional_attributes(stat, {"error_category": category})
                 source_failures += 1
                 zoo_failed += 1
@@ -2525,6 +3457,30 @@ class Crawler:
                     zoo_storage_failed = True
                     zoo_failed += 1
                     zoo_errors.append((status_error[0], status_error[1], safe_source))
+                self._emit_failure_event(
+                    exc,
+                    category=category,
+                    phase="discovery",
+                    run=run,
+                    zoo=zoo,
+                    source=source,
+                    metadata={"url": safe_source},
+                )
+                self._emit_event(
+                    "source_failed",
+                    level="ERROR",
+                    component="crawler",
+                    message=f"Source failed: {message}",
+                    run=run,
+                    zoo=zoo,
+                    source=source,
+                    metadata={
+                        "category": category,
+                        "stop_reason": stop_reason,
+                        "status_code": error_status,
+                        "url": safe_source,
+                    },
+                )
                 self.logger.error("crawl source failed zoo=%s source=%s error=%s", zoo.slug, safe_source, message)
                 if batch_limit is not None:
                     stat.metadata.update(
@@ -2545,6 +3501,9 @@ class Crawler:
                     zoo_storage_failed = True
                     zoo_failed += 1
                     zoo_errors.append((stat_error[0], stat_error[1], safe_source))
+                self._update_run_runtime_state(
+                    run, zoo=zoo, source=source, stat=stat, phase="finish"
+                )
                 continue
 
             # ``recent_recheck`` is a normal crawl policy: it may deliberately
@@ -2592,21 +3551,61 @@ class Crawler:
                     for identity_key in identity_keys:
                         seen_articles[identity_key] = existing
                     identity = str(getattr(existing, "id", None) or key)
-                    if identity in resolved_article_ids:
+                    is_same_run_duplicate = identity in resolved_article_ids
+                    if is_same_run_duplicate:
                         stat.duplicate_candidate_count += 1
                         zoo_duplicate_filtered += 1
-                    elif identity in pre_run_article_ids:
-                        stat.already_known_count += 1
                     else:
-                        stat.duplicate_candidate_count += 1
-                        zoo_duplicate_filtered += 1
+                        stat.already_known_count += 1
+                    relation_outcome = (
+                        "duplicate" if is_same_run_duplicate else "already_known"
+                    )
+                    relation_reason = (
+                        "same_run_duplicate" if is_same_run_duplicate else "already_known"
+                    )
+                    self._record_run_article_relation(
+                        run,
+                        existing,
+                        zoo=zoo,
+                        source=source,
+                        stat=stat,
+                        outcome=relation_outcome,
+                        metadata={
+                            "reason": relation_reason,
+                            "url": RequestPolicy.safe_target(candidate.url),
+                        },
+                    )
                     resolved_article_ids.add(identity)
+                    self._emit_event(
+                        "article_duplicate",
+                        level="INFO",
+                        component="crawler",
+                        message="Article already known; discovery linked without storing",
+                        run=run,
+                        zoo=zoo,
+                        source=source,
+                        metadata={
+                            "article_id": identity,
+                            "url": RequestPolicy.safe_target(candidate.url),
+                            "reason": relation_reason,
+                        },
+                    )
+                    self._update_run_runtime_state(
+                        run, zoo=zoo, source=source, stat=stat, phase="discovery"
+                    )
                     continue
+                source_new_urls += 1
+                self._update_run_runtime_state(
+                    run, zoo=zoo, source=source, stat=stat, phase="fetch"
+                )
                 try:
                     article = self._fetch_article(candidate, source, zoo)
                     stat.fetched_count += 1
                     zoo_parsed += 1
                     successful_articles += 1
+                    self._update_run_runtime_state(
+                        run, zoo=zoo, source=source, stat=stat, phase="parse"
+                    )
                 except Exception as exc:
                     category, message = self._error_detail(exc, phase="article")
                     safe_candidate = RequestPolicy.safe_target(candidate.url)
@@ -2623,6 +3622,18 @@ class Crawler:
                         "crawl article failed zoo=%s source=%s url=%s error=%s",
                         zoo.slug, RequestPolicy.safe_target(source.url), safe_candidate, message,
                     )
+                    self._emit_failure_event(
+                        exc,
+                        category=category,
+                        phase="article",
+                        run=run,
+                        zoo=zoo,
+                        source=source,
+                        metadata={"url": safe_candidate},
+                    )
+                    self._update_run_runtime_state(
+                        run, zoo=zoo, source=source, stat=stat, phase="fetch"
+                    )
                     continue
 
                 if self._is_before_cutoff(
@@ -2633,6 +3644,9 @@ class Crawler:
                     continue
 
                 try:
+                    self._update_run_runtime_state(
+                        run, zoo=zoo, source=source, stat=stat, phase="store"
+                    )
                     outcome = self._upsert_article(article, source, candidate)
                     stored = _outcome_value(outcome, "article", None)
                     created = bool(_outcome_value(outcome, "created", False))
@@ -2655,23 +3669,92 @@ class Crawler:
                     )
                     continue
 
-                updated = bool(getattr(outcome, "updated", False))
+                updated = bool(_outcome_value(outcome, "updated", False))
                 if created:
                     stat.stored_count += 1
                     zoo_inserted += 1
+                    self._emit_event(
+                        "article_stored",
+                        level="INFO",
+                        component="storage",
+                        message="Article stored",
+                        run=run,
+                        zoo=zoo,
+                        source=source,
+                        metadata={
+                            "article_id": getattr(stored, "id", None),
+                            "url": RequestPolicy.safe_target(
+                                str(getattr(stored, "canonical_url", None) or candidate.url)
+                            ),
+                            "created": True,
+                        },
+                    )
                 elif updated:
                     zoo_updated += 1
                 identity = str(getattr(stored, "id", None) or normalize_url(getattr(stored, "canonical_url", None) or key) or key)
                 # An outcome explicitly marked ``updated`` is neither a
                 # pre-existing skip nor a duplicate candidate.
+                duplicate_reason: Optional[str] = None
                 if not created and not updated and identity in resolved_article_ids:
                     stat.duplicate_candidate_count += 1
                     zoo_duplicate_filtered += 1
+                    duplicate_reason = "same_run_duplicate"
                 elif not created and not updated and identity in pre_run_article_ids:
                     stat.already_known_count += 1
+                    duplicate_reason = "already_known"
                 elif not created and not updated:
                     stat.duplicate_candidate_count += 1
                     zoo_duplicate_filtered += 1
+                    duplicate_reason = "already_known"
+                if duplicate_reason:
+                    self._emit_event(
+                        "article_duplicate",
+                        level="INFO",
+                        component="crawler",
+                        message="Article identity already existed; no new article stored",
+                        run=run,
+                        zoo=zoo,
+                        source=source,
+                        metadata={
+                            "article_id": identity,
+                            "url": RequestPolicy.safe_target(candidate.url),
+                            "reason": duplicate_reason,
+                        },
+                    )
+                if created:
+                    relation_outcome = "stored"
+                elif updated:
+                    relation_outcome = "updated"
+                elif duplicate_reason == "same_run_duplicate":
+                    relation_outcome = "duplicate"
+                else:
+                    relation_outcome = "already_known"
+                self._record_run_article_relation(
+                    run,
+                    stored,
+                    zoo=zoo,
+                    source=source,
+                    stat=stat,
+                    outcome=relation_outcome,
+                    metadata={
+                        "reason": duplicate_reason or relation_outcome,
+                        "url": RequestPolicy.safe_target(candidate.url),
+                    },
+                )
+                if updated:
+                    self._emit_event(
+                        "article_updated",
+                        level="INFO",
+                        component="storage",
+                        message="Article updated",
+                        run=run,
+                        zoo=zoo,
+                        source=source,
+                        metadata={
+                            "article_id": identity,
+                            "url": RequestPolicy.safe_target(candidate.url),
+                        },
+                    )
                 resolved_article_ids.add(identity)
                 for identity_key in identity_keys:
                     seen_articles[identity_key] = stored
@@ -2682,8 +3765,25 @@ class Crawler:
                 stored_key = normalize_url(getattr(stored, "canonical_url", None) or key)
                 if stored_key:
                     seen_articles[stored_key] = stored
+                self._update_run_runtime_state(
+                    run, zoo=zoo, source=source, stat=stat, phase="store"
+                )
 
             stat.metadata["since_filtered_count"] = source_since_filtered
+            if classifications:
+                first_category = str(classifications[0]).strip().lower().replace("-", "_")
+                source_stop_reason = (
+                    "retry_exhausted"
+                    if any("retry" in str(value).lower() for value in classifications)
+                    else _stop_reason_for_category(first_category)
+                )
+            elif budget_reason:
+                source_stop_reason = budget_reason
+            elif stat.discovered_count > 0 and source_new_urls == 0:
+                source_stop_reason = "no_new_urls"
+            else:
+                source_stop_reason = "exhausted"
+            stat.metadata["stop_reason"] = source_stop_reason
             if batch_limit is not None:
                 stat.metadata.update(
                     {
@@ -2745,6 +3845,28 @@ class Crawler:
                     error=stat_error[1],
                     http_status=root_http_status,
                 )
+            self._emit_event(
+                "source_completed",
+                level="INFO" if stat.status == "completed" else "WARNING",
+                component="crawler",
+                message="Source crawl completed" if stat.status == "completed" else "Source crawl completed with errors",
+                run=run,
+                zoo=zoo,
+                source=source,
+                metadata={
+                    "status": stat.status,
+                    "stop_reason": source_stop_reason,
+                    "discovered": stat.discovered_count,
+                    "fetched": stat.fetched_count,
+                    "stored": stat.stored_count,
+                    "duplicates": stat.duplicate_candidate_count,
+                    "errors": stat.error_count,
+                    "duration_ms": stat.duration_ms,
+                },
+            )
+            self._update_run_runtime_state(
+                run, zoo=zoo, source=source, stat=stat, phase="finish"
+            )
 
         finished = _now()
         if zoo_errors:
@@ -2823,6 +3945,22 @@ class Crawler:
                     remaining_estimate=zoo_remaining_estimate,
                 )
             )
+        zoo_stat_reasons = [
+            (stat.metadata or {}).get("stop_reason")
+            for stat in result.stats
+            if str(getattr(stat, "zoo_id", "")) == zoo_id
+        ]
+        if zoo_errors and not any(zoo_stat_reasons):
+            zoo_stat_reasons = [
+                (
+                    "retry_exhausted"
+                    if any("retry" in str(message).lower() for _, message, _ in zoo_errors)
+                    else _stop_reason_for_category(category)
+                )
+                for category, message, _ in zoo_errors
+            ]
+        zoo_stop_reason = self._select_stop_reason(zoo_stat_reasons)
+        error_metadata["stop_reason"] = zoo_stop_reason
         if batch_limit is not None:
             error_metadata.update(
                 {
@@ -2864,6 +4002,23 @@ class Crawler:
                     http_status=zoo_http_status,
                 )
         result.zoo_results.append(persisted_zoo_result)
+        self._emit_event(
+            "zoo_completed" if zoo_status in {"success", "success_no_items"} else "zoo_failed",
+            level="INFO" if zoo_status in {"success", "success_no_items"} else "ERROR",
+            component="crawler",
+            message="Zoo crawl completed" if zoo_status in {"success", "success_no_items"} else "Zoo crawl failed",
+            run=run,
+            zoo=zoo,
+            metadata={
+                "status": zoo_status,
+                "stop_reason": zoo_stop_reason,
+                "discovered": zoo_discovered,
+                "parsed": zoo_parsed,
+                "stored": zoo_inserted,
+                "duplicates": zoo_duplicate_filtered,
+                "errors": zoo_failed,
+            },
+        )
 
     run = crawl
 
@@ -2894,6 +4049,7 @@ __all__ = [
     "ALL_STATUSES", "ERROR_STATUSES", "Crawler", "CrawlerOrchestrator",
     "CrawlerBusyError", "CrawlerLeaseError", "CrawlerLeaseLostError",
     "CrawlerLeaseUnavailableError", "CrawlResult",
+    "CrawlEventRecorder", "EventSink", "STOP_REASONS",
     "DEFAULT_CRAWLER_LEASE_TTL_SECONDS", "DEFAULT_NEXT_BATCH_LIMIT",
     "crawl", "run_crawl",
 ]

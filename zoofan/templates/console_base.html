@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Crawler Console · ZooFanCrawler{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('favicon') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  </head>
+  <body class="console-body">
+    <header class="console-header">
+      <div class="console-shell console-header-inner">
+        <a class="console-brand" href="{{ url_for('crawler_console.console_overview') }}">
+          <span class="console-brand-mark" aria-hidden="true">◉</span>
+          <span>ZooFanCrawler <b>Console</b></span>
+        </a>
+        <nav class="console-nav" aria-label="Crawler console navigation">
+          <a href="{{ url_for('crawler_console.console_overview') }}">Overview</a>
+          <a href="{{ url_for('crawler_console.console_runs') }}">Runs</a>
+          <a href="{{ url_for('crawler_console.console_articles') }}">Articles</a>
+          <a href="{{ url_for('crawler_console.console_events') }}">Events</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="console-shell console-main" id="main-content">
+      <div class="console-page-heading">
+        <div>
+          <p class="console-eyebrow">Operations / read only</p>
+          <h1>{% block heading %}Crawler Console{% endblock %}</h1>
+          <p class="console-subheading">{% block subheading %}Live crawler state, outcomes, and operational events.{% endblock %}</p>
+        </div>
+        <p class="console-last-updated" data-console-last-updated>Last updated: <time>—</time></p>
+      </div>
+
+      <div class="console-state console-state-loading js-console-state" role="status" aria-live="polite">Loading console data…</div>
+      {% block content %}{% endblock %}
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var root = document.querySelector("[data-console-page]");
+        if (!root) return;
+
+        var timers = [];
+        var stateNode = document.querySelector(".js-console-state");
+        var lastUpdated = document.querySelector("[data-console-last-updated] time");
+
+        function isObject(value) {
+          return value !== null && typeof value === "object" && !Array.isArray(value);
+        }
+
+        function valueOr(value, fallback) {
+          return value === null || value === undefined || value === "" ? fallback : value;
+        }
+
+        function text(value, fallback) {
+          return String(valueOr(value, fallback === undefined ? "—" : fallback));
+        }
+
+        function number(value, fallback) {
+          if (value === null || value === undefined || value === "") return fallback === undefined ? "—" : fallback;
+          var parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed.toLocaleString() : text(value, fallback);
+        }
+
+        function slug(value) {
+          return String(valueOr(value, "unknown")).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unknown";
+        }
+
+        function clear(node) {
+          while (node && node.firstChild) node.removeChild(node.firstChild);
+        }
+
+        function el(tag, className, content) {
+          var node = document.createElement(tag);
+          if (className) node.className = className;
+          if (content !== undefined && content !== null) node.textContent = String(content);
+          return node;
+        }
+
+        function safeUrl(value) {
+          if (!value) return null;
+          try {
+            var parsed = new URL(String(value), window.location.origin);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+            if (!parsed.hostname) return null;
+            return parsed.href;
+          } catch (_error) {
+            return null;
+          }
+        }
+
+        function link(value, label) {
+          var href = safeUrl(value);
+          if (!href) return el("span", "console-muted", label || value || "—");
+          var anchor = el("a", "console-external", label || value);
+          anchor.href = href;
+          anchor.target = "_blank";
+          anchor.rel = "noopener noreferrer";
+          anchor.title = href;
+          return anchor;
+        }
+
+        var CLASSIFIED_STATUS_LABELS = {
+          success: "Success",
+          warning: "Warning",
+          failed: "Failed",
+          budget_hit: "Budget Hit",
+          running: "Running",
+          stale: "Stale",
+          unknown: "Unknown"
+        };
+
+        function statusTag(value) {
+          var key;
+          var label;
+          if (isObject(value)) {
+            key = value.classified_status || value.display_status || value.status_key || value.status || "unknown";
+            key = String(key).toLowerCase().replace(/-/g, "_");
+            label = value.status_label || CLASSIFIED_STATUS_LABELS[key] || "Unknown";
+          } else {
+            key = text(value, "unknown");
+            label = text(value, "Unknown");
+          }
+          var tag = el("span", "console-status console-status-" + slug(key), label);
+          tag.setAttribute("data-status", key);
+          return tag;
+        }
+
+        function list(body, names) {
+          if (Array.isArray(body)) return body;
+          if (!isObject(body)) return [];
+          for (var i = 0; i < names.length; i += 1) {
+            if (Array.isArray(body[names[i]])) return body[names[i]];
+          }
+          if (isObject(body.data)) return list(body.data, names);
+          if (Array.isArray(body.data)) return body.data;
+          return [];
+        }
+
+        function detail(body, names) {
+          if (!isObject(body)) return {};
+          for (var i = 0; i < names.length; i += 1) {
+            if (isObject(body[names[i]])) return body[names[i]];
+          }
+          if (isObject(body.data)) return body.data;
+          return body;
+        }
+
+        function metric(source, names, fallback) {
+          var current = source || {};
+          for (var i = 0; i < names.length; i += 1) {
+            if (current[names[i]] !== undefined && current[names[i]] !== null) return current[names[i]];
+          }
+          return fallback;
+        }
+
+        function completedTotal(source, completedNames, totalNames, fallbackNames) {
+          var completed = metric(source, completedNames);
+          var total = metric(source, totalNames);
+          if (completed !== undefined && completed !== null && total !== undefined && total !== null) {
+            return number(completed) + " / " + number(total);
+          }
+          if (completed !== undefined && completed !== null) return number(completed);
+          if (total !== undefined && total !== null) return number(total);
+          return number(metric(source, fallbackNames));
+        }
+
+        function timestamp(value) {
+          if (!value) return "—";
+          var parsed = new Date(value);
+          return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+        }
+
+        function setUpdated(body) {
+          var candidate = body && (body.last_updated || body.updated_at);
+          var value = candidate || new Date().toISOString();
+          lastUpdated.textContent = timestamp(value);
+        }
+
+        function state(kind, message) {
+          root.dataset.state = kind;
+          stateNode.className = "console-state js-console-state console-state-" + kind;
+          stateNode.textContent = message;
+          stateNode.hidden = kind === "ready";
+        }
+
+        function errorMessage(error) {
+          return error && error.message ? error.message : "Unable to load console data.";
+        }
+
+        async function getJson(url) {
+          var response = await fetch(url, { headers: { "Accept": "application/json" }, credentials: "same-origin" });
+          var body = {};
+          try { body = await response.json(); } catch (_error) { body = {}; }
+          if (!response.ok) {
+            var message = body.error && body.error.message ? body.error.message : "Request failed (" + response.status + ")";
+            throw new Error(message);
+          }
+          return body;
+        }
+
+        function showEmpty(container, message) {
+          clear(container);
+          container.appendChild(el("p", "console-empty", message || "No data recorded yet."));
+        }
+
+        function showRegionError(container, message) {
+          clear(container);
+          var box = el("div", "console-region-error", message || "Unable to load this section.");
+          box.setAttribute("role", "alert");
+          var retry = el("button", "console-button", "Retry");
+          retry.type = "button";
+          retry.addEventListener("click", function () { window.location.reload(); });
+          box.appendChild(retry);
+          container.appendChild(box);
+        }
+
+        function table(headers, rows, emptyMessage) {
+          var wrap = el("div", "console-table-wrap");
+          if (!rows.length) {
+            wrap.appendChild(el("p", "console-empty", emptyMessage || "No records found."));
+            return wrap;
+          }
+          var tableNode = el("table", "console-table");
+          var head = el("thead");
+          var headRow = el("tr");
+          headers.forEach(function (header) { headRow.appendChild(el("th", "", header)); });
+          head.appendChild(headRow);
+          tableNode.appendChild(head);
+          var body = el("tbody");
+          rows.forEach(function (row) {
+            var rowNode = el("tr");
+            row.forEach(function (cell) {
+              var cellNode = el("td");
+              if (cell instanceof Node) cellNode.appendChild(cell);
+              else cellNode.textContent = text(cell);
+              rowNode.appendChild(cellNode);
+            });
+            body.appendChild(rowNode);
+          });
+          tableNode.appendChild(body);
+          wrap.appendChild(tableNode);
+          return wrap;
+        }
+
+        function facts(items) {
+          var dl = el("dl", "console-facts");
+          items.forEach(function (item) {
+            var block = el("div");
+            block.appendChild(el("dt", "", item[0]));
+            var dd = el("dd", "", item[1] === undefined ? "—" : item[1]);
+            if (item[1] instanceof Node) { dd.textContent = ""; dd.appendChild(item[1]); }
+            block.appendChild(dd);
+            dl.appendChild(block);
+          });
+          return dl;
+        }
+
+        function metrics(container, source) {
+          clear(container);
+          var entries = [
+            ["Zoos", completedTotal(source, ["zoos_completed", "completed_zoos"], ["zoos_total", "total_zoos"], ["zoos", "zoo_count"])],
+            ["Sources", completedTotal(source, ["sources_completed", "completed_sources"], ["sources_total", "total_sources"], ["sources", "source_count"])],
+            ["Discovered", metric(source, ["discovered", "discovered_count", "urls_discovered"])],
+            ["Fetched", metric(source, ["fetched", "fetched_count", "articles_fetched"])],
+            ["Stored", metric(source, ["stored", "stored_count", "inserted"])],
+            ["Duplicates", metric(source, ["duplicates", "duplicate_count", "already_known", "duplicate_filtered"])],
+            ["Errors", metric(source, ["errors", "error_count", "failed"])],
+          ];
+          entries.forEach(function (entry) {
+            var card = el("div", "console-metric");
+            card.appendChild(el("span", "console-metric-label", entry[0]));
+            card.appendChild(el("strong", "console-metric-value", number(entry[1])));
+            container.appendChild(card);
+          });
+        }
+
+        function runIsActive(run, body) {
+          var source = run || body || {};
+          var statusValue = source.classified_status || source.display_status || source.status_key || "";
+          statusValue = String(statusValue).toLowerCase().replace(/-/g, "_");
+          if (statusValue !== "running") return false;
+          if (source.terminal_status || source.terminal === true || source.finished_at || source.status_observable === false) return false;
+          return source.is_active !== false;
+        }
+
+        function currentRun(body) {
+          var source = detail(body, ["status", "crawler_status"]);
+          if (isObject(source.active_run) && runIsActive(source.active_run, source)) return source.active_run;
+          var active = runIsActive(source, source);
+          if (active && isObject(source.current_run)) return source.current_run;
+          if (active && (source.id || source.run_id || source.crawl_run_id)) return source;
+          return null;
+        }
+
+        function currentSummary(body) {
+          var source = detail(body, ["status", "crawler_status"]);
+          return source.metrics || source.summary || source.counters || source.active_run || source.current_run || source.run || source;
+        }
+
+        function renderOverviewStatus(root, body) {
+          var current = currentRun(body);
+          var card = root.querySelector("[data-console-current-run]");
+          clear(card);
+          if (!current) {
+            card.appendChild(el("p", "console-empty", "No crawl is active. Start a crawl from the CLI to observe it here."));
+          } else {
+            var id = current.id || current.run_id || current.crawl_run_id;
+            var title = el("div", "console-card-heading");
+            title.appendChild(el("h2", "", "Current run"));
+            title.appendChild(statusTag(current));
+            card.appendChild(title);
+            card.appendChild(facts([
+              ["Run ID", id],
+              ["Started", timestamp(current.started_at || current.start_time)],
+              ["Elapsed", valueOr(current.elapsed || current.duration, "In progress")],
+              ["Heartbeat", timestamp(current.heartbeat_at)],
+              ["Phase", current.current_phase || "—"],
+            ]));
+            if (id) {
+              var detailLink = el("a", "console-button console-button-secondary", "Open run detail");
+              detailLink.href = "/console/runs/" + encodeURIComponent(id);
+              card.appendChild(detailLink);
+            }
+          }
+          metrics(root.querySelector("[data-console-metrics]"), currentSummary(body));
+          var activity = root.querySelector("[data-console-activity]");
+          var source = detail(body, ["status", "crawler_status"]);
+          var currentActivity = current ? (source.current_activity || source.currentActivity) : null;
+          if (!currentActivity && isObject(source.current_run)) currentActivity = source.current_run.current_activity;
+          var activities = source.activities || source.activity || [];
+          if (!Array.isArray(activities)) activities = activities ? [activities] : [];
+          var currentActivities = Array.isArray(currentActivity) ? currentActivity : (currentActivity ? [currentActivity] : []);
+          currentActivities = currentActivities.map(function (item) {
+            var currentItem = isObject(item) ? Object.assign({}, item) : { activity: item };
+            currentItem.__current_activity = true;
+            return currentItem;
+          });
+          activities = currentActivities.concat(activities);
+          clear(activity);
+          if (!activities.length) {
+            showEmpty(activity, current ? "No per-zoo activity has been reported yet." : "No current activity.");
+          } else {
+            activities.slice(0, 12).forEach(function (item) {
+              var card = el("article", "console-activity-card");
+              var heading = el("div", "console-card-heading");
+              heading.appendChild(el("h3", "", item.zoo_name || item.zoo || item.current_zoo_name || item.current_zoo_id || item.zoo_id || "Unknown zoo"));
+              var headingMeta = el("div", "console-activity-meta");
+              headingMeta.appendChild(statusTag(item));
+              if (item.__current_activity) headingMeta.appendChild(el("span", "console-current-badge", "Current"));
+              heading.appendChild(headingMeta);
+              card.appendChild(heading);
+              card.appendChild(el("p", "console-muted", item.source_name || item.source || item.current_source_name || item.current_source_id || item.source_id || "Source not specified"));
+              if (item.phase || item.step || item.message || item.activity) {
+                card.appendChild(el("p", "console-activity-detail", item.phase || item.step || item.message || item.activity));
+              }
+              card.appendChild(facts([
+                ["Discovered", number(item.discovered || item.discovered_count)],
+                ["Fetched", number(item.fetched || item.fetched_count)],
+                ["Stored", number(item.stored || item.stored_count || item.inserted)],
+                ["Duplicates", number(item.duplicates || item.duplicate_count || item.duplicate_filtered)],
+                ["Progress", isObject(item.progress) || Array.isArray(item.progress) ? JSON.stringify(item.progress) : item.progress],
+                ["Stop reason", item.stop_reason || "—"],
+                ["Elapsed", item.elapsed || item.duration || "—"],
+              ]));
+              activity.appendChild(card);
+            });
+          }
+        }
+
+        function renderRecentRuns(container, body) {
+          var runs = list(body, ["runs", "items", "results"]);
+          var rows = runs.map(function (run) {
+            var id = run.id || run.run_id || run.crawl_run_id;
+            var runLink = el("a", "", id || "—");
+            if (id) runLink.href = "/console/runs/" + encodeURIComponent(id);
+            return [
+              runLink,
+              statusTag(run),
+              timestamp(run.started_at || run.start_time),
+              number(run.zoos || run.zoos_completed || run.zoo_count),
+              number(run.sources || run.sources_completed || run.source_count),
+              number(run.discovered || run.discovered_count),
+              number(run.fetched || run.fetched_count),
+              number(run.stored || run.stored_count || run.inserted),
+              number(run.duplicates || run.duplicate_count || run.already_known),
+              number(run.errors || run.error_count || run.failed),
+              run.duration || run.duration_ms ? text(run.duration || run.duration_ms + " ms") : "—",
+            ];
+          });
+          clear(container);
+          container.appendChild(table(["Run", "Status", "Started", "Zoos", "Sources", "Discovered", "Fetched", "Stored", "Duplicates", "Errors", "Duration"], rows, "No crawl runs have been recorded."));
+        }
+
+        async function refreshOverview() {
+          try {
+            var results = await Promise.all([getJson(root.dataset.statusUrl), getJson(root.dataset.runsUrl)]);
+            renderOverviewStatus(root, results[0]);
+            renderRecentRuns(root.querySelector("[data-console-recent-runs]"), results[1]);
+            setUpdated(results[0]);
+            state("ready", "Console ready");
+            var active = currentRun(results[0]);
+            if (runIsActive(active, detail(results[0], ["status", "crawler_status"]))) startPoll(refreshOverview, active, "overview");
+            else stopPoll(refreshOverview);
+          } catch (error) {
+            state("error", errorMessage(error));
+            showRegionError(root.querySelector("[data-console-recent-runs]"), errorMessage(error));
+          }
+        }
+
+        function startPoll(fn, active, key) {
+          if (!active || timers.some(function (timer) { return timer.fn === fn || (key && timer.key === key); })) return;
+          var timer = { fn: fn, key: key || null, id: window.setInterval(fn, 2500) };
+          timers.push(timer);
+        }
+
+        function stopPoll(fn) {
+          timers = timers.filter(function (timer) {
+            if (timer.fn === fn) { window.clearInterval(timer.id); return false; }
+            return true;
+          });
+        }
+
+        function stopPollKey(key) {
+          timers = timers.filter(function (timer) {
+            if (timer.key === key) { window.clearInterval(timer.id); return false; }
+            return true;
+          });
+        }
+
+        function renderRunSummary(root, run) {
+          var titleNode = document.querySelector("[data-console-run-title]");
+          if (titleNode) titleNode.textContent = "Run " + text(run.id || run.run_id || run.crawl_run_id, "—");
+          var tag = root.querySelector("[data-console-run-status]");
+          clear(tag);
+          tag.appendChild(statusTag(run));
+          var source = run.metrics || run.summary || run.counters || run;
+          metrics(root.querySelector("[data-console-metrics]"), source);
+          var factsNode = root.querySelector("[data-console-run-facts]");
+          clear(factsNode);
+          factsNode.appendChild(facts([
+            ["Started", timestamp(run.started_at || run.start_time)],
+            ["Finished", timestamp(run.finished_at || run.end_time)],
+            ["Elapsed", run.elapsed || run.duration || (run.duration_ms !== undefined ? number(run.duration_ms) + " ms" : "—")],
+            ["Heartbeat", timestamp(run.heartbeat_at)],
+            ["Progress updated", timestamp(run.progress_at)],
+            ["Last updated", timestamp(run.last_updated)],
+            ["Phase", run.current_phase || "—"],
+            ["Stop reason", run.stop_reason || "—"],
+            ["Terminal status", run.terminal_status || run.run_status || "—"],
+            ["Error", run.error || run.error_summary || "—"],
+          ]));
+        }
+
+        function renderRunZoos(container, zooBody, sourceBody) {
+          var records = list(zooBody, ["zoos", "items", "results"]);
+          var sourceRecords = list(sourceBody, ["sources", "items", "results"]);
+          if (!sourceRecords.length) {
+            records.forEach(function (item) {
+              var nested = item.sources || item.source_results || [];
+              if (Array.isArray(nested)) sourceRecords = sourceRecords.concat(nested);
+            });
+          }
+          var zooRows = records.map(function (item) {
+            var id = item.zoo_id || item.id;
+            var zoo = el("span", "", item.zoo_name || item.name || id || "Unknown zoo");
+            if (id) {
+              var anchor = el("a", "", item.zoo_name || item.name || id);
+              anchor.href = "/console/zoos/" + encodeURIComponent(id);
+              zoo = anchor;
+            }
+            var http = item.http_status || item.status_code;
+            var error = item.error_summary || item.error || item.error_category;
+            return [zoo, statusTag(item), number(item.discovered || item.discovered_count), number(item.fetched || item.fetched_count || item.parsed), number(item.stored || item.stored_count || item.inserted), number(item.duplicates || item.duplicate_count || item.duplicate_filtered), number(item.errors || item.error_count || item.failed), number(http), error || "—", item.stop_reason || "—", item.duration || (item.duration_ms !== undefined ? item.duration_ms + " ms" : "—")];
+          });
+          var sourceRows = sourceRecords.map(function (item) {
+            var zooId = item.zoo_id || "";
+            var sourceId = item.source_id || item.id || "";
+            var zooLabel = item.zoo_name || zooId || "Unknown zoo";
+            var sourceLabel = item.source_name || sourceId || "Unknown source";
+            var zoo = el("span", "", zooLabel);
+            if (zooId) {
+              var zooLink = el("a", "", zooLabel);
+              zooLink.href = "/console/zoos/" + encodeURIComponent(zooId);
+              zoo = zooLink;
+            }
+            var error = item.error_summary || item.error || item.last_error || item.error_category;
+            var http = item.http_status || item.last_http_status;
+            return [zoo, sourceLabel, statusTag(item), number(item.discovered || item.discovered_count), number(item.fetched || item.fetched_count || item.parsed), number(item.stored || item.stored_count || item.inserted), number(item.duplicate || item.duplicates || item.duplicate_candidate_count || item.duplicate_filtered), number(item.errors || item.error_count || item.failed), number(http), error || "—", item.stop_reason || "—", item.duration || (item.duration_ms !== undefined ? item.duration_ms + " ms" : "—")];
+          });
+          clear(container);
+          container.appendChild(el("h3", "console-table-title", "Zoo results"));
+          container.appendChild(table(["Zoo", "Status", "Discovered", "Fetched", "Stored", "Duplicates", "Errors", "HTTP", "Error", "Stop reason", "Duration"], zooRows, "No zoo results have been recorded for this run."));
+          container.appendChild(el("h3", "console-table-title", "Source results"));
+          container.appendChild(table(["Zoo", "Source", "Status", "Discovered", "Fetched", "Stored", "Duplicates", "Errors", "HTTP", "Error", "Stop reason", "Duration"], sourceRows, "No source results have been recorded for this run."));
+        }
+
+        function renderArticles(container, body) {
+          var records = list(body, ["articles", "items", "results"]);
+          var rows = records.map(function (article) {
+            var title = article.title || "Untitled article";
+            var titleCell = link(article.canonical_url || article.url, title);
+            if (!safeUrl(article.canonical_url || article.url)) titleCell = el("span", "", title);
+            var sources = article.sources;
+            var sourceLabel = article.source_name || article.source || "—";
+            if (Array.isArray(sources) && sources.length) sourceLabel = sources.map(function (source) { return source.name || source.id || "Unknown source"; }).join(", ");
+            var preview = article.summary || article.content || "—";
+            var previewNode = el("span", "console-article-preview", preview);
+            var imageCount = article.image_count !== undefined && article.image_count !== null ? article.image_count : article.images;
+            return [titleCell, article.zoo_name || article.zoo || article.zoo_names || "—", sourceLabel, timestamp(article.published_at), timestamp(article.fetched_at || article.last_fetched_at), article.language || "—", number(imageCount), previewNode];
+          });
+          clear(container);
+          container.appendChild(table(["Title / URL", "Zoo", "Source", "Published", "Fetched", "Language", "Images", "Parsed preview"], rows, "No stored articles were recorded for this run."));
+        }
+
+        function eventId(event) {
+          return event.id !== undefined && event.id !== null ? String(event.id) : String(event.event_id || "") || [event.created_at, event.event_type, event.message].join("|");
+        }
+
+        function renderEvents(root) {
+          var container = root.querySelector("[data-console-events]");
+          var records = root._consoleEvents || [];
+          var rows = records.map(function (event) {
+            var metadata = event.metadata;
+            var metadataText = metadata && typeof metadata === "object" ? JSON.stringify(metadata) : metadata;
+            return [timestamp(event.created_at || event.timestamp || event.occurred_at), statusTag(event.level || "INFO"), event.zoo_name || event.zoo_id || "—", event.source_name || event.source_id || "—", event.component || "—", event.event_type || event.type || "—", event.message || "—", el("code", "console-event-metadata", metadataText || "—")];
+          });
+          clear(container);
+          container.appendChild(table(["Time", "Level", "Zoo", "Source", "Component", "Event", "Message", "Metadata"], rows, "No events recorded for this run."));
+        }
+
+        function eventFilters(root) {
+          var params = new URLSearchParams();
+          root.querySelectorAll("[data-event-filter]").forEach(function (field) {
+            if (field.value) params.set(field.dataset.eventFilter, field.value);
+          });
+          if (root._consoleLastEventId !== undefined && root._consoleLastEventId !== null) params.set("after_id", root._consoleLastEventId);
+          params.set("limit", "200");
+          return params;
+        }
+
+        async function refreshEvents(root, reset) {
+          if (!root.dataset.eventsUrl) return;
+          if (reset) { root._consoleEvents = []; root._consoleLastEventId = null; }
+          var url = root.dataset.eventsUrl;
+          var params = eventFilters(root);
+          var separator = url.indexOf("?") >= 0 ? "&" : "?";
+          try {
+            var body = await getJson(url + separator + params.toString());
+            var incoming = list(body, ["events", "items", "results"]);
+            var known = new Set((root._consoleEvents || []).map(eventId));
+            incoming.forEach(function (event) { if (!known.has(eventId(event))) { root._consoleEvents.push(event); known.add(eventId(event)); } });
+            var next = body.next_after_id;
+            if (next === undefined || next === null) {
+              incoming.forEach(function (event) { if (/^\d+$/.test(String(event.id || event.event_id || ""))) next = event.id || event.event_id; });
+            }
+            if (next !== undefined && next !== null) root._consoleLastEventId = next;
+            renderEvents(root);
+            setUpdated(body);
+            return body;
+          } catch (error) {
+            state("error", errorMessage(error));
+            showRegionError(root.querySelector("[data-console-events]"), errorMessage(error));
+            return null;
+          }
+        }
+
+        function attachEventFilters(root) {
+          root.querySelectorAll("[data-event-filter]").forEach(function (field) {
+            field.addEventListener("change", function () { refreshEvents(root, true); });
+            if (field.tagName === "INPUT") field.addEventListener("keydown", function (event) { if (event.key === "Enter") refreshEvents(root, true); });
+          });
+        }
+
+        async function refreshRun(root) {
+          try {
+            var results = await Promise.all([getJson(root.dataset.runUrl), getJson(root.dataset.zoosUrl), getJson(root.dataset.sourcesUrl), getJson(root.dataset.articlesUrl)]);
+            var run = detail(results[0], ["run", "crawl_run"]);
+            if (!run || (!run.id && !run.run_id && !run.crawl_run_id)) throw new Error("Run not found");
+            renderRunSummary(root, run);
+            renderRunZoos(root.querySelector("[data-console-run-zoos]"), results[1], results[2]);
+            renderArticles(root.querySelector("[data-console-run-articles]"), results[3]);
+            setUpdated(results[0]);
+            state("ready", "Run detail ready");
+            var active = runIsActive(run);
+            if (active) startPoll(function () { refreshRun(root); }, root, "run");
+            else stopPollKey("run");
+            if (!root._consoleEventsStarted) {
+              root._consoleEventsStarted = true;
+              attachEventFilters(root);
+              await refreshEvents(root, true);
+              if (active) startPoll(function () { refreshEvents(root, false); }, root, "run-events");
+            }
+            if (!active) stopPollKey("run-events");
+          } catch (error) {
+            state("error", errorMessage(error));
+            showRegionError(root.querySelector("[data-console-run-zoos]"), errorMessage(error));
+          }
+        }
+
+        async function refreshRuns(root) {
+          var filter = root.querySelector("[data-runs-status]");
+          var url = root.dataset.runsUrl;
+          if (filter && filter.value) url += "?status=" + encodeURIComponent(filter.value);
+          try {
+            var body = await getJson(url);
+            renderRecentRuns(root.querySelector("[data-console-runs-list]"), body);
+            setUpdated(body);
+            state("ready", "Runs ready");
+          } catch (error) {
+            state("error", errorMessage(error));
+            showRegionError(root.querySelector("[data-console-runs-list]"), errorMessage(error));
+          }
+        }
+
+        async function refreshZoo(root) {
+          try {
+            var results = await Promise.all([getJson(root.dataset.zooUrl), getJson(root.dataset.historyUrl)]);
+            var zoo = detail(results[0], ["zoo"]);
+            var history = list(results[1], ["history", "items", "results"]);
+            root.querySelector("[data-console-zoo-title]").textContent = zoo.name || zoo.zoo_name || zoo.slug || root.dataset.zooId;
+            var info = root.querySelector("[data-console-zoo-info]");
+            clear(info);
+            info.appendChild(facts([["Country", zoo.country || zoo.country_code], ["Status", zoo.status || zoo.source_status || "—"], ["Website", link(zoo.website_url || zoo.url, zoo.website_url || zoo.url)], ["Enabled", zoo.enabled === undefined ? "—" : (zoo.enabled ? "Yes" : "No")]]));
+            var sources = Array.isArray(zoo.sources) ? zoo.sources : [];
+            var sourceRows = sources.map(function (source) {
+              return [source.name || source.id || "Unknown source", source.kind || "—", source.enabled === undefined ? "—" : (source.enabled ? "Yes" : "No"), statusTag(source.status || "unknown"), timestamp(source.last_success || source.last_success_at), source.last_error || "—", number(source.last_http_status || source.http_status)];
+            });
+            info.appendChild(el("h3", "console-table-title", "Source health"));
+            info.appendChild(table(["Source", "Kind", "Enabled", "Status", "Last success", "Last error", "HTTP"], sourceRows, "No source health records are available."));
+            var rows = history.map(function (item) { return [timestamp(item.started_at || item.finished_at), statusTag(item), number(item.discovered || item.discovered_count), number(item.fetched || item.fetched_count || item.parsed), number(item.stored || item.stored_count || item.inserted), number(item.duplicates || item.duplicate_count || item.duplicate_filtered), number(item.errors || item.error_count || item.failed), item.stop_reason || "—", item.duration || (item.duration_ms !== undefined ? item.duration_ms + " ms" : "—")]; });
+            var historyNode = root.querySelector("[data-console-zoo-history]");
+            clear(historyNode);
+            historyNode.appendChild(table(["Started", "Status", "Discovered", "Fetched", "Stored", "Duplicates", "Errors", "Stop reason", "Duration"], rows, "No crawl history for this zoo."));
+            setUpdated(results[0]);
+            state("ready", "Zoo detail ready");
+          } catch (error) {
+            state("error", errorMessage(error));
+            showRegionError(root.querySelector("[data-console-zoo-history]"), errorMessage(error));
+          }
+        }
+
+        async function refreshArticles(root) {
+          try {
+            var runId = root.dataset.runId;
+            if (!runId) {
+              var runsBody = await getJson(root.dataset.runsUrl);
+              var runs = list(runsBody, ["runs", "items", "results"]);
+              var select = root.querySelector("[data-article-run-select]");
+              clear(select);
+              select.appendChild(el("option", "", runs.length ? "Select a run" : "No runs recorded"));
+              runs.forEach(function (run) { var id = run.id || run.run_id || run.crawl_run_id; if (id) { var option = el("option", "", id); option.value = id; select.appendChild(option); } });
+              showEmpty(root.querySelector("[data-console-articles]"), "Select a crawl run to preview stored articles.");
+              state("ready", "Choose a run");
+              return;
+            }
+            var body = await getJson(root.dataset.articlesUrl);
+            renderArticles(root.querySelector("[data-console-articles]"), body);
+            setUpdated(body);
+            state("ready", "Article preview ready");
+          } catch (error) {
+            state("error", errorMessage(error));
+            showRegionError(root.querySelector("[data-console-articles]"), errorMessage(error));
+          }
+        }
+
+        async function chooseEventsRun(root) {
+          if (root.dataset.eventsUrl) return true;
+          try {
+            var statusBody = await getJson(root.dataset.statusUrl);
+            var run = currentRun(statusBody);
+            if (!run) {
+              var runsBody = await getJson(root.dataset.runsUrl);
+              var runs = list(runsBody, ["runs", "items", "results"]);
+              run = runs[0];
+            }
+            var id = run && (run.id || run.run_id || run.crawl_run_id);
+            if (!id) return false;
+            root.dataset.runId = id;
+            root.dataset.eventsUrl = "/api/crawl-runs/" + encodeURIComponent(id) + "/events";
+            root.querySelector("[data-console-events-run]").textContent = "Run " + id;
+            return true;
+          } catch (error) {
+            state("error", errorMessage(error));
+            return false;
+          }
+        }
+
+        async function refreshEventsPage(root) {
+          var selected = await chooseEventsRun(root);
+          if (!selected) {
+            showEmpty(root.querySelector("[data-console-events]"), "No crawl run is available for event inspection.");
+            state("ready", "No run selected");
+            return;
+          }
+          attachEventFilters(root);
+          await refreshEvents(root, true);
+          try {
+            var runBody = await getJson("/api/crawl-runs/" + encodeURIComponent(root.dataset.runId));
+            var run = detail(runBody, ["run", "crawl_run"]);
+            var active = runIsActive(run);
+            if (active) startPoll(function () { refreshEvents(root, false); }, root, "events-page");
+            else stopPollKey("events-page");
+            setUpdated(runBody);
+            state("ready", "Events ready");
+          } catch (error) {
+            state("error", errorMessage(error));
+          }
+        }
+
+        if (root.dataset.consolePage === "overview") refreshOverview();
+        if (root.dataset.consolePage === "runs") {
+          var runsFilter = root.querySelector("[data-runs-status]");
+          if (runsFilter) runsFilter.addEventListener("change", function () { refreshRuns(root); });
+          refreshRuns(root);
+        }
+        if (root.dataset.consolePage === "run-detail") refreshRun(root);
+        if (root.dataset.consolePage === "zoo-detail") refreshZoo(root);
+        if (root.dataset.consolePage === "articles") {
+          var articleSelect = root.querySelector("[data-article-run-select]");
+          if (articleSelect) articleSelect.addEventListener("change", function () { root.dataset.runId = articleSelect.value; root.dataset.articlesUrl = "/api/crawl-runs/" + encodeURIComponent(articleSelect.value) + "/articles"; refreshArticles(root); });
+          refreshArticles(root);
+        }
+        if (root.dataset.consolePage === "events") refreshEventsPage(root);
+      }());
+    </script>
+  </body>
+</html>

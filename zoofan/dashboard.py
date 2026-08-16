@@ -20,6 +20,8 @@ from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 from flask import Flask, abort, g, render_template, request, send_from_directory
 
+from .console_api import create_console_blueprint
+
 
 _TABLE_ALIASES: dict[str, tuple[str, ...]] = {
     "discoveries": ("article_discoveries", "discoveries", "article_sources"),
@@ -28,7 +30,9 @@ _TABLE_ALIASES: dict[str, tuple[str, ...]] = {
 
 
 def create_app(
-    db_path: str | os.PathLike[str], control_url: str | None = None
+    db_path: str | os.PathLike[str],
+    control_url: str | None = None,
+    console_service: Any = None,
 ) -> Flask:
     """Create the crawler inspection application.
 
@@ -45,6 +49,8 @@ def create_app(
     )
     app.config["DB_PATH"] = os.fspath(db_path)
     app.config["CONTROL_URL"] = _safe_external_url(control_url)
+    if console_service is not None:
+        app.config["CONSOLE_SERVICE"] = console_service
 
     if app.config["DB_PATH"] == ":memory:":
         app.extensions["dashboard_memory_db"] = _connect(app.config["DB_PATH"])
@@ -64,6 +70,11 @@ def create_app(
         connection = g.pop("dashboard_db", None)
         if connection is not None and connection is not app.extensions.get("dashboard_memory_db"):
             connection.close()
+
+    # The Operations Console is an independent, read-only blueprint.  Its
+    # routes consume the optional console service/DTO boundary and never use
+    # the legacy dashboard's SQLite view directly.
+    app.register_blueprint(create_console_blueprint(service=console_service))
 
     @app.get("/")
     def index() -> str:

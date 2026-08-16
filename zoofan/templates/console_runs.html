@@ -1,0 +1,27 @@
+{% extends "console_base.html" %}
+{% block title %}Runs · Crawler Console{% endblock %}
+{% block heading %}Crawl runs{% endblock %}
+{% block subheading %}Compare executions and open a run for zoo-level outcomes and events.{% endblock %}
+{% block content %}
+  <div class="console-page" data-console-page="runs"
+       data-runs-url="{{ url_for('crawler_console.api_runs') }}">
+    <section class="console-panel" aria-labelledby="runs-list-heading">
+      <div class="console-section-heading">
+        <div><p class="console-eyebrow">Execution history</p><h2 id="runs-list-heading">All runs</h2></div>
+        <label class="console-inline-filter" for="runs-status">Status
+          <select id="runs-status" data-runs-status>
+            <option value="">All statuses</option>
+            <option value="success">Success</option>
+            <option value="warning">Warning</option>
+            <option value="failed">Failed</option>
+            <option value="budget_hit">Budget Hit</option>
+            <option value="running">Running</option>
+            <option value="stale">Stale</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </label>
+      </div>
+      <div data-console-runs-list><p class="console-empty">Loading runs…</p></div>
+    </section>
+  </div>
+{% endblock %}
