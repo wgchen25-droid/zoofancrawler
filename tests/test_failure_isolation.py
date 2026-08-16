@@ -133,6 +133,121 @@ def test_source_failure_does_not_abort_other_sources_and_is_logged_in_stats():
     assert storage.get_source("bad").last_error == "boom"
 
 
+def test_next_batch_article_failure_counts_in_batch_and_continues():
+    zoo = Zoo(
+        id="batch-zoo",
+        slug="batch-zoo",
+        name="Batch Zoo",
+        website_url="https://batch.example/",
+    )
+    source = Source(
+        id="batch-source",
+        zoo_id=zoo.id,
+        kind="rss",
+        url="https://batch.example/feed",
+        config={
+            "official_host": "batch.example",
+            "allow_regex": r"/news/",
+        },
+    )
+
+    class BatchFailureFetcher:
+        supports_request_policy = True
+
+        def __init__(self):
+            self.calls = []
+
+        def fetch(self, url, *, request_policy):
+            assert request_policy.validate(url) == url
+            self.calls.append(url)
+            if url == source.url:
+                return FetchResponse(
+                    url,
+                    200,
+                    b"<rss><channel>"
+                    b"<item><link>https://batch.example/news/bad</link></item>"
+                    b"<item><link>https://batch.example/news/good</link></item>"
+                    b"</channel></rss>",
+                )
+            if url.endswith("/bad"):
+                raise RuntimeError("one article failed")
+            return FetchResponse(
+                url,
+                200,
+                b"<html><head><title>Good</title></head><article>Good</article></html>",
+            )
+
+    fetcher = BatchFailureFetcher()
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(
+        CrawlerConfig(zoos=[zoo], sources=[source]),
+        storage=storage,
+        fetcher=fetcher,
+    )
+
+    result = crawler.next_batch(source.id, limit=2)
+
+    assert result.status == "completed_with_errors"
+    assert result.metadata["candidates_processed"] == 2
+    assert result.stats[0].error_count == 1
+    assert result.stats[0].stored_count == 1
+    assert storage.list_articles()[0].url == "https://batch.example/news/good"
+
+
+def test_next_batch_stat_persistence_failure_keeps_error_metadata_in_sync():
+    zoo = Zoo(
+        id="stat-zoo",
+        slug="stat-zoo",
+        name="Stat Zoo",
+        website_url="https://stat.example/",
+    )
+    source = Source(
+        id="stat-source",
+        zoo_id=zoo.id,
+        kind="rss",
+        url="https://stat.example/feed",
+        config={
+            "official_host": "stat.example",
+            "allow_regex": r"/news/",
+        },
+    )
+
+    class StatFailureStorage(SQLiteStorage):
+        def record_run_stat(self, stat):
+            raise RuntimeError("run stat write failed")
+
+    class StatFetcher:
+        supports_request_policy = True
+
+        def fetch(self, url, *, request_policy):
+            assert request_policy.validate(url) == url
+            if url == source.url:
+                return FetchResponse(
+                    url,
+                    200,
+                    b"<rss><channel><item><link>"
+                    b"https://stat.example/news/one</link></item></channel></rss>",
+                )
+            return FetchResponse(
+                url,
+                200,
+                b"<html><head><title>One</title></head><article>One</article></html>",
+            )
+
+    storage = StatFailureStorage(":memory:")
+    result = Crawler(
+        CrawlerConfig(zoos=[zoo], sources=[source]),
+        storage=storage,
+        fetcher=StatFetcher(),
+    ).next_batch(source.id)
+
+    stat = result.stats[0]
+    zoo_result = result.zoo_results[0]
+    assert stat.metadata["errors"] == stat.error_count == 1
+    assert zoo_result.metadata["errors"] == 1
+    assert result.metadata["errors"] == result.error_count == 1
+
+
 def test_source_http_failure_retains_status_and_other_source_duration():
     class HTTPFailureFetcher(FailingOneFetcher):
         def fetch(self, url, *, request_policy):

@@ -178,6 +178,159 @@ def test_sources_and_runs_include_operational_details(client):
     assert b"feed timed out" in runs
 
 
+def test_sources_show_latest_source_stats_and_safe_read_only_control_link(tmp_path):
+    path = tmp_path / "source-stats.sqlite"
+    _seed_database(path)
+    db = sqlite3.connect(path)
+    db.execute(
+        """UPDATE crawl_run_stats SET metadata_json=? WHERE id='st1'""",
+        (
+            json.dumps(
+                {
+                    "candidates_processed": 8,
+                    "remaining_estimate": 10,
+                    "batch_limit": 10,
+                    "candidates_limited": 3,
+                }
+            ),
+        ),
+    )
+    db.execute(
+        "UPDATE crawl_run_stats SET error_count=1, errors_json=? WHERE id='st1'",
+        (json.dumps(["first error", "second error", "third error"]),),
+    )
+    db.execute(
+        "UPDATE crawl_run_stats SET metadata_json=? WHERE id='st2'",
+        ("not-json",),
+    )
+    db.commit()
+    db.close()
+
+    app = create_app(path, control_url="https://control.example/crawl?tab=sources")
+    app.testing = True
+    client = app.test_client()
+    response = client.get("/sources")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    source_row = body.split('data-acceptance-id="s1"', 1)[1].split("</tr>", 1)[0]
+    for value in ("2", "8", "1", "3", "0", "10"):
+        assert value in source_row
+    assert "Remaining (latest discovery estimate)" in body
+    assert "latest discovery estimate" in source_row
+    assert "再抓 10 个" in source_row
+    assert 'data-acceptance-field="errors">3<' in source_row
+    assert 'href="https://control.example/crawl?tab=sources&amp;source_id=s1"' in source_row
+    assert 'target="_blank"' in source_row
+    assert 'rel="noopener noreferrer"' in source_row
+    assert "RAW HTML MUST NOT APPEAR" not in body
+
+    source_without_estimate = body.split('data-acceptance-id="s2"', 1)[1].split("</tr>", 1)[0]
+    assert "再抓" not in source_without_estimate
+
+    before = sqlite3.connect(path).execute(
+        "SELECT metadata_json FROM crawl_run_stats WHERE id='st1'"
+    ).fetchone()[0]
+    assert client.post("/sources").status_code == 405
+    after = sqlite3.connect(path).execute(
+        "SELECT metadata_json FROM crawl_run_stats WHERE id='st1'"
+    ).fetchone()[0]
+    assert after == before
+
+
+def test_source_control_link_is_hidden_for_disabled_source_or_zoo(tmp_path):
+    path = tmp_path / "disabled-source-control.sqlite"
+    _seed_database(path)
+    db = sqlite3.connect(path)
+    positive = json.dumps({"remaining_estimate": 10})
+    db.execute("UPDATE crawl_run_stats SET metadata_json=? WHERE id IN ('st1', 'st2')", (positive,))
+    db.execute("UPDATE sources SET enabled=0 WHERE id='s1'")
+    db.execute("UPDATE zoos SET enabled=0 WHERE id='z2'")
+    db.commit()
+    db.close()
+
+    body = create_app(path, control_url="https://control.example/crawl").test_client().get(
+        "/sources"
+    ).get_data(as_text=True)
+    for source_id in ("s1", "s2"):
+        source_row = body.split(f'data-acceptance-id="{source_id}"', 1)[1].split("</tr>", 1)[0]
+        assert "再抓" not in source_row
+
+
+def test_enabled_coercion_fails_closed_for_unknown_values():
+    assert dashboard._coerce_enabled(None, default=True) is True
+    assert dashboard._coerce_enabled("1") is True
+    assert dashboard._coerce_enabled("true") is True
+    for value in ("garbage", "2", 2, object()):
+        assert dashboard._coerce_enabled(value) is False
+
+
+def test_deep_or_malformed_metadata_and_errors_do_not_break_dashboard(tmp_path):
+    path = tmp_path / "deep-metadata.sqlite"
+    _seed_database(path)
+    deep_metadata = '{"nested":' * 1200 + "0" + "}" * 1200
+    deep_errors = "[" * 1200 + "0" + "]" * 1200
+    db = sqlite3.connect(path)
+    db.execute("UPDATE crawl_run_stats SET metadata_json=?, errors_json=? WHERE id='st1'", (deep_metadata, deep_errors))
+    db.commit()
+    db.close()
+
+    client = create_app(path).test_client()
+    for route in ("/", "/sources", "/runs"):
+        response = client.get(route)
+        assert response.status_code == 200, route
+        assert b"Internal Server Error" not in response.data
+
+
+def test_latest_source_stat_uses_newest_valid_run_and_deterministic_fallbacks():
+    data = {
+        "runs": [
+            {"id": "run-old", "finished_at": "2026-08-01T12:00:00+00:00"},
+            # An abnormal finished value falls back to a valid start time.
+            {"id": "run-new", "finished_at": "not-a-time", "started_at": "2026-08-02T12:00:00+00:00"},
+            {"id": "run-bad", "finished_at": "also-not-a-time", "started_at": None},
+        ],
+        "stats": [
+            # The old run has a future stat timestamp, which must not outrank
+            # the newer run's authoritative run timestamp.
+            {"id": "stat-old", "source_id": "s1", "crawl_run_id": "run-old", "finished_at": "2030-01-01T12:01:00+00:00"},
+            {"id": "stat-new", "source_id": "s1", "crawl_run_id": "run-new", "finished_at": "not-a-time", "started_at": "2026-08-02T12:01:00+00:00"},
+            {"id": "stat-invalid", "source_id": "s1", "crawl_run_id": "run-bad", "finished_at": "not-a-time"},
+            {"id": "stat-a", "source_id": "s2", "crawl_run_id": "run-bad", "finished_at": "not-a-time"},
+            {"id": "stat-b", "source_id": "s2", "crawl_run_id": "run-bad", "finished_at": None},
+        ],
+    }
+    latest = dashboard._latest_source_stats(data)
+    assert latest["s1"][0]["id"] == "stat-new"
+    assert latest["s1"][1]["id"] == "run-new"
+    # When every timestamp is absent/invalid, the stable stat ID tie-breaker
+    # still makes selection deterministic instead of depending on row order.
+    assert latest["s2"][0]["id"] == "stat-b"
+
+
+def test_source_control_link_requires_positive_estimate_and_safe_control_url(tmp_path):
+    path = tmp_path / "source-control.sqlite"
+    _seed_database(path)
+    db = sqlite3.connect(path)
+    db.execute(
+        "UPDATE crawl_run_stats SET metadata_json=? WHERE id='st1'",
+        (json.dumps({"remaining_estimate": "10;alert(1)"}),),
+    )
+    db.commit()
+    db.close()
+
+    no_control = create_app(path).test_client().get("/sources").get_data(as_text=True)
+    assert "再抓" not in no_control
+
+    unsafe_control = create_app(path, control_url="javascript:alert(1)")
+    unsafe_body = unsafe_control.test_client().get("/sources").get_data(as_text=True)
+    assert "再抓" not in unsafe_body
+    assert 'href="javascript:' not in unsafe_body
+
+    assert dashboard._source_control_url(
+        "https://control.example/crawl?tab=sources", "s&1=evil"
+    ) == "https://control.example/crawl?tab=sources&source_id=s%261%3Devil"
+
+
 class _DefinitionFields(HTMLParser):
     def __init__(self):
         super().__init__()

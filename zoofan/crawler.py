@@ -10,13 +10,24 @@ from __future__ import annotations
 import logging
 import hashlib
 import inspect
+import threading
 import uuid
 from copy import copy
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Iterable, Mapping, Optional, cast
+from typing import Any, Iterable, Iterator, Mapping, Optional, cast
 
-from .discovery import DiscoveryCandidate, DiscoveryEngine, DiscoveryError, SourceRegistry, URLPolicy, source_priority
+from .discovery import (
+    DiscoveryCandidate,
+    DiscoveryEngine,
+    DiscoveryError,
+    DiscoveryResult,
+    SourceRegistry,
+    URLPolicy,
+    _as_candidate,
+    source_priority,
+)
 from .fetcher import Fetcher, RequestPolicy, scoped_fetch
 from .models import Article, CrawlRun, CrawlRunStat, Source, Zoo
 from .normalization import normalize_url
@@ -33,6 +44,28 @@ from .statuses import (
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+# Both ``crawl`` and the control-facing incremental entry point use this
+# bounded per-source default so one source cannot monopolise a run.
+DEFAULT_NEXT_BATCH_LIMIT = 10
+DEFAULT_CRAWLER_LEASE_TTL_SECONDS = 300.0
+
+
+class CrawlerLeaseError(RuntimeError):
+    """Base class for failures acquiring or keeping the crawler lease."""
+
+
+class CrawlerBusyError(CrawlerLeaseError):
+    """Raised when another crawler process currently owns the lease."""
+
+
+class CrawlerLeaseUnavailableError(CrawlerLeaseError):
+    """Raised when a partial lease adapter cannot safely protect a crawl."""
+
+
+class CrawlerLeaseLostError(CrawlerLeaseError):
+    """Raised when a heartbeat proves that this crawl no longer owns the lease."""
 
 
 _PHASE0_EMPTY_SOURCE_LIMITATIONS = frozenset(
@@ -61,6 +94,32 @@ class _UpsertResult:
         # two-tuple.  Keep that behavior while exposing the new update signal.
         yield self.article
         yield self.created
+
+
+@dataclass
+class _NextBatchSelection:
+    """Candidates selected after the next-batch cache/identity pass."""
+
+    candidates: list[DiscoveryCandidate] = field(default_factory=list)
+    already_known: int = 0
+    duplicate_filtered: int = 0
+    candidates_limited: int = 0
+    remaining_estimate: int = 0
+    storage_errors: list[tuple[str, str]] = field(default_factory=list)
+
+
+@dataclass
+class _CrawlerLeaseContext:
+    """State shared by nested calls made by one crawler thread."""
+
+    owner: str
+    thread_id: int
+    supported: bool
+    depth: int = 1
+    stop: threading.Event = field(default_factory=threading.Event)
+    lost: threading.Event = field(default_factory=threading.Event)
+    heartbeat: Optional[threading.Thread] = None
+    heartbeat_error: Optional[str] = None
 
 
 @dataclass
@@ -105,11 +164,11 @@ def _status_code(error: BaseException) -> Optional[int]:
 
 
 def _positive_limit(value: Any, name: str) -> Optional[int]:
-    """Validate an optional bounded-smoke limit.
+    """Validate an optional positive-integer limit.
 
-    Limits are deliberately strict at the crawler boundary so integrations
-    cannot accidentally turn a malformed value into an unbounded crawl.  A
-    value of ``None`` retains the historical unlimited behavior.
+    Limits are deliberately strict at the crawler boundary. Callers resolve
+    ``None`` to their safe default (or to no pagination cap where that is the
+    explicit max-pages contract) before applying the limit.
     """
 
     if value is None:
@@ -283,6 +342,16 @@ class CrawlResult:
         return int(self.metadata.get("candidates_limited", 0) or 0)
 
     @property
+    def remaining_estimate(self) -> int:
+        """Estimated candidates left in the most recent discovery pass."""
+
+        return int(self.metadata.get("remaining_estimate", 0) or 0)
+
+    @property
+    def remaining_estimate_count(self) -> int:
+        return self.remaining_estimate
+
+    @property
     def error_classifications(self) -> list[str]:
         """Return stable runtime categories represented by this run."""
 
@@ -387,6 +456,8 @@ class CrawlResult:
             "since_filtered": self.since_filtered_count,
             "candidates_processed": self.candidates_processed_count,
             "candidates_limited": self.candidates_limited_count,
+            "batch_limit": self.metadata.get("batch_limit"),
+            "remaining_estimate": self.remaining_estimate,
             "error_classifications": self.error_classifications,
             "error_categories": self.error_classifications,
             "parsed_count": self.parsed_count,
@@ -479,7 +550,13 @@ def _outcome_value(outcome: Any, name: str, default: Any = None) -> Any:
 
 
 class Crawler:
-    """Run configured sources using an injectable fetcher and storage adapter."""
+    """Run configured sources using injectable fetcher/storage adapters.
+
+    Public crawl entry points acquire the process-wide storage lease for the
+    complete operation. Legacy adapters that expose none of the lease API run
+    in compatibility mode; adapters exposing only part of the API fail closed
+    before a run is created.
+    """
 
     def __init__(
         self,
@@ -492,20 +569,35 @@ class Crawler:
         custom_adapters: Optional[Any] = None,
         logger: Optional[logging.Logger] = None,
         recent_recheck: int | float = 0,
-        max_candidates_per_source: Optional[int] = None,
+        max_candidates_per_source: Optional[int] = DEFAULT_NEXT_BATCH_LIMIT,
         max_pages: Optional[int] = None,
+        lease_ttl_seconds: int | float = DEFAULT_CRAWLER_LEASE_TTL_SECONDS,
     ) -> None:
         self.config = config
         self.logger = logger or LOGGER
         self.storage = storage
+        if (
+            isinstance(lease_ttl_seconds, bool)
+            or not isinstance(lease_ttl_seconds, (int, float))
+            or lease_ttl_seconds <= 0
+        ):
+            raise ValueError("lease_ttl_seconds must be a positive number")
+        self.lease_ttl_seconds = float(lease_ttl_seconds)
+        self._lease_lock = threading.RLock()
+        self._lease_context: Optional[_CrawlerLeaseContext] = None
         self.registry = registry or SourceRegistry.from_config(config)
         configured_adapters = _first_attr(config, "adapter_registry", "custom_adapters", default=None)
         self.adapter_registry = adapter_registry if adapter_registry is not None else (
             custom_adapters if custom_adapters is not None else configured_adapters
         )
         self.recent_recheck = max(0.0, float(recent_recheck or _first_attr(config, "recent_recheck", "recent_recheck_days", default=0) or 0))
+        configured_candidate_limit = (
+            DEFAULT_NEXT_BATCH_LIMIT
+            if max_candidates_per_source is None
+            else max_candidates_per_source
+        )
         self.max_candidates_per_source = _positive_limit(
-            max_candidates_per_source, "max_candidates_per_source"
+            configured_candidate_limit, "max_candidates_per_source"
         )
         self.max_pages = _positive_limit(max_pages, "max_pages")
         if fetcher is None:
@@ -529,6 +621,186 @@ class Crawler:
 
         self.storage = SQLiteStorage(":memory:")
         return self.storage
+
+    def _call_lease_with_ttl(self, method: Any, owner: str) -> Any:
+        """Call an acquire/renew adapter with a compatible TTL signature.
+
+        SQLiteStorage accepts the keyword explicitly.  A small number of
+        legacy test/integration adapters only accepted ``owner``; retaining
+        that shape is safe when the adapter has no TTL parameter, while an
+        adapter that advertises the current API always receives the configured
+        heartbeat interval.
+        """
+
+        try:
+            parameters = inspect.signature(method).parameters.values()
+        except (TypeError, ValueError):
+            return method(owner, ttl_seconds=self.lease_ttl_seconds)
+        has_ttl = any(parameter.name == "ttl_seconds" for parameter in parameters)
+        has_kwargs = any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters
+        )
+        if has_ttl or has_kwargs:
+            return method(owner, ttl_seconds=self.lease_ttl_seconds)
+        return method(owner)
+
+    def _lease_heartbeat_loop(self, context: _CrawlerLeaseContext) -> None:
+        """Renew the storage lease without holding a crawler/storage lock."""
+
+        interval = max(0.001, self.lease_ttl_seconds / 3.0)
+        renew = getattr(self.storage, "renew_crawler_lease", None)
+        if not callable(renew):
+            context.heartbeat_error = "renew_crawler_lease is unavailable"
+            context.lost.set()
+            return
+        while not context.stop.wait(interval):
+            try:
+                renewed = bool(self._call_lease_with_ttl(renew, context.owner))
+            except Exception as exc:
+                context.heartbeat_error = sanitize_error(str(exc))
+                context.lost.set()
+                self.logger.warning(
+                    "crawler lease heartbeat failed owner=%s error=%s",
+                    context.owner,
+                    context.heartbeat_error,
+                )
+                return
+            if not renewed:
+                context.heartbeat_error = "renew_crawler_lease returned false"
+                context.lost.set()
+                self.logger.warning(
+                    "crawler lease was lost owner=%s", context.owner
+                )
+                return
+
+    def _lease_enter(self) -> _CrawlerLeaseContext:
+        """Acquire the process-wide lease before any run/network work."""
+
+        thread_id = threading.get_ident()
+        with self._lease_lock:
+            active = self._lease_context
+            if active is not None:
+                if active.thread_id != thread_id:
+                    raise CrawlerBusyError(
+                        "crawler lease is already active in another thread"
+                    )
+                if active.lost.is_set():
+                    raise CrawlerLeaseLostError(
+                        "crawler lease was lost while a nested crawl was requested"
+                    )
+                active.depth += 1
+                return active
+
+            storage = self._ensure_storage()
+            acquire = getattr(storage, "acquire_crawler_lease", None)
+            # Legacy fakes/adapters without the lease API remain usable.  A
+            # partial implementation is different: allowing a crawl without
+            # renewal/release would make a claimed lease unsafe, so fail closed.
+            if not callable(acquire):
+                renew = getattr(storage, "renew_crawler_lease", None)
+                release = getattr(storage, "release_crawler_lease", None)
+                if callable(renew) or callable(release):
+                    raise CrawlerLeaseUnavailableError(
+                        "storage lease adapter must provide acquire, renew, and release"
+                    )
+                context = _CrawlerLeaseContext(
+                    owner=f"zoofan-compat-{uuid.uuid4().hex}",
+                    thread_id=thread_id,
+                    supported=False,
+                )
+                self._lease_context = context
+                return context
+
+            renew = getattr(storage, "renew_crawler_lease", None)
+            release = getattr(storage, "release_crawler_lease", None)
+            if not callable(renew) or not callable(release):
+                raise CrawlerLeaseUnavailableError(
+                    "storage lease adapter must provide acquire, renew, and release"
+                )
+
+            owner = f"zoofan-crawler-{uuid.uuid4().hex}"
+            try:
+                acquired = bool(self._call_lease_with_ttl(acquire, owner))
+            except Exception as exc:
+                raise CrawlerLeaseUnavailableError(
+                    f"crawler lease acquisition failed: {sanitize_error(str(exc))}"
+                ) from exc
+            if not acquired:
+                raise CrawlerBusyError("crawler lease is busy")
+
+            context = _CrawlerLeaseContext(
+                owner=owner,
+                thread_id=thread_id,
+                supported=True,
+            )
+            self._lease_context = context
+            heartbeat = threading.Thread(
+                target=self._lease_heartbeat_loop,
+                args=(context,),
+                name="zoofan-crawler-lease-heartbeat",
+                daemon=True,
+            )
+            context.heartbeat = heartbeat
+            heartbeat.start()
+            return context
+
+    def _lease_leave(self, context: _CrawlerLeaseContext) -> Optional[BaseException]:
+        """Release the outer lease and return only a lease-loss error."""
+
+        with self._lease_lock:
+            if self._lease_context is not context:
+                return None
+            context.depth -= 1
+            if context.depth > 0:
+                return None
+            self._lease_context = None
+
+        if not context.supported:
+            return None
+        context.stop.set()
+        heartbeat = context.heartbeat
+        if heartbeat is not None and heartbeat is not threading.current_thread():
+            heartbeat.join(timeout=max(0.1, min(5.0, self.lease_ttl_seconds)))
+
+        release = getattr(self.storage, "release_crawler_lease", None)
+        if callable(release):
+            try:
+                released = bool(release(context.owner))
+                if not released:
+                    self.logger.warning(
+                        "crawler lease release returned false owner=%s",
+                        context.owner,
+                    )
+            except Exception as exc:
+                # Never replace a crawl exception (or a successful result)
+                # with cleanup trouble.  The next acquisition can reclaim an
+                # expired lease if this adapter failed to release it.
+                self.logger.warning(
+                    "crawler lease release failed owner=%s error=%s",
+                    context.owner,
+                    sanitize_error(str(exc)),
+                )
+        if context.lost.is_set():
+            detail = context.heartbeat_error or "heartbeat renewal failed"
+            return CrawlerLeaseLostError(f"crawler lease lost: {detail}")
+        return None
+
+    @contextmanager
+    def _lease_scope(self) -> Iterator[None]:
+        """Protect one public crawl entry point, including nested calls."""
+
+        context = self._lease_enter()
+        primary_error: Optional[BaseException] = None
+        try:
+            yield
+        except BaseException as exc:
+            primary_error = exc
+            raise
+        finally:
+            lease_error = self._lease_leave(context)
+            if primary_error is None and lease_error is not None:
+                raise lease_error
 
     @staticmethod
     def _unique(values: Iterable[Any]) -> list[Any]:
@@ -664,11 +936,89 @@ class Crawler:
                 return category, message
         return None
 
-    def _new_run(self, selection: str | Iterable[str]) -> Optional[CrawlRun]:
+    def _new_run(
+        self,
+        selection: str | Iterable[str],
+        *,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> Optional[CrawlRun]:
         if self.storage is None or not hasattr(self.storage, "start_crawl_run"):
             return None
-        run = CrawlRun(batch_id=uuid.uuid4().hex, metadata={"selection": selection if isinstance(selection, str) else list(selection)})
+        run_metadata: dict[str, Any] = {
+            "selection": selection if isinstance(selection, str) else list(selection)
+        }
+        run_metadata.update(dict(metadata or {}))
+        run = CrawlRun(batch_id=uuid.uuid4().hex, metadata=run_metadata)
         return self.storage.start_crawl_run(run)
+
+    def _update_run_metadata(
+        self,
+        run: Optional[CrawlRun],
+        metadata: Mapping[str, Any],
+    ) -> None:
+        """Keep in-memory run evidence current and use optional adapter hooks.
+
+        The current SQLite adapter writes run metadata when a run is started.
+        Newer adapters may expose an explicit metadata update method; using it
+        opportunistically keeps this crawler compatible without reaching into
+        storage tables or depending on a lease implementation.
+        """
+
+        if run is None:
+            return
+        run.metadata = {**dict(getattr(run, "metadata", {}) or {}), **dict(metadata)}
+        if self.storage is None:
+            return
+        method = None
+        for name in ("update_crawl_run_metadata", "update_run_metadata"):
+            candidate = getattr(self.storage, name, None)
+            if callable(candidate):
+                method = candidate
+                break
+        if method is None:
+            return
+        try:
+            signature = inspect.signature(method)
+            params = [
+                parameter
+                for parameter in signature.parameters.values()
+                if parameter.name != "self"
+            ]
+            names = {parameter.name for parameter in params}
+            run_id = getattr(run, "id", None)
+            has_var_kwargs = any(
+                parameter.kind is inspect.Parameter.VAR_KEYWORD
+                for parameter in params
+            )
+            if "run" in names:
+                updated = method(run=run)
+            elif "crawl_run" in names:
+                updated = method(crawl_run=run)
+            elif "crawl_run_id" in names and "metadata" in names:
+                updated = method(crawl_run_id=run_id, metadata=dict(run.metadata))
+            elif "run_id" in names and "metadata" in names:
+                updated = method(run_id=run_id, metadata=dict(run.metadata))
+            elif has_var_kwargs and params:
+                updated = method(run_id, **dict(run.metadata))
+            elif len(params) >= 2:
+                updated = method(run_id, dict(run.metadata))
+            elif len(params) == 1:
+                if params[0].name == "metadata":
+                    updated = method(metadata=dict(run.metadata))
+                else:
+                    updated = method(run_id)
+            else:
+                updated = method()
+            if isinstance(updated, CrawlRun):
+                run.metadata = {
+                    **dict(getattr(updated, "metadata", {}) or {}),
+                    **dict(getattr(run, "metadata", {}) or {}),
+                }
+        except Exception as exc:
+            # Metadata is diagnostic evidence; a legacy adapter that cannot
+            # update it must not turn a successfully crawled source into a
+            # failed batch.
+            self.logger.warning("crawl run metadata persistence failed: %s", sanitize_error(str(exc)))
 
     def _record_stat(self, stat: CrawlRunStat) -> CrawlRunStat:
         if self.storage is not None and hasattr(self.storage, "record_run_stat"):
@@ -698,6 +1048,16 @@ class Crawler:
             stat.metadata["error_classifications"] = list(
                 dict.fromkeys([*(stat.metadata.get("error_classifications", []) or []), category])
             )
+            if "batch_limit" in stat.metadata:
+                stat.metadata.update(
+                    {
+                        "discovered": stat.discovered_count,
+                        "stored": stat.stored_count,
+                        "known": stat.already_known_count,
+                        "duplicate": stat.duplicate_candidate_count,
+                        "errors": stat.error_count,
+                    }
+                )
             _set_optional_attributes(stat, {"error_category": category})
             return stat, (category, message)
 
@@ -748,6 +1108,162 @@ class Crawler:
                 article_id=article.id, source_id=source.id,
                 discovered_url=candidate.url, discovered_at=_now(), metadata=candidate.metadata,
             )
+
+    @staticmethod
+    def _revalidate_discovery(
+        values: Iterable[Any],
+        source: Source,
+        zoo: Zoo,
+        *,
+        root_http_status: Optional[int] = None,
+        initial_duplicate_count: int = 0,
+    ) -> DiscoveryResult:
+        """Normalize and policy-check a discovery result at the batch edge.
+
+        Discovery adapters already apply these checks, but ``next_batch`` is
+        intentionally a fresh control boundary: an adapter, test double, or
+        future cache must not be able to bypass URL normalization or the
+        official-domain/article policy between rediscovery and article fetch.
+        Invalid individual values are discarded fail-closed while the rest of
+        the source can continue.
+        """
+
+        policy = URLPolicy.from_zoo_source(zoo, source)
+        candidates: list[DiscoveryCandidate] = []
+        seen: set[str] = set()
+        duplicate_count = int(initial_duplicate_count or 0)
+        for value in values:
+            try:
+                candidate = _as_candidate(value, source)
+                normalized = normalize_url(candidate.url)
+                if not normalized or not policy.accepts(normalized, source_url=source.url):
+                    continue
+                candidate.url = normalized
+                if candidate.canonical_url:
+                    try:
+                        candidate.canonical_url = normalize_url(candidate.canonical_url)
+                    except (TypeError, ValueError):
+                        # A malformed optional feed canonical must not turn a
+                        # valid discovered URL into a fetch-policy bypass.
+                        candidate.canonical_url = None
+                if normalized in seen:
+                    duplicate_count += 1
+                    continue
+                seen.add(normalized)
+                candidates.append(candidate)
+            except (TypeError, ValueError, UnicodeError):
+                continue
+        return DiscoveryResult(
+            candidates,
+            root_http_status=root_http_status,
+            duplicate_candidate_count=duplicate_count,
+        )
+
+    def _resolve_enabled_source(self, source_id: Any) -> tuple[Source, Zoo]:
+        """Resolve one configured, enabled source for ``next_batch``."""
+
+        if isinstance(source_id, Source):
+            requested = str(source_id.id or source_id.url or "").strip()
+        else:
+            requested = str(source_id or "").strip()
+        if not requested:
+            raise ValueError("source_id is required")
+
+        sources = self._unique(self.registry.sources.values())
+        source: Optional[Source] = None
+        for candidate in sources:
+            candidate_id = str(candidate.id or "").strip()
+            if requested == candidate_id:
+                source = candidate
+                break
+            try:
+                if not candidate_id and requested == normalize_url(candidate.url):
+                    source = candidate
+                    break
+                if requested == normalize_url(candidate.url):
+                    source = candidate
+                    break
+            except (TypeError, ValueError):
+                continue
+        if source is None:
+            raise ValueError(f"unknown source selection: {sanitize_error(requested)}")
+        if not bool(source.enabled):
+            raise ValueError(f"source is disabled: {sanitize_error(requested)}")
+        zoo = self.registry.zoo_for_source(source)
+        if zoo is None:
+            raise ValueError(f"source has no configured zoo: {sanitize_error(requested)}")
+        if not bool(zoo.enabled):
+            raise ValueError(f"source zoo is disabled: {sanitize_error(requested)}")
+        return source, zoo
+
+    def _select_next_batch_candidates(
+        self,
+        discovered_candidates: Iterable[DiscoveryCandidate],
+        source: Source,
+        zoo: Zoo,
+        *,
+        limit: int,
+        seen_articles: dict[str, Article],
+    ) -> _NextBatchSelection:
+        """Drop known/duplicate identities before applying the batch limit."""
+
+        pending: list[DiscoveryCandidate] = []
+        identity_keys_seen: set[str] = set()
+        known_identity_keys: set[str] = set()
+        selection = _NextBatchSelection()
+
+        for candidate in discovered_candidates:
+            try:
+                identity_keys = self._candidate_identity_keys(candidate, source, zoo)
+            except (TypeError, ValueError, UnicodeError):
+                # The candidate was policy-checked above.  If an optional
+                # canonical value is still malformed, fail closed for that
+                # value and preserve the source boundary.
+                continue
+            key = identity_keys[0] if identity_keys else ""
+            if not key:
+                continue
+
+            existing = next(
+                (
+                    seen_articles[identity_key]
+                    for identity_key in identity_keys
+                    if identity_key in seen_articles
+                ),
+                None,
+            )
+            if existing is None:
+                for identity_key in identity_keys:
+                    existing = self._existing_article(identity_key)
+                    if existing is not None:
+                        break
+
+            if existing is not None:
+                identity = str(getattr(existing, "id", None) or key)
+                if identity in known_identity_keys:
+                    selection.duplicate_filtered += 1
+                else:
+                    selection.already_known += 1
+                    known_identity_keys.add(identity)
+                for identity_key in identity_keys:
+                    seen_articles[identity_key] = existing
+                try:
+                    self._record_existing_discovery(existing, source, candidate)
+                except Exception as exc:
+                    category, message = self._error_detail(exc, phase="storage")
+                    selection.storage_errors.append((category, message))
+                continue
+
+            if any(identity_key in identity_keys_seen for identity_key in identity_keys):
+                selection.duplicate_filtered += 1
+                continue
+            identity_keys_seen.update(identity_keys)
+            pending.append(candidate)
+
+        selection.candidates = pending[:limit]
+        selection.candidates_limited = max(0, len(pending) - len(selection.candidates))
+        selection.remaining_estimate = selection.candidates_limited
+        return selection
 
     def _upsert_article(self, article: Article, source: Source, candidate: DiscoveryCandidate) -> Any:
         if self.storage is None:
@@ -1267,6 +1783,24 @@ class Crawler:
         max_candidates_per_source: Optional[int] = None,
         max_pages: Optional[int] = None,
     ) -> CrawlResult:
+        """Run a bounded crawl while holding the process-wide crawler lease."""
+
+        with self._lease_scope():
+            return self._crawl_once(
+                selection,
+                since_days=since_days,
+                max_candidates_per_source=max_candidates_per_source,
+                max_pages=max_pages,
+            )
+
+    def _crawl_once(
+        self,
+        selection: str | Iterable[str] = "all",
+        *,
+        since_days: Optional[int] = None,
+        max_candidates_per_source: Optional[int] = None,
+        max_pages: Optional[int] = None,
+    ) -> CrawlResult:
         if since_days is not None and (
             isinstance(since_days, bool)
             or not isinstance(since_days, int)
@@ -1407,6 +1941,259 @@ class Crawler:
             max_pages=max_pages,
         )
 
+    def next_batch(
+        self,
+        source_id: Any,
+        *,
+        limit: Optional[int] = None,
+        batch_limit: Optional[int] = None,
+        max_candidates_per_source: Optional[int] = None,
+        max_pages: Optional[int] = None,
+    ) -> CrawlResult:
+        with self._lease_scope():
+            return self._next_batch_once(
+                source_id,
+                limit=limit,
+                batch_limit=batch_limit,
+                max_candidates_per_source=max_candidates_per_source,
+                max_pages=max_pages,
+            )
+
+    def _next_batch_once(
+        self,
+        source_id: Any,
+        *,
+        limit: Optional[int] = None,
+        batch_limit: Optional[int] = None,
+        max_candidates_per_source: Optional[int] = None,
+        max_pages: Optional[int] = None,
+    ) -> CrawlResult:
+        """Fetch the next bounded work batch for one configured source.
+
+        ``next_batch`` is intentionally distinct from :meth:`crawl`: it
+        rediscovers one enabled source, normalizes and policy-checks the
+        result again, removes already persisted identities (and same-pass
+        duplicates), and only then takes up to ``limit`` candidates. A
+        failed article attempt counts in this batch but does not stop later
+        selected candidates. Existing ``recent_recheck`` settings are not
+        applied here because a known article must not consume queue capacity;
+        ordinary ``crawl`` retains that recheck behavior.
+
+        ``limit=None`` means "inherit the constructor's effective candidate
+        limit" (10 by default); next-batch always has a positive limit. ``max_pages``
+        likewise inherits the constructor value when omitted/``None``; a
+        constructor value of ``None`` applies no pagination cap.
+        ``batch_limit`` and ``max_candidates_per_source`` are accepted as
+        compatibility aliases for callers that use the ordinary crawl
+        vocabulary. At most one override may be supplied.
+        """
+
+        overrides = [
+            value
+            for value in (batch_limit, max_candidates_per_source)
+            if value is not None
+        ]
+        if len(overrides) > 1:
+            raise ValueError(
+                "limit, batch_limit and max_candidates_per_source may not be combined"
+            )
+        if overrides:
+            if limit is not None:
+                raise ValueError(
+                    "limit, batch_limit and max_candidates_per_source may not be combined"
+                )
+            limit = overrides[0]
+        if limit is None:
+            limit = self.max_candidates_per_source
+        if limit is None:
+            # A legacy subclass may still expose a missing constructor value;
+            # the control endpoint remains bounded in that case.
+            limit = DEFAULT_NEXT_BATCH_LIMIT
+        batch_limit_value = _positive_limit(limit, "limit")
+        # ``limit`` is normalized above, so this is only a defensive guard for
+        # custom adapters that might return ``None``.
+        if batch_limit_value is None:
+            batch_limit_value = DEFAULT_NEXT_BATCH_LIMIT
+        page_limit = (
+            self.max_pages
+            if max_pages is None
+            else _positive_limit(max_pages, "max_pages")
+        )
+
+        source, zoo = self._resolve_enabled_source(source_id)
+        storage = self._ensure_storage()
+        # Keep source registration identical to ordinary crawl before creating
+        # the durable run/stat records. The public wrapper already owns the
+        # process-wide lease for this whole operation.
+        self.registry.register_storage(storage)
+        resolved_source_id = self._source_id(source)
+        zoo_selection = str(zoo.slug or zoo.id)
+        run = self._new_run(
+            zoo_selection,
+            metadata={
+                "mode": "next_batch",
+                "source_id": resolved_source_id,
+                "batch_limit": batch_limit_value,
+            },
+        )
+        result = CrawlResult(run=run)
+        started_at = _now()
+        seen_articles: dict[str, Article] = {}
+        pre_run_article_ids = {
+            str(article.id)
+            for article in (
+                storage.list_articles() if hasattr(storage, "list_articles") else []
+            )
+            if article.id is not None
+        }
+        resolved_article_ids: set[str] = set()
+
+        try:
+            self._crawl_zoo(
+                result=result,
+                run=run,
+                zoo=zoo,
+                zoo_started=started_at,
+                cutoff=None,
+                seen_articles=seen_articles,
+                pre_run_article_ids=pre_run_article_ids,
+                resolved_article_ids=resolved_article_ids,
+                max_candidates_per_source=None,
+                max_pages=page_limit,
+                source_id=resolved_source_id,
+                batch_limit=batch_limit_value,
+            )
+        except Exception as exc:
+            self._record_zoo_exception(
+                result,
+                run,
+                zoo,
+                started_at,
+                exc,
+                phase="configuration",
+            )
+
+        processed_zoo_ids = [str(zoo.id or zoo.slug)]
+        candidates_processed = sum(
+            int(
+                (_first_attr(item, "metadata", default={}) or {}).get(
+                    "candidates_processed", 0
+                )
+                or 0
+            )
+            for item in result.zoo_results
+        )
+        candidates_limited = sum(
+            int(
+                (_first_attr(item, "metadata", default={}) or {}).get(
+                    "candidates_limited", 0
+                )
+                or 0
+            )
+            for item in result.zoo_results
+        )
+        remaining_estimate = sum(
+            int(
+                (_first_attr(item, "metadata", default={}) or {}).get(
+                    "remaining_estimate", 0
+                )
+                or 0
+            )
+            for item in result.zoo_results
+        )
+        zoo_failures = [
+            item
+            for item in result.zoo_results
+            if str(_first_attr(item, "status", default=""))
+            in {"partial", "failed"}
+        ]
+        result.status = (
+            "completed_with_errors" if zoo_failures or result.error_count else "completed"
+        )
+        result.metadata = {
+            "mode": "next_batch",
+            "source_id": resolved_source_id,
+            "zoo_id": str(zoo.id or zoo.slug),
+            "zoos": 1,
+            "sources": len(result.stats),
+            "processed": 1,
+            "enabled": 1,
+            "selected": 1,
+            "selected_zoos": processed_zoo_ids,
+            "processed_zoos": processed_zoo_ids,
+            "enabled_zoos": processed_zoo_ids,
+            "batch_limit": batch_limit_value,
+            "candidates_processed": candidates_processed,
+            "candidates_limited": candidates_limited,
+            "remaining_estimate": remaining_estimate,
+            "max_pages": page_limit,
+            "error_classifications": result.error_classifications,
+            "error_categories": result.error_classifications,
+        }
+        # Keep the compact run metadata useful to Control/reporting callers
+        # while the durable stat still carries the canonical count fields.
+        result.metadata.update(
+            {
+                "discovered": result.discovered_count,
+                "stored": result.stored_count,
+                "known": result.already_known_count,
+                "duplicate": result.duplicate_candidate_count,
+                "errors": result.error_count,
+            }
+        )
+        if zoo_failures:
+            summaries: list[str] = []
+            for item in zoo_failures:
+                summary = _first_attr(item, "error_summary", default=None)
+                if isinstance(summary, str):
+                    summaries.append(summary)
+                elif isinstance(summary, Iterable):
+                    summaries.extend(str(value) for value in summary)
+            result.error = "; ".join(sanitize_error(item) for item in summaries) or None
+
+        self._update_run_metadata(run, result.metadata)
+        if run is not None and hasattr(storage, "finish_crawl_run"):
+            finish = storage.finish_crawl_run
+            finish_kwargs: dict[str, Any] = {
+                "status": result.status,
+                "error": result.error,
+            }
+            finish_params: Mapping[str, inspect.Parameter] = {}
+            try:
+                finish_params = inspect.signature(finish).parameters
+            except (TypeError, ValueError):
+                pass
+            if "metadata" in finish_params:
+                finish_kwargs["metadata"] = dict(getattr(run, "metadata", {}) or {})
+            finished = finish(getattr(run, "id", ""), **finish_kwargs)
+            if finished is not None:
+                # Some adapters return a reconstructed run with metadata from
+                # the initial INSERT. Reattach final in-memory evidence when
+                # they do not yet offer a metadata update hook.
+                finished.metadata = {
+                    **dict(getattr(finished, "metadata", {}) or {}),
+                    **dict(getattr(run, "metadata", {}) or {}),
+                }
+                result.run = finished
+        return result
+
+    @staticmethod
+    def _batch_metadata(
+        *,
+        batch_limit: Optional[int],
+        candidates_processed: int = 0,
+        candidates_limited: int = 0,
+        remaining_estimate: int = 0,
+    ) -> dict[str, int]:
+        if batch_limit is None:
+            return {}
+        return {
+            "batch_limit": int(batch_limit),
+            "candidates_processed": int(candidates_processed),
+            "candidates_limited": int(candidates_limited),
+            "remaining_estimate": int(remaining_estimate),
+        }
+
     def _crawl_zoo(
         self,
         *,
@@ -1420,11 +2207,25 @@ class Crawler:
         resolved_article_ids: set[str],
         max_candidates_per_source: Optional[int] = None,
         max_pages: Optional[int] = None,
+        source_id: Optional[str] = None,
+        batch_limit: Optional[int] = None,
     ) -> None:
-        """Process one zoo; the caller owns the failure boundary."""
+        """Process one zoo; the caller owns the failure boundary.
+
+        ``batch_limit`` is reserved for the control-facing ``next_batch``
+        mode.  In that mode ``source_id`` narrows this pass to one enabled
+        source and known identities are removed before truncation.  Ordinary
+        ``crawl`` keeps its historical source-wide/recheck behavior.
+        """
         zoo_id = str(zoo.id or zoo.slug)
         try:
             sources = sorted(self.registry.sources_for_zoo(zoo), key=source_priority)
+            if source_id is not None:
+                sources = [
+                    source
+                    for source in sources
+                    if self._source_id(source) == str(source_id)
+                ]
             source_url: Optional[str] = (
                 RequestPolicy.safe_target(sources[0].url) if sources else None
             )
@@ -1441,6 +2242,7 @@ class Crawler:
         zoo_since_filtered = 0
         zoo_candidates_limited = 0
         zoo_candidates_processed = 0
+        zoo_remaining_estimate = 0
         source_failures = 0
         successful_sources = 0
         successful_articles = 0
@@ -1543,6 +2345,9 @@ class Crawler:
                     "max_candidates_per_source": max_candidates_per_source,
                     "max_pages": max_pages,
                 }
+                error_metadata.update(
+                    self._batch_metadata(batch_limit=batch_limit)
+                )
                 source_url = evidence_urls[0] if evidence_urls else None
             else:
                 zoo_status = "failed"
@@ -1566,6 +2371,9 @@ class Crawler:
                     "max_candidates_per_source": max_candidates_per_source,
                     "max_pages": max_pages,
                 }
+                error_metadata.update(
+                    self._batch_metadata(batch_limit=batch_limit)
+                )
                 source_url = None
             values = self._zoo_result_values(
                 run=run, zoo=zoo, status=zoo_status, source_status=source_status,
@@ -1596,6 +2404,7 @@ class Crawler:
                 started_at=stat_started, status="running",
                 metadata={"since_filtered_count": 0},
             )
+            stat.metadata.update(self._batch_metadata(batch_limit=batch_limit))
             if max_candidates_per_source is not None:
                 stat.metadata["max_candidates_per_source"] = max_candidates_per_source
             if max_pages is not None:
@@ -1611,6 +2420,16 @@ class Crawler:
                     )
                 discovery_source = self._bounded_discovery_source(source, max_pages)
                 discovered_candidates = self.discovery.discover(discovery_source, zoo=zoo)
+                if batch_limit is not None:
+                    discovered_candidates = self._revalidate_discovery(
+                        discovered_candidates,
+                        source,
+                        zoo,
+                        root_http_status=getattr(discovered_candidates, "root_http_status", None),
+                        initial_duplicate_count=int(
+                            getattr(discovered_candidates, "duplicate_candidate_count", 0)
+                        ),
+                    )
                 stat.discovered_count = len(discovered_candidates)
                 stat.duplicate_candidate_count = int(
                     getattr(discovered_candidates, "duplicate_candidate_count", 0)
@@ -1620,15 +2439,48 @@ class Crawler:
                 zoo_duplicate_filtered += stat.duplicate_candidate_count
                 if zoo_http_status is None:
                     zoo_http_status = root_http_status
-                candidates = list(discovered_candidates)
-                limited_count = 0
-                if max_candidates_per_source is not None and len(candidates) > max_candidates_per_source:
-                    limited_count = len(candidates) - max_candidates_per_source
-                    candidates = candidates[:max_candidates_per_source]
-                stat.metadata["candidates_processed"] = len(candidates)
-                stat.metadata["candidates_limited"] = limited_count
-                zoo_candidates_processed += len(candidates)
-                zoo_candidates_limited += limited_count
+                if batch_limit is not None:
+                    selection = self._select_next_batch_candidates(
+                        discovered_candidates,
+                        source,
+                        zoo,
+                        limit=batch_limit,
+                        seen_articles=seen_articles,
+                    )
+                    candidates = selection.candidates
+                    stat.already_known_count += selection.already_known
+                    stat.duplicate_candidate_count += selection.duplicate_filtered
+                    zoo_duplicate_filtered += selection.duplicate_filtered
+                    stat.metadata.update(
+                        self._batch_metadata(
+                            batch_limit=batch_limit,
+                            candidates_processed=len(candidates),
+                            candidates_limited=selection.candidates_limited,
+                            remaining_estimate=selection.remaining_estimate,
+                        )
+                    )
+                    zoo_candidates_processed += len(candidates)
+                    zoo_candidates_limited += selection.candidates_limited
+                    zoo_remaining_estimate += selection.remaining_estimate
+                    for category, message in selection.storage_errors:
+                        safe_source = RequestPolicy.safe_target(source.url)
+                        errors.append(message)
+                        classifications.append(category)
+                        zoo_errors.append((category, message, safe_source))
+                        stat.error_count += 1
+                        zoo_failed += 1
+                        source_storage_failed = True
+                        zoo_storage_failed = True
+                else:
+                    candidates = list(discovered_candidates)
+                    limited_count = 0
+                    if max_candidates_per_source is not None and len(candidates) > max_candidates_per_source:
+                        limited_count = len(candidates) - max_candidates_per_source
+                        candidates = candidates[:max_candidates_per_source]
+                    stat.metadata["candidates_processed"] = len(candidates)
+                    stat.metadata["candidates_limited"] = limited_count
+                    zoo_candidates_processed += len(candidates)
+                    zoo_candidates_limited += limited_count
                 successful_sources += 1
                 status_error = self._persist_status(
                     source,
@@ -1674,6 +2526,16 @@ class Crawler:
                     zoo_failed += 1
                     zoo_errors.append((status_error[0], status_error[1], safe_source))
                 self.logger.error("crawl source failed zoo=%s source=%s error=%s", zoo.slug, safe_source, message)
+                if batch_limit is not None:
+                    stat.metadata.update(
+                        {
+                            "discovered": stat.discovered_count,
+                            "stored": stat.stored_count,
+                            "known": stat.already_known_count,
+                            "duplicate": stat.duplicate_candidate_count,
+                            "errors": stat.error_count,
+                        }
+                    )
                 stat.finished_at = _now()
                 stat.duration_ms = max(0, int((stat.finished_at - stat_started).total_seconds() * 1000))
                 persisted_stat, stat_error = self._record_stat_checked(stat)
@@ -1685,7 +2547,14 @@ class Crawler:
                     zoo_errors.append((stat_error[0], stat_error[1], safe_source))
                 continue
 
-            recheck = self._recheck_enabled(source, self.recent_recheck)
+            # ``recent_recheck`` is a normal crawl policy: it may deliberately
+            # refetch a recent article.  A next-batch pass is a work queue and
+            # therefore never lets a known article consume this batch.
+            recheck = (
+                False
+                if batch_limit is not None
+                else self._recheck_enabled(source, self.recent_recheck)
+            )
             for candidate in candidates:
                 identity_keys = self._candidate_identity_keys(candidate, source, zoo)
                 key = identity_keys[0] if identity_keys else ""
@@ -1815,6 +2684,16 @@ class Crawler:
                     seen_articles[stored_key] = stored
 
             stat.metadata["since_filtered_count"] = source_since_filtered
+            if batch_limit is not None:
+                stat.metadata.update(
+                    {
+                        "discovered": stat.discovered_count,
+                        "stored": stat.stored_count,
+                        "known": stat.already_known_count,
+                        "duplicate": stat.duplicate_candidate_count,
+                        "errors": stat.error_count,
+                    }
+                )
             stat.errors = errors
             stat.status = "error" if source_storage_failed else ("completed" if not errors else "partial")
             stat.error = "; ".join(errors) if errors else None
@@ -1844,6 +2723,8 @@ class Crawler:
                 stat.errors = errors
                 stat.error = "; ".join(errors)
                 zoo_errors.append((status_error[0], status_error[1], RequestPolicy.safe_target(source.url)))
+            if batch_limit is not None:
+                stat.metadata["errors"] = stat.error_count
             self.logger.info(
                 "crawl source zoo=%s source=%s status=%s discovered=%d fetched=%d stored=%d errors=%d",
                 zoo.slug, RequestPolicy.safe_target(source.url), stat.status, stat.discovered_count, stat.fetched_count,
@@ -1893,6 +2774,14 @@ class Crawler:
                 "max_candidates_per_source": max_candidates_per_source,
                 "max_pages": max_pages,
             }
+            error_metadata.update(
+                self._batch_metadata(
+                    batch_limit=batch_limit,
+                    candidates_processed=zoo_candidates_processed,
+                    candidates_limited=zoo_candidates_limited,
+                    remaining_estimate=zoo_remaining_estimate,
+                )
+            )
             source_url = error_sources[0] if error_sources else source_url
         elif zoo_discovered == 0:
             source_status = "success_no_items"
@@ -1906,6 +2795,14 @@ class Crawler:
                 "max_candidates_per_source": max_candidates_per_source,
                 "max_pages": max_pages,
             }
+            error_metadata.update(
+                self._batch_metadata(
+                    batch_limit=batch_limit,
+                    candidates_processed=zoo_candidates_processed,
+                    candidates_limited=zoo_candidates_limited,
+                    remaining_estimate=zoo_remaining_estimate,
+                )
+            )
         else:
             source_status = "success"
             zoo_status = "success"
@@ -1918,6 +2815,28 @@ class Crawler:
                 "max_candidates_per_source": max_candidates_per_source,
                 "max_pages": max_pages,
             }
+            error_metadata.update(
+                self._batch_metadata(
+                    batch_limit=batch_limit,
+                    candidates_processed=zoo_candidates_processed,
+                    candidates_limited=zoo_candidates_limited,
+                    remaining_estimate=zoo_remaining_estimate,
+                )
+            )
+        if batch_limit is not None:
+            error_metadata.update(
+                {
+                    "discovered": zoo_discovered,
+                    "stored": zoo_inserted,
+                    "known": sum(
+                        stat.already_known_count
+                        for stat in result.stats
+                        if str(stat.zoo_id) == zoo_id
+                    ),
+                    "duplicate": zoo_duplicate_filtered,
+                    "errors": zoo_failed,
+                }
+            )
         values = self._zoo_result_values(
             run=run, zoo=zoo, status=zoo_status, source_status=source_status,
             discovered=zoo_discovered, parsed=zoo_parsed, inserted=zoo_inserted,
@@ -1973,5 +2892,8 @@ run_crawl = crawl
 
 __all__ = [
     "ALL_STATUSES", "ERROR_STATUSES", "Crawler", "CrawlerOrchestrator",
-    "CrawlResult", "crawl", "run_crawl",
+    "CrawlerBusyError", "CrawlerLeaseError", "CrawlerLeaseLostError",
+    "CrawlerLeaseUnavailableError", "CrawlResult",
+    "DEFAULT_CRAWLER_LEASE_TTL_SECONDS", "DEFAULT_NEXT_BATCH_LIMIT",
+    "crawl", "run_crawl",
 ]

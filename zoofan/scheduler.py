@@ -9,6 +9,16 @@ from typing import Any, Optional
 LOGGER = logging.getLogger(__name__)
 
 
+def _positive_limit(value: Optional[int]) -> Optional[int]:
+    """Validate an optional scheduler candidate limit."""
+
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError("max_candidates_per_source must be a positive integer")
+    return value
+
+
 class CrawlScheduler:
     """Schedule ``Crawler.crawl('all')`` without inventing sources.
 
@@ -16,16 +26,31 @@ class CrawlScheduler:
     while ``run_once`` remains useful in tests and constrained deployments.
     """
 
-    def __init__(self, crawler: Any, *, hours: float = 6.0, logger: Optional[logging.Logger] = None) -> None:
+    def __init__(
+        self,
+        crawler: Any,
+        *,
+        hours: float = 6.0,
+        max_candidates_per_source: Optional[int] = None,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
         self.crawler = crawler
         self.hours = float(hours)
+        self.max_candidates_per_source = _positive_limit(max_candidates_per_source)
         self.logger = logger or LOGGER
         self._scheduler: Any = None
 
     def run_once(self) -> Any:
         """Run only configured enabled sources through the crawler."""
 
-        return self.crawler.crawl("all")
+        if self.max_candidates_per_source is None:
+            # Omitting the keyword is intentional: the Crawler owns the
+            # default candidate limit for scheduled runs.
+            return self.crawler.crawl("all")
+        return self.crawler.crawl(
+            "all",
+            max_candidates_per_source=self.max_candidates_per_source,
+        )
 
     def start(self, *, blocking: bool = True) -> Any:
         try:
@@ -47,10 +72,19 @@ class CrawlScheduler:
             self._scheduler.shutdown(wait=False)
 
 
-def schedule(crawler: Any, *, hours: float = 6.0, blocking: bool = True) -> Any:
+def schedule(
+    crawler: Any,
+    *,
+    hours: float = 6.0,
+    max_candidates_per_source: Optional[int] = None,
+    blocking: bool = True,
+) -> Any:
     """Convenience wrapper around :class:`CrawlScheduler`."""
 
-    return CrawlScheduler(crawler, hours=hours).start(blocking=blocking)
+    scheduler_kwargs: dict[str, Any] = {"hours": hours}
+    if max_candidates_per_source is not None:
+        scheduler_kwargs["max_candidates_per_source"] = max_candidates_per_source
+    return CrawlScheduler(crawler, **scheduler_kwargs).start(blocking=blocking)
 
 
 __all__ = ["CrawlScheduler", "schedule"]

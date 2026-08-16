@@ -4,7 +4,7 @@
   <div class="page-heading"><div><p class="eyebrow">Configured inputs</p><h1>Sources</h1></div></div>
   {% if sources %}
     <div class="table-wrap"><table>
-      <thead><tr><th>Zoo</th><th>Zoo country</th><th>Zoo language</th><th>Source ID</th><th>Source</th><th>Kind</th><th>Language</th><th>Status</th><th>Last check</th><th>Last success</th><th>HTTP status</th><th>Last error</th><th>Config</th></tr></thead>
+      <thead><tr><th>Zoo</th><th>Zoo country</th><th>Zoo language</th><th>Source ID</th><th>Source</th><th>Kind</th><th>Language</th><th>Status</th><th>Last check</th><th>Last success</th><th>HTTP status</th><th>Last error</th><th>Discovered</th><th>Processed</th><th>Stored</th><th>Already known / skipped</th><th>Duplicate candidates</th><th>Errors</th><th>Remaining (latest discovery estimate)</th><th>Batch limit</th><th>Candidates limited</th><th>Config</th><th>Control</th></tr></thead>
       <tbody>
         {% for source in sources %}
           <tr data-acceptance-row="source" data-acceptance-id="{{ source.id }}">
@@ -20,7 +20,17 @@
             <td>{{ source.last_success|timestamp }}</td>
             <td data-acceptance-field="http-status">{% if source.last_http_status is not none %}{{ source.last_http_status }}{% else %}—{% endif %}</td>
             <td class="error-text" data-acceptance-field="last-error">{{ source.last_error or '—' }}</td>
+            <td data-acceptance-field="discovered">{% if source.stats.discovered is not none %}{{ source.stats.discovered }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="processed">{% if source.stats.processed is not none %}{{ source.stats.processed }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="stored">{% if source.stats.stored is not none %}{{ source.stats.stored }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="already-known">{% if source.stats.already_known is not none %}{{ source.stats.already_known }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="duplicate-candidates">{% if source.stats.duplicate_candidates is not none %}{{ source.stats.duplicate_candidates }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="errors">{% if source.stats.errors is not none %}{{ source.stats.errors }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="remaining-estimate">{% if source.stats.remaining_estimate is not none %}{{ source.stats.remaining_estimate }}{% else %}—{% endif %}<small class="muted">latest discovery estimate</small></td>
+            <td data-acceptance-field="batch-limit">{% if source.stats.batch_limit is not none %}{{ source.stats.batch_limit }}{% else %}—{% endif %}</td>
+            <td data-acceptance-field="candidates-limited">{% if source.stats.candidates_limited is not none %}{{ source.stats.candidates_limited }}{% else %}—{% endif %}</td>
             <td><pre class="config">{{ source.config }}</pre></td>
+            <td>{% if source.enabled and source.zoo_enabled and source.stats.remaining_estimate is not none and source.stats.remaining_estimate > 0 and source.stats.control_url %}<a href="{{ source.stats.control_url }}" target="_blank" rel="noopener noreferrer">再抓 {{ source.stats.remaining_estimate }} 个</a>{% else %}<span class="muted">—</span>{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import sqlite3
 import threading
@@ -16,7 +17,7 @@ import time
 import unicodedata
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Optional, Union, cast
 
@@ -32,6 +33,10 @@ from .models import (
     Zoo,
 )
 from .normalization import normalize_url
+
+
+_LEASE_OWNER_UNSET = object()
+_LEASE_MIN_TTL_SECONDS = 1e-6
 
 
 def _id(value: Optional[str]) -> str:
@@ -205,7 +210,12 @@ def _content_identity_key(content_hash: Optional[str], title: Optional[str]) -> 
 class SQLiteStorage:
     """Transactional storage for crawl state and article records."""
 
-    SCHEMA_VERSION = 7
+    SCHEMA_VERSION = 8
+    # A single named lease is shared by the crawl CLI, scheduler, and
+    # control-plane callers. Keeping the name in storage (rather than
+    # hard-coding it in each caller) leaves room for future scoped leases.
+    DEFAULT_LEASE_NAME = "crawler"
+    DEFAULT_LEASE_TTL_SECONDS = 300.0
     _INIT_RETRY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8)
 
     def __init__(self, path: Union[str, Path] = ":memory:", connection: Optional[sqlite3.Connection] = None) -> None:
@@ -309,6 +319,7 @@ class SQLiteStorage:
         z, s, a = f"zoos{suffix}", f"sources{suffix}", f"articles{suffix}"
         d, r, rs = f"article_discoveries{suffix}", f"crawl_runs{suffix}", f"crawl_run_stats{suffix}"
         azi, zr = f"article_zoo_identities{suffix}", f"crawl_zoo_results{suffix}"
+        leases = f"crawler_leases{suffix}"
         extra_declarations = extra_declarations or {}
         columns = {
             "zoos": ["id TEXT PRIMARY KEY", "slug TEXT UNIQUE", "name TEXT", "website_url TEXT", "country_code TEXT", "language TEXT", "groups_json TEXT DEFAULT '[]'", "region TEXT", "city TEXT", "source_status TEXT", "list_provenance_json TEXT DEFAULT '[]'", "enabled INTEGER DEFAULT 1", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
@@ -319,6 +330,7 @@ class SQLiteStorage:
             "crawl_run_stats": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT", "zoo_id TEXT", "source_id TEXT", "status TEXT DEFAULT 'running'", "discovered_count INTEGER DEFAULT 0", "fetched_count INTEGER DEFAULT 0", "stored_count INTEGER DEFAULT 0", "already_known_count INTEGER DEFAULT 0", "duplicate_candidate_count INTEGER DEFAULT 0", "error_count INTEGER DEFAULT 0", "started_at TEXT", "finished_at TEXT", "duration_ms INTEGER", "error TEXT", "errors_json TEXT DEFAULT '[]'", "metadata_json TEXT DEFAULT '{}'"],
             "article_zoo_identities": ["article_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "title_key TEXT NOT NULL", "created_at TEXT", "updated_at TEXT", "PRIMARY KEY(article_id,zoo_id)"],
             "crawl_zoo_results": ["id TEXT PRIMARY KEY", "crawl_run_id TEXT NOT NULL", "zoo_id TEXT NOT NULL", "zoo_slug TEXT", "zoo_name TEXT", "status TEXT DEFAULT 'running'", "source_status TEXT", "discovered INTEGER DEFAULT 0", "parsed INTEGER DEFAULT 0", "inserted INTEGER DEFAULT 0", "updated INTEGER DEFAULT 0", "failed INTEGER DEFAULT 0", "duplicate_filtered INTEGER DEFAULT 0", "duration_ms INTEGER", "source_url TEXT", "http_status INTEGER", "error_category TEXT", "error_summary TEXT", "started_at TEXT", "finished_at TEXT", "metadata_json TEXT DEFAULT '{}'", "created_at TEXT", "updated_at TEXT"],
+            "crawler_leases": ["name TEXT PRIMARY KEY", "owner TEXT NOT NULL", "acquired_at TEXT NOT NULL", "lease_until TEXT NOT NULL", "heartbeat_at TEXT NOT NULL"],
         }
         foreign_keys = {
             "sources": [f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE RESTRICT"],
@@ -327,7 +339,7 @@ class SQLiteStorage:
             "article_zoo_identities": [f"FOREIGN KEY(article_id) REFERENCES {a}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
             "crawl_zoo_results": [f"FOREIGN KEY(crawl_run_id) REFERENCES {r}(id) ON UPDATE CASCADE ON DELETE CASCADE", f"FOREIGN KEY(zoo_id) REFERENCES {z}(id) ON UPDATE CASCADE ON DELETE CASCADE"],
         }
-        physical = {"zoos": z, "sources": s, "articles": a, "article_discoveries": d, "crawl_runs": r, "crawl_run_stats": rs, "article_zoo_identities": azi, "crawl_zoo_results": zr}
+        physical = {"zoos": z, "sources": s, "articles": a, "article_discoveries": d, "crawl_runs": r, "crawl_run_stats": rs, "article_zoo_identities": azi, "crawl_zoo_results": zr, "crawler_leases": leases}
         for logical, table in physical.items():
             declarations = columns[logical] + list(extra_declarations.get(logical, [])) + foreign_keys.get(logical, [])
             db.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(declarations)})")
@@ -1006,6 +1018,66 @@ class SQLiteStorage:
                 (key, row["rowid"]),
             )
 
+    @staticmethod
+    def _consolidate_legacy_leases(db: sqlite3.Connection) -> None:
+        """Keep one deterministic row per lease name before unique indexing.
+
+        The current schema makes ``name`` the primary key.  A hand-written
+        legacy table may have omitted that constraint, however, so collapse
+        duplicate names before creating the idempotent unique index.  Prefer
+        the row with the furthest valid expiry; this preserves a currently
+        active lease when duplicate legacy rows disagree.
+        """
+
+        # A blank/NULL owner is not a valid lock holder.  Remove these rows
+        # before choosing a duplicate keeper so a corrupt legacy row with a
+        # far-future expiry cannot block every valid owner indefinitely.
+        for row in db.execute("SELECT rowid,owner FROM crawler_leases").fetchall():
+            owner = row["owner"]
+            if not SQLiteStorage._lease_owner_valid(owner):
+                db.execute("DELETE FROM crawler_leases WHERE rowid=?", (row["rowid"],))
+            elif owner != owner.strip():
+                db.execute(
+                    "UPDATE crawler_leases SET owner=? WHERE rowid=?",
+                    (owner.strip(), row["rowid"]),
+                )
+        duplicates = db.execute(
+            "SELECT name FROM crawler_leases GROUP BY name HAVING COUNT(*)>1"
+        ).fetchall()
+        for duplicate in duplicates:
+            rows = db.execute(
+                "SELECT rowid,lease_until,heartbeat_at FROM crawler_leases WHERE name IS ?",
+                (duplicate["name"],),
+            ).fetchall()
+
+            def sort_key(row: sqlite3.Row) -> tuple[int, datetime, int, datetime, int]:
+                try:
+                    expiry = SQLiteStorage._lease_datetime(row["lease_until"])
+                    expiry_valid = 1
+                except (OverflowError, ValueError):
+                    expiry = datetime.min.replace(tzinfo=timezone.utc)
+                    expiry_valid = 0
+                try:
+                    heartbeat = SQLiteStorage._lease_datetime(row["heartbeat_at"])
+                    heartbeat_valid = 1
+                except (OverflowError, ValueError):
+                    heartbeat = datetime.min.replace(tzinfo=timezone.utc)
+                    heartbeat_valid = 0
+                # Compare parsed UTC instants, never the original offset text;
+                # e.g. ``00:00+00:00`` and ``01:00+01:00`` are a true tie.
+                return (
+                    expiry_valid,
+                    expiry,
+                    heartbeat_valid,
+                    heartbeat,
+                    -int(row["rowid"]),
+                )
+
+            keeper = max(rows, key=sort_key)
+            for row in rows:
+                if row["rowid"] != keeper["rowid"]:
+                    db.execute("DELETE FROM crawler_leases WHERE rowid=?", (row["rowid"],))
+
     def _migrate_schema(self, db: sqlite3.Connection) -> None:
         now = datetime.now(timezone.utc).isoformat()
         definitions = {
@@ -1017,6 +1089,7 @@ class SQLiteStorage:
             "crawl_run_stats": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "source_id": "TEXT", "status": "TEXT DEFAULT 'running'", "discovered_count": "INTEGER DEFAULT 0", "fetched_count": "INTEGER DEFAULT 0", "stored_count": "INTEGER DEFAULT 0", "already_known_count": "INTEGER DEFAULT 0", "duplicate_candidate_count": "INTEGER DEFAULT 0", "error_count": "INTEGER DEFAULT 0", "started_at": "TEXT", "finished_at": "TEXT", "duration_ms": "INTEGER", "error": "TEXT", "errors_json": "TEXT DEFAULT '[]'", "metadata_json": "TEXT DEFAULT '{}'"},
             "article_zoo_identities": {"article_id": "TEXT", "zoo_id": "TEXT", "title_key": "TEXT", "created_at": "TEXT", "updated_at": "TEXT"},
             "crawl_zoo_results": {"id": "TEXT", "crawl_run_id": "TEXT", "zoo_id": "TEXT", "zoo_slug": "TEXT", "zoo_name": "TEXT", "status": "TEXT DEFAULT 'running'", "source_status": "TEXT", "discovered": "INTEGER DEFAULT 0", "parsed": "INTEGER DEFAULT 0", "inserted": "INTEGER DEFAULT 0", "updated": "INTEGER DEFAULT 0", "failed": "INTEGER DEFAULT 0", "duplicate_filtered": "INTEGER DEFAULT 0", "duration_ms": "INTEGER", "source_url": "TEXT", "http_status": "INTEGER", "error_category": "TEXT", "error_summary": "TEXT", "started_at": "TEXT", "finished_at": "TEXT", "metadata_json": "TEXT DEFAULT '{}'", "created_at": "TEXT", "updated_at": "TEXT"},
+            "crawler_leases": {"name": "TEXT", "owner": "TEXT", "acquired_at": "TEXT", "lease_until": "TEXT", "heartbeat_at": "TEXT"},
         }
         legacy_zoo_columns = self._columns(db, "zoos")
         for table, columns in definitions.items():
@@ -1103,6 +1176,7 @@ class SQLiteStorage:
         self._backfill_article_zoo_identities(db)
         self._consolidate_legacy_title_identities(db)
         self._consolidate_legacy_zoo_results(db)
+        self._consolidate_legacy_leases(db)
         # Recompute keys from authoritative hash/title fields even on an
         # already-v6 database.  Dropping the old derived index first lets a
         # repair fix stale keys atomically before recreating the constraint.
@@ -1127,6 +1201,8 @@ class SQLiteStorage:
             "CREATE INDEX IF NOT EXISTS idx_article_zoo_article ON article_zoo_identities(article_id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_crawl_zoo_results_run_zoo ON crawl_zoo_results(crawl_run_id,zoo_id)",
             "CREATE INDEX IF NOT EXISTS idx_crawl_zoo_results_zoo ON crawl_zoo_results(zoo_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_crawler_leases_name ON crawler_leases(name)",
+            "CREATE INDEX IF NOT EXISTS idx_crawler_leases_until ON crawler_leases(lease_until)",
         )
         for statement in indexes:
             db.execute(statement)
@@ -1321,6 +1397,304 @@ class SQLiteStorage:
                     self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
                 else:
                     self._connection.commit()
+
+    # ---- crawler lease ---------------------------------------------------
+
+    @classmethod
+    def _lease_identity(
+        cls, name: str, owner: Any
+    ) -> tuple[str, str]:
+        """Validate a lease name and owner before opening a write transaction.
+
+        The owner is intentionally mandatory for every operation.  A missing,
+        ``None``, non-string, or whitespace-only owner must never be silently
+        converted into an identity that could acquire or release a lease.
+        """
+
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("lease name is required")
+        if owner is _LEASE_OWNER_UNSET or not isinstance(owner, str) or not owner.strip():
+            raise ValueError("lease owner is required")
+        return name.strip(), owner.strip()
+
+    @staticmethod
+    def _lease_owner_valid(value: Any) -> bool:
+        """Return whether a stored owner can identify a live lease holder."""
+
+        return isinstance(value, str) and bool(value) and value == value.strip()
+
+    @staticmethod
+    def _lease_datetime(value: Any, *, field: str = "lease timestamp") -> datetime:
+        """Return an aware UTC datetime for a lease timestamp.
+
+        Lease timestamps are persisted as UTC ISO-8601 strings.  Accepting a
+        datetime, an ISO string, or a Unix timestamp keeps deterministic tests
+        and external adapters straightforward without making SQLite compare
+        offsets lexicographically.
+        """
+
+        if isinstance(value, datetime):
+            parsed = value
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            try:
+                parsed = datetime.fromtimestamp(value, tz=timezone.utc)
+            except (OverflowError, OSError, ValueError) as error:
+                raise ValueError(f"invalid {field}: {value!r}") from error
+        else:
+            raw = str(value).strip() if value is not None else ""
+            if raw.endswith("Z"):
+                raw = raw[:-1] + "+00:00"
+            try:
+                parsed = datetime.fromisoformat(raw)
+            except (OverflowError, TypeError, ValueError) as error:
+                raise ValueError(f"invalid {field}: {value!r}") from error
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        try:
+            return parsed.astimezone(timezone.utc)
+        except (OverflowError, ValueError) as error:
+            raise ValueError(f"invalid {field}: {value!r}") from error
+
+    @classmethod
+    def _lease_now(cls, value: Any = None) -> datetime:
+        return cls._lease_datetime(
+            datetime.now(timezone.utc) if value is None else value,
+            field="lease now",
+        )
+
+    @staticmethod
+    def _lease_timestamp(value: datetime) -> str:
+        return value.astimezone(timezone.utc).isoformat()
+
+    @staticmethod
+    def _lease_ttl_seconds(value: Any) -> float:
+        if isinstance(value, timedelta):
+            seconds = value.total_seconds()
+        else:
+            try:
+                seconds = float(value)
+            except (TypeError, ValueError) as error:
+                raise ValueError(f"invalid lease TTL: {value!r}") from error
+        if not math.isfinite(seconds) or seconds <= 0:
+            raise ValueError("lease TTL must be a finite positive number")
+        if seconds < _LEASE_MIN_TTL_SECONDS:
+            raise ValueError("lease TTL must be at least one microsecond")
+        try:
+            duration = timedelta(seconds=seconds)
+        except (OverflowError, TypeError, ValueError) as error:
+            raise ValueError("lease TTL is outside the representable datetime range") from error
+        # datetime/timedelta arithmetic stores microseconds.  Reject values
+        # that round down to zero rather than creating an immediately expired
+        # lease whose behavior differs across Python versions/platforms.
+        if duration < timedelta(microseconds=1):
+            raise ValueError("lease TTL must be at least one microsecond")
+        return seconds
+
+    @staticmethod
+    def _lease_deadline(current: datetime, ttl: float) -> datetime:
+        """Compute a representable UTC expiry or fail before opening SQL."""
+
+        try:
+            deadline = current + timedelta(seconds=ttl)
+        except (OverflowError, TypeError, ValueError) as error:
+            raise ValueError("lease TTL exceeds the representable datetime range") from error
+        if deadline > datetime.max.replace(tzinfo=timezone.utc):
+            raise ValueError("lease TTL exceeds the representable datetime range")
+        return deadline
+
+    @classmethod
+    def _lease_expired(cls, value: Any, now: datetime) -> bool:
+        try:
+            return cls._lease_datetime(value, field="lease_until") <= now
+        except (OverflowError, ValueError):
+            # A corrupt legacy timestamp must never block the crawler forever;
+            # treating it as expired allows a valid owner to repair the row.
+            return True
+
+    @staticmethod
+    def _lease_row(row: Optional[sqlite3.Row]) -> Optional[dict[str, Any]]:
+        if row is None:
+            return None
+        return {str(key): row[key] for key in row.keys()}
+
+    def get_lease(self, name: str = DEFAULT_LEASE_NAME) -> Optional[dict[str, Any]]:
+        """Read one lease row without opening a write transaction."""
+
+        lease_name = str(name).strip()
+        if not lease_name:
+            raise ValueError("lease name is required")
+        row = self._connection.execute(
+            "SELECT name,owner,acquired_at,lease_until,heartbeat_at "
+            "FROM crawler_leases WHERE name=?",
+            (lease_name,),
+        ).fetchone()
+        return self._lease_row(row)
+
+    def list_leases(self) -> list[dict[str, Any]]:
+        """Return lease rows for diagnostics and control-plane status views."""
+
+        rows = self._connection.execute(
+            "SELECT name,owner,acquired_at,lease_until,heartbeat_at "
+            "FROM crawler_leases ORDER BY name"
+        ).fetchall()
+        leases: list[dict[str, Any]] = []
+        for row in rows:
+            lease = self._lease_row(row)
+            if lease is not None:
+                leases.append(lease)
+        return leases
+
+    def acquire_lease(
+        self,
+        name: str = DEFAULT_LEASE_NAME,
+        owner: Any = _LEASE_OWNER_UNSET,
+        *,
+        ttl_seconds: Any = DEFAULT_LEASE_TTL_SECONDS,
+        now: Any = None,
+        lease_seconds: Optional[Any] = None,
+    ) -> bool:
+        """Atomically acquire or renew a named crawler lease.
+
+        The transaction is deliberately limited to the lease row read/write;
+        callers must perform network work after this method returns.  An
+        active lease held by a different owner returns ``False``.  The same
+        owner may reacquire it idempotently, and an expired row may be taken
+        over by any owner.  ``now`` is injectable for deterministic tests.
+        """
+
+        lease_name, lease_owner = self._lease_identity(name, owner)
+        ttl_value = lease_seconds if lease_seconds is not None else ttl_seconds
+        ttl = self._lease_ttl_seconds(ttl_value)
+        current = self._lease_now(now)
+        current_text = self._lease_timestamp(current)
+        until_text = self._lease_timestamp(self._lease_deadline(current, ttl))
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT owner,acquired_at,lease_until FROM crawler_leases WHERE name=?",
+                (lease_name,),
+            ).fetchone()
+            row_owner_valid = row is not None and self._lease_owner_valid(row["owner"])
+            active = row_owner_valid and not self._lease_expired(row["lease_until"], current)
+            if active and row["owner"] != lease_owner:
+                return False
+            if active and row["owner"] == lease_owner:
+                acquired_at = row["acquired_at"] or current_text
+                db.execute(
+                    "UPDATE crawler_leases SET lease_until=?,heartbeat_at=?,acquired_at=? WHERE name=? AND owner=?",
+                    (until_text, current_text, acquired_at, lease_name, lease_owner),
+                )
+            else:
+                db.execute(
+                    "INSERT INTO crawler_leases(name,owner,acquired_at,lease_until,heartbeat_at) VALUES(?,?,?,?,?) "
+                    "ON CONFLICT(name) DO UPDATE SET owner=excluded.owner,acquired_at=excluded.acquired_at,"
+                    "lease_until=excluded.lease_until,heartbeat_at=excluded.heartbeat_at",
+                    (lease_name, lease_owner, current_text, until_text, current_text),
+                )
+        return True
+
+    # A descriptive alias makes the conflict-returning behavior explicit to
+    # scheduler callers while preserving the concise storage API.
+    try_acquire_lease = acquire_lease
+
+    def renew_lease(
+        self,
+        name: str = DEFAULT_LEASE_NAME,
+        owner: Any = _LEASE_OWNER_UNSET,
+        *,
+        ttl_seconds: Any = DEFAULT_LEASE_TTL_SECONDS,
+        now: Any = None,
+        lease_seconds: Optional[Any] = None,
+    ) -> bool:
+        """Extend an active lease only when its owner still matches.
+
+        Renewal after expiry returns ``False``; the owner must reacquire and
+        thereby acknowledge that another process may already have taken over.
+        """
+
+        lease_name, lease_owner = self._lease_identity(name, owner)
+        ttl_value = lease_seconds if lease_seconds is not None else ttl_seconds
+        ttl = self._lease_ttl_seconds(ttl_value)
+        current = self._lease_now(now)
+        current_text = self._lease_timestamp(current)
+        until_text = self._lease_timestamp(self._lease_deadline(current, ttl))
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT owner,lease_until FROM crawler_leases WHERE name=?",
+                (lease_name,),
+            ).fetchone()
+            if (
+                row is None
+                or not self._lease_owner_valid(row["owner"])
+                or row["owner"] != lease_owner
+                or self._lease_expired(row["lease_until"], current)
+            ):
+                return False
+            updated = db.execute(
+                "UPDATE crawler_leases SET lease_until=?,heartbeat_at=? "
+                "WHERE name=? AND owner=?",
+                (until_text, current_text, lease_name, lease_owner),
+            )
+            return updated.rowcount == 1
+
+    heartbeat_lease = renew_lease
+
+    def release_lease(
+        self,
+        name: str = DEFAULT_LEASE_NAME,
+        owner: Any = _LEASE_OWNER_UNSET,
+    ) -> bool:
+        """Release a lease only when its owner matches the stored owner."""
+
+        lease_name, lease_owner = self._lease_identity(name, owner)
+        with self._transaction() as db:
+            deleted = db.execute(
+                "DELETE FROM crawler_leases WHERE name=? AND owner=?",
+                (lease_name, lease_owner),
+            )
+            return deleted.rowcount == 1
+
+    def acquire_crawler_lease(
+        self,
+        owner: str,
+        *,
+        ttl_seconds: Any = DEFAULT_LEASE_TTL_SECONDS,
+        now: Any = None,
+        lease_seconds: Optional[Any] = None,
+    ) -> bool:
+        """Convenience wrapper for the process-wide default crawler lease."""
+
+        return self.acquire_lease(
+            self.DEFAULT_LEASE_NAME,
+            owner,
+            ttl_seconds=ttl_seconds,
+            now=now,
+            lease_seconds=lease_seconds,
+        )
+
+    def renew_crawler_lease(
+        self,
+        owner: str,
+        *,
+        ttl_seconds: Any = DEFAULT_LEASE_TTL_SECONDS,
+        now: Any = None,
+        lease_seconds: Optional[Any] = None,
+    ) -> bool:
+        """Convenience wrapper for renewing the process-wide crawler lease."""
+
+        return self.renew_lease(
+            self.DEFAULT_LEASE_NAME,
+            owner,
+            ttl_seconds=ttl_seconds,
+            now=now,
+            lease_seconds=lease_seconds,
+        )
+
+    heartbeat_crawler_lease = renew_crawler_lease
+
+    def release_crawler_lease(self, owner: str) -> bool:
+        """Convenience wrapper for releasing the process-wide crawler lease."""
+
+        return self.release_lease(self.DEFAULT_LEASE_NAME, owner)
 
     # ---- zoos and sources -------------------------------------------------
 
@@ -2061,6 +2435,69 @@ class SQLiteStorage:
 
     create_crawl_run = start_crawl_run
     start_run = start_crawl_run
+
+    @staticmethod
+    def _metadata_object(value: Any) -> dict[str, Any]:
+        """Validate and copy a JSON object used as run metadata.
+
+        ``_json`` intentionally has a permissive fallback for old evidence
+        rows.  Run metadata is a control-plane contract, so silently turning
+        an invalid value into ``{}`` would make a completed crawl look as if
+        it had no counters.  Validate the root object and JSON encodability
+        before opening a write transaction.
+        """
+
+        if not isinstance(value, Mapping):
+            raise TypeError("run metadata must be a mapping/object")
+        metadata = dict(value)
+        if any(not isinstance(key, str) for key in metadata):
+            raise TypeError("run metadata keys must be strings")
+        try:
+            json.dumps(metadata, ensure_ascii=False, sort_keys=True, allow_nan=False)
+        except (TypeError, ValueError) as error:
+            raise ValueError("run metadata must be JSON-serializable") from error
+        return metadata
+
+    def update_crawl_run_metadata(
+        self,
+        run_id: str,
+        metadata: Mapping[str, Any],
+        *,
+        merge: bool = False,
+    ) -> Optional[CrawlRun]:
+        """Persist final metadata for an existing crawl run.
+
+        By default the supplied JSON object replaces the complete metadata
+        object.  ``merge=True`` overlays its top-level keys on the existing
+        object and preserves keys not present in the update.  A valid but
+        unknown ``run_id`` is a no-op returning ``None``; invalid arguments
+        raise before opening a transaction.  The write itself is kept inside
+        the normal short ``BEGIN IMMEDIATE`` storage transaction.
+        """
+
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise ValueError("crawl run id is required")
+        if not isinstance(merge, bool):
+            raise TypeError("merge must be a bool")
+        run_id = run_id.strip()
+        update = self._metadata_object(metadata)
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT metadata_json FROM crawl_runs WHERE id=?",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            if merge:
+                current = _load_json(row["metadata_json"])
+                persisted = {**current, **update}
+            else:
+                persisted = update
+            db.execute(
+                "UPDATE crawl_runs SET metadata_json=? WHERE id=?",
+                (_json(persisted), run_id),
+            )
+        return self.get_crawl_run(run_id)
 
     def finish_crawl_run(self, run_id: str, *, status: str = "completed", finished_at: Any = None, error: Optional[str] = None) -> Optional[CrawlRun]:
         finish_value = _timestamp(finished_at or datetime.now(timezone.utc))

@@ -121,7 +121,7 @@ _STATIC_REPORT_REQUIRED_METRICS: tuple[str, ...] = (
     "Configured zoos",
     "Enabled zoos",
     "Configured sources",
-    "Enabled sources",
+    "Enabled source checks",
     "Unique articles (cumulative)",
     "Source/article associations",
     "Discovered (latest run)",
@@ -421,16 +421,30 @@ def evaluate_static_report_observation(
 
     scope_banner = str(observation.get("scope_banner") or "").strip()
     scope_normalized = _normalise_semantic_label(scope_banner)
-    if "scope" not in scope_normalized or "configured" not in scope_normalized:
+    if "scope" not in scope_normalized:
         failures.append("static report scope banner: configured registry scope is not visible")
+    expanded_roster_available = observation.get("expanded_roster_available")
+    if not isinstance(expanded_roster_available, bool):
+        failures.append(
+            "static report scope banner: expanded-roster availability evidence is unavailable"
+        )
+    elif expanded_roster_available:
+        if "expanded roster available" not in scope_normalized:
+            failures.append(
+                "static report scope banner: expected expanded-roster availability is not visible"
+            )
+    else:
+        if "configured" not in scope_normalized:
+            failures.append("static report scope banner: configured registry scope is not visible")
+        if "no expanded roster" not in scope_normalized:
+            failures.append(
+                "static report scope banner: configured report does not state that no expanded roster is implied"
+            )
     scope_label = expected_scope_label or observation.get("expected_scope_label")
     if scope_label and _normalise_semantic_label(scope_label) not in scope_normalized:
         failures.append(
             f"static report scope banner: missing configured scope label {str(scope_label)!r}"
         )
-    if "no expanded roster" not in scope_normalized:
-        failures.append("static report scope banner: expanded-roster limitation is not visible")
-
     expected_count_value = expected_zoo_count
     if expected_count_value is None:
         raw_expected = observation.get("expected_zoo_count")
@@ -1986,6 +2000,9 @@ def _build_static_report(
         scope = projection.get("scope", {})
         scope = scope if isinstance(scope, Mapping) else {}
         generation_id = str(projection.get("generation_id") or "").strip()
+        expanded_roster_available = scope.get("expanded_roster_available")
+        if not isinstance(expanded_roster_available, bool):
+            expanded_roster_available = None
         if not report_path.is_file():
             raise FileNotFoundError(f"report builder did not create {report_path}")
         return {
@@ -1994,6 +2011,7 @@ def _build_static_report(
             "output_dir": str(Path(output_dir).resolve()),
             "generation_id": generation_id,
             "scope_label": str(scope.get("label") or "Configured registry only"),
+            "expanded_roster_available": expanded_roster_available,
             "files": {str(key): str(value) for key, value in paths.items()},
         }
     except Exception as exc:
@@ -2003,6 +2021,7 @@ def _build_static_report(
             "output_dir": str(Path(output_dir).resolve()),
             "generation_id": "",
             "scope_label": "Configured registry only",
+            "expanded_roster_available": None,
             "failures": [f"static report build: {type(exc).__name__}: {exc}"],
             "error": f"{type(exc).__name__}: {exc}",
         }
@@ -2424,6 +2443,7 @@ def _static_report_smoke_in_context(
     *,
     expected_generation_id: str | None = None,
     expected_scope_label: str | None = None,
+    expected_expanded_roster_available: bool | None = None,
     screenshot_path: Path | None = None,
 ) -> dict[str, Any]:
     """Collect browser evidence for one generated static report page."""
@@ -2602,6 +2622,7 @@ def _static_report_smoke_in_context(
             "title": title,
             "scope_banner": scope_banner,
             "expected_scope_label": expected_scope_label,
+            "expanded_roster_available": expected_expanded_roster_available,
             "expected_zoo_count": len(_enabled_configured_zoos(config)),
             "row_count": initial_row_count,
             "initial_row_count": initial_row_count,
@@ -2651,6 +2672,7 @@ def _static_report_browser_smoke(
     *,
     expected_generation_id: str | None = None,
     expected_scope_label: str | None = None,
+    expected_expanded_roster_available: bool | None = None,
     screenshot_path: Path | None = None,
 ) -> dict[str, Any]:
     """Smoke-test one freshly generated static report in a real browser."""
@@ -2689,6 +2711,7 @@ def _static_report_browser_smoke(
                     state,
                     expected_generation_id=expected_generation_id,
                     expected_scope_label=expected_scope_label,
+                    expected_expanded_roster_available=expected_expanded_roster_available,
                     screenshot_path=screenshot_path,
                 )
                 result["playwright_install"] = state.get("playwright_install")
@@ -3233,6 +3256,7 @@ def main(
                 config,
                 expected_generation_id=str(static_build.get("generation_id") or "") or None,
                 expected_scope_label=str(static_build.get("scope_label") or "") or None,
+                expected_expanded_roster_available=static_build.get("expanded_roster_available"),
                 screenshot_path=static_report_screenshot_path,
             )
             static_result = dict(static_build)

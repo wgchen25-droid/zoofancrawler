@@ -344,3 +344,129 @@ def test_acceptance_is_an_alias_for_endgoal_and_forwards_config(monkeypatch):
 
     assert cli.main(["--config", "custom.yaml", "acceptance"]) == 0
     assert calls == [Path("custom.yaml")]
+
+
+def test_candidate_limit_parser_defaults_to_crawler_and_accepts_override():
+    parser = cli._parser()
+
+    crawl_defaults = parser.parse_args(["crawl"])
+    scheduler_defaults = parser.parse_args(["scheduler"])
+    assert crawl_defaults.max_candidates_per_source is None
+    assert scheduler_defaults.max_candidates_per_source is None
+
+    crawl_override = parser.parse_args(["crawl", "--max-candidates-per-source", "7"])
+    scheduler_override = parser.parse_args(["scheduler", "--max-candidates-per-source", "11"])
+    assert crawl_override.max_candidates_per_source == 7
+    assert scheduler_override.max_candidates_per_source == 11
+
+
+@pytest.mark.parametrize("command", ["crawl", "scheduler"])
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_candidate_limit_parser_rejects_non_positive_values(command, value, capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        cli._parser().parse_args([command, "--max-candidates-per-source", value])
+
+    assert exc_info.value.code == 2
+    assert "must be a positive integer" in capsys.readouterr().err
+
+
+def _install_scheduler_stubs(monkeypatch, calls):
+    config_module = types.ModuleType("zoofan.config")
+    config_module.load_config = lambda path: object()
+    crawler_module = types.ModuleType("zoofan.crawler")
+    storage_module = types.ModuleType("zoofan.storage")
+    scheduler_module = types.ModuleType("zoofan.scheduler")
+
+    class FakeResult:
+        status = "completed"
+
+        def as_dict(self):
+            return {"status": self.status}
+
+    class FakeCrawler:
+        def __init__(self, config, storage):
+            pass
+
+        def crawl(self, selection, **kwargs):
+            calls.append(("crawl", selection, kwargs))
+            return FakeResult()
+
+    class FakeStorage:
+        def __init__(self, path):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class FakeScheduler:
+        def __init__(self, crawler, *, hours=6.0, max_candidates_per_source=None):
+            assert hours == 6.0
+            scheduler_kwargs = {"hours": hours}
+            if max_candidates_per_source is not None:
+                scheduler_kwargs["max_candidates_per_source"] = max_candidates_per_source
+            calls.append(("scheduler", scheduler_kwargs))
+            self.crawler = crawler
+            self.max_candidates_per_source = max_candidates_per_source
+
+        def run_once(self):
+            if self.max_candidates_per_source is None:
+                return self.crawler.crawl("all")
+            return self.crawler.crawl("all", max_candidates_per_source=self.max_candidates_per_source)
+
+        def start(self, *, blocking):
+            assert blocking is True
+            return self.run_once()
+
+    crawler_module.Crawler = FakeCrawler
+    storage_module.SQLiteStorage = FakeStorage
+    scheduler_module.CrawlScheduler = FakeScheduler
+    monkeypatch.setitem(sys.modules, "zoofan.config", config_module)
+    monkeypatch.setitem(sys.modules, "zoofan.crawler", crawler_module)
+    monkeypatch.setitem(sys.modules, "zoofan.storage", storage_module)
+    monkeypatch.setitem(sys.modules, "zoofan.scheduler", scheduler_module)
+
+
+def test_scheduler_once_forwards_candidate_limit(monkeypatch, capsys):
+    calls = []
+    _install_scheduler_stubs(monkeypatch, calls)
+
+    assert cli.main(["scheduler", "--once", "--max-candidates-per-source", "7"]) == 0
+    assert calls == [
+        ("scheduler", {"hours": 6.0, "max_candidates_per_source": 7}),
+        ("crawl", "all", {"max_candidates_per_source": 7}),
+    ]
+    assert json.loads(capsys.readouterr().out)["status"] == "completed"
+
+
+def test_scheduler_once_without_candidate_override_uses_crawler_default(monkeypatch, capsys):
+    calls = []
+    _install_scheduler_stubs(monkeypatch, calls)
+
+    assert cli.main(["scheduler", "--once"]) == 0
+    assert calls == [
+        ("scheduler", {"hours": 6.0}),
+        ("crawl", "all", {}),
+    ]
+    assert json.loads(capsys.readouterr().out)["status"] == "completed"
+
+
+def test_crawl_scheduler_run_once_forwards_only_explicit_limit():
+    from zoofan.scheduler import CrawlScheduler
+
+    calls = []
+
+    class FakeCrawler:
+        def crawl(self, selection, **kwargs):
+            calls.append((selection, kwargs))
+            return "done"
+
+    crawler = FakeCrawler()
+    assert CrawlScheduler(crawler).run_once() == "done"
+    assert CrawlScheduler(crawler, max_candidates_per_source=3).run_once() == "done"
+    assert calls == [
+        ("all", {}),
+        ("all", {"max_candidates_per_source": 3}),
+    ]

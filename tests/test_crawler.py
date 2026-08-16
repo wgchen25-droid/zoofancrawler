@@ -1,12 +1,19 @@
 import hashlib
 import json
+import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
 from zoofan.config import CrawlerConfig
-from zoofan.crawler import Crawler
+from zoofan.crawler import (
+    Crawler,
+    CrawlerBusyError,
+    CrawlerLeaseLostError,
+    CrawlerLeaseUnavailableError,
+)
 from zoofan.adapters import AdapterRegistry, UnsupportedAdapterError
 from zoofan.discovery import DiscoveryCandidate, DiscoveryEngine, DiscoveryError, DiscoveryResult, SourceRegistry, URLPolicy, _as_candidate
 from zoofan.fetcher import Fetcher, RequestBoundaryError, RobotsDisallowed
@@ -39,6 +46,63 @@ def _config():
     rss = Source(id="rss", zoo_id="z1", kind="rss", url="https://official.example/feed", config={"official_host": "official.example", "allow_regex": r"/news/"})
     sitemap = Source(id="sitemap", zoo_id="z1", kind="sitemap", url="https://official.example/news.xml", config={"official_host": "official.example", "allow_regex": r"/news/"})
     return CrawlerConfig(zoos=[zoo], sources=[rss, sitemap], request_delay=0)
+
+
+def _next_batch_fixture(*, source_count=1, candidate_count=20):
+    """Build deterministic feeds/articles for the incremental crawler tests."""
+
+    zoo = Zoo(
+        id="batch-zoo",
+        slug="batch-zoo",
+        name="Batch Zoo",
+        website_url="https://batch.example/",
+    )
+    sources = []
+    payloads = {}
+    for source_index in range(source_count):
+        source_id = f"batch-source-{source_index + 1}"
+        source_url = f"https://batch.example/feed-{source_index + 1}"
+        source = Source(
+            id=source_id,
+            zoo_id=zoo.id,
+            kind="rss",
+            url=source_url,
+            config={
+                "official_host": "batch.example",
+                "allow_regex": r"/news/",
+            },
+        )
+        sources.append(source)
+        article_urls = [
+            f"https://batch.example/news/{source_index + 1}-{index}"
+            for index in range(1, candidate_count + 1)
+        ]
+        payloads[source_url] = (
+            "<rss><channel>"
+            + "".join(f"<item><link>{url}</link></item>" for url in article_urls)
+            + "</channel></rss>"
+        )
+        for url in article_urls:
+            payloads[url] = (
+                f"<html><head><title>{url}</title></head>"
+                f"<article>{url} body</article></html>"
+            )
+
+    class BatchFetcher:
+        supports_request_policy = True
+
+        def __init__(self):
+            self.calls = []
+
+        def fetch(self, url, *, request_policy):
+            assert request_policy.validate(url) == url
+            self.calls.append(url)
+            value = payloads[url]
+            if isinstance(value, Exception):
+                raise value
+            return FetchResponse(url, 200, value.encode("utf-8"))
+
+    return CrawlerConfig(zoos=[zoo], sources=sources, request_delay=0), BatchFetcher(), zoo, sources, payloads
 
 
 def _phase0_no_site_zoo(
@@ -959,6 +1023,481 @@ def test_second_identical_crawl_is_already_known_not_updated_or_duplicate():
     assert second.updated_count == 0
     assert second.duplicate_filtered_count == 0
     assert len(storage.list_articles()) == 1
+
+
+def test_next_batch_takes_two_ordered_batches_and_records_remaining_metadata():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture()
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    first = crawler.next_batch(sources[0].id)
+    second = crawler.next_batch(sources[0].id)
+
+    article_calls = [url for url in fetcher.calls if "/news/" in url]
+    assert len(article_calls) == 20
+    assert article_calls[:10] == [
+        f"https://batch.example/news/1-{index}" for index in range(1, 11)
+    ]
+    assert article_calls[10:] == [
+        f"https://batch.example/news/1-{index}" for index in range(11, 21)
+    ]
+    assert first.metadata["batch_limit"] == 10
+    assert first.metadata["candidates_processed"] == 10
+    assert first.metadata["candidates_limited"] == 10
+    assert first.metadata["remaining_estimate"] == 10
+    assert second.metadata["candidates_processed"] == 10
+    assert second.metadata["candidates_limited"] == 0
+    assert second.metadata["remaining_estimate"] == 0
+    assert first.stats[0].metadata["batch_limit"] == 10
+    assert second.stats[0].metadata["remaining_estimate"] == 0
+    assert len(storage.list_articles()) == 20
+
+
+def test_crawl_defaults_to_ten_candidates_per_source():
+    config, fetcher, _zoo, _sources, _payloads = _next_batch_fixture()
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    result = crawler.crawl()
+
+    article_calls = [url for url in fetcher.calls if "/news/" in url]
+    assert crawler.max_candidates_per_source == 10
+    assert result.stored_count == 10
+    assert len(article_calls) == 10
+    assert result.metadata["max_candidates_per_source"] == 10
+    assert result.metadata["effective_candidate_limit"] == 10
+    assert result.metadata["candidates_processed"] == 10
+    assert result.metadata["candidates_limited"] == 10
+    assert result.stats[0].metadata["candidates_processed"] == 10
+    assert result.stats[0].metadata["candidates_limited"] == 10
+
+
+def test_crawl_explicit_candidate_limit_overrides_default():
+    config, fetcher, _zoo, _sources, _payloads = _next_batch_fixture()
+    result = Crawler(
+        config,
+        storage=SQLiteStorage(":memory:"),
+        fetcher=fetcher,
+    ).crawl(max_candidates_per_source=3)
+
+    assert result.stored_count == 3
+    assert result.metadata["max_candidates_per_source"] == 3
+    assert result.metadata["effective_candidate_limit"] == 3
+    assert result.metadata["candidates_processed"] == 3
+    assert result.metadata["candidates_limited"] == 17
+
+
+def test_crawl_none_candidate_limit_keeps_safe_default():
+    config, fetcher, _zoo, _sources, _payloads = _next_batch_fixture()
+    result = Crawler(
+        config,
+        storage=SQLiteStorage(":memory:"),
+        fetcher=fetcher,
+    ).crawl(max_candidates_per_source=None)
+
+    assert result.stored_count == 10
+    assert result.metadata["max_candidates_per_source"] == 10
+    assert result.metadata["effective_candidate_limit"] == 10
+    assert result.metadata["candidates_processed"] == 10
+    assert result.metadata["candidates_limited"] == 10
+
+
+def test_next_batch_skips_known_candidates_before_limit():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=2)
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    first = crawler.next_batch(sources[0].id, limit=1)
+    fetcher.calls.clear()
+    second = crawler.next_batch(sources[0].id, limit=1)
+
+    assert first.stored_count == 1
+    assert second.stored_count == 1
+    assert second.already_known_count == 1
+    assert second.metadata["candidates_processed"] == 1
+    assert second.metadata["candidates_limited"] == 0
+    assert fetcher.calls == [sources[0].url, "https://batch.example/news/1-2"]
+
+
+def test_next_batch_sources_are_independent():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(
+        source_count=2, candidate_count=2
+    )
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    first = crawler.next_batch(sources[0].id, limit=1)
+    second = crawler.next_batch(sources[1].id, limit=1)
+
+    assert first.stats[0].source_id == sources[0].id
+    assert second.stats[0].source_id == sources[1].id
+    assert first.stored_count == second.stored_count == 1
+    assert "https://batch.example/news/1-2" not in fetcher.calls
+    assert "https://batch.example/news/2-2" not in fetcher.calls
+
+
+def test_next_batch_default_override_and_invalid_limits():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture()
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    default_result = crawler.next_batch(sources[0].id)
+    override = crawler.next_batch(sources[0].id, limit=2)
+
+    assert default_result.metadata["batch_limit"] == 10
+    assert override.metadata["batch_limit"] == 2
+    assert override.stored_count == 2
+    for invalid in (0, -1, True):
+        with pytest.raises(ValueError, match="positive integer"):
+            crawler.next_batch(sources[0].id, limit=invalid)
+
+
+def test_next_batch_inherits_constructor_limit_and_none_contract():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=5)
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(
+        config,
+        storage=storage,
+        fetcher=fetcher,
+        max_candidates_per_source=2,
+    )
+
+    result = crawler.next_batch(sources[0].id, limit=None)
+
+    assert crawler.max_candidates_per_source == 2
+    assert result.metadata["batch_limit"] == 2
+    assert result.metadata["candidates_processed"] == 2
+
+
+def test_next_batch_inherits_and_overrides_constructor_max_pages():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    sources[0].kind = "archive"
+    sources[0].config.update({"article_selector": ".card", "link_selector": "a"})
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(
+        config,
+        storage=storage,
+        fetcher=fetcher,
+        max_pages=2,
+    )
+    observed = []
+
+    def discover(configured_source, *, zoo=None):
+        observed.append(configured_source)
+        return DiscoveryResult()
+
+    crawler.discovery.discover = discover
+    inherited = crawler.next_batch(sources[0].id)
+    overridden = crawler.next_batch(sources[0].id, max_pages=1)
+
+    assert inherited.metadata["max_pages"] == 2
+    assert overridden.metadata["max_pages"] == 1
+    assert [source.config["max_pages"] for source in observed] == [2, 1]
+
+
+def test_next_batch_rejects_unknown_and_disabled_sources():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    crawler = Crawler(config, storage=SQLiteStorage(":memory:"), fetcher=fetcher)
+
+    with pytest.raises(ValueError, match="unknown source"):
+        crawler.next_batch("missing-source")
+    sources[0].enabled = False
+    with pytest.raises(ValueError, match="disabled"):
+        crawler.next_batch(sources[0].id)
+
+
+def test_next_batch_revalidates_and_drops_external_candidates():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    crawler = Crawler(config, storage=SQLiteStorage(":memory:"), fetcher=fetcher)
+    valid_url = "https://batch.example/news/1-1"
+    crawler.discovery.discover = lambda configured_source, *, zoo=None: DiscoveryResult(
+        [
+            DiscoveryCandidate("https://evil.example/news/escape"),
+            DiscoveryCandidate(valid_url),
+        ]
+    )
+
+    result = crawler.next_batch(sources[0].id)
+
+    assert result.stats[0].discovered_count == 1
+    assert result.stored_count == 1
+    assert fetcher.calls == [valid_url]
+
+
+def test_next_batch_persists_final_run_metadata():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    result = crawler.next_batch(sources[0].id)
+
+    assert result.run is not None
+    durable = storage.get_crawl_run(result.run.id)
+    assert durable is not None
+    assert durable.metadata == result.run.metadata
+    for key in ("batch_limit", "candidates_processed", "discovered", "stored", "known", "errors"):
+        assert key in durable.metadata
+
+
+def test_next_batch_does_not_apply_recent_recheck_to_known_articles():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    sources[0].config["recent_recheck"] = True
+    storage = SQLiteStorage(":memory:")
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    crawler.crawl()
+    fetcher.calls.clear()
+    result = crawler.next_batch(sources[0].id)
+
+    assert result.stored_count == 0
+    assert result.already_known_count == 1
+    assert result.metadata["candidates_processed"] == 0
+    assert fetcher.calls == [sources[0].url]
+
+
+class _LeaseTrackingStorage(SQLiteStorage):
+    """SQLite storage double that records the crawler lease lifecycle."""
+
+    def __init__(self):
+        super().__init__(":memory:")
+        self.lease_events = []
+
+    def acquire_crawler_lease(self, owner, *, ttl_seconds=300.0):
+        self.lease_events.append(("acquire", owner, ttl_seconds))
+        return super().acquire_crawler_lease(owner, ttl_seconds=ttl_seconds)
+
+    def renew_crawler_lease(self, owner, *, ttl_seconds=300.0):
+        self.lease_events.append(("renew", owner, ttl_seconds))
+        return super().renew_crawler_lease(owner, ttl_seconds=ttl_seconds)
+
+    def release_crawler_lease(self, owner):
+        self.lease_events.append(("release", owner))
+        return super().release_crawler_lease(owner)
+
+
+def test_crawl_and_next_batch_share_lease_and_release_each_outer_call():
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = _LeaseTrackingStorage()
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    crawler.crawl()
+    crawler.next_batch(sources[0].id)
+
+    assert [event[0] for event in storage.lease_events] == [
+        "acquire", "release", "acquire", "release"
+    ]
+    owners = [event[1] for event in storage.lease_events if event[0] == "acquire"]
+    assert all(owner.startswith("zoofan-crawler-") for owner in owners)
+    assert len(set(owners)) == 2
+    assert storage._connection.execute(
+        "SELECT COUNT(*) FROM crawler_leases"
+    ).fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("entrypoint", ["crawl", "next_batch"])
+def test_busy_lease_stops_entrypoint_before_run_or_network(entrypoint):
+    config, fetcher, _zoo, sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = SQLiteStorage(":memory:")
+    assert storage.acquire_crawler_lease("other-process", ttl_seconds=60)
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+
+    with pytest.raises(CrawlerBusyError):
+        if entrypoint == "crawl":
+            crawler.crawl()
+        else:
+            crawler.next_batch(sources[0].id)
+
+    assert fetcher.calls == []
+    assert storage._connection.execute(
+        "SELECT COUNT(*) FROM crawl_runs"
+    ).fetchone()[0] == 0
+    assert storage.release_crawler_lease("other-process")
+
+
+def test_crawler_exception_releases_lease_without_masking_original_error(monkeypatch):
+    config, _fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = _LeaseTrackingStorage()
+    crawler = Crawler(config, storage=storage, fetcher=FakeFetcher({}))
+
+    def fail_once(*args, **kwargs):
+        raise RuntimeError("crawl exploded")
+
+    monkeypatch.setattr(crawler, "_crawl_once", fail_once)
+    with pytest.raises(RuntimeError, match="crawl exploded"):
+        crawler.crawl()
+
+    assert [event[0] for event in storage.lease_events] == ["acquire", "release"]
+    assert crawler._lease_context is None
+
+
+def test_release_failure_does_not_replace_crawler_exception(monkeypatch):
+    config, _fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+
+    class ReleaseFailureStorage(_LeaseTrackingStorage):
+        def release_crawler_lease(self, owner):
+            self.lease_events.append(("release", owner))
+            raise RuntimeError("release failed")
+
+    storage = ReleaseFailureStorage()
+    crawler = Crawler(config, storage=storage, fetcher=FakeFetcher({}))
+
+    def fail_once(*args, **kwargs):
+        raise RuntimeError("primary crawl error")
+
+    monkeypatch.setattr(crawler, "_crawl_once", fail_once)
+    with pytest.raises(RuntimeError, match="primary crawl error"):
+        crawler.crawl()
+
+    assert [event[0] for event in storage.lease_events] == ["acquire", "release"]
+
+
+def test_lease_heartbeat_renews_long_running_crawl(monkeypatch):
+    config, _fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = _LeaseTrackingStorage()
+    crawler = Crawler(
+        config,
+        storage=storage,
+        fetcher=FakeFetcher({}),
+        lease_ttl_seconds=0.03,
+    )
+    renewed = threading.Event()
+    original_renew = storage.renew_crawler_lease
+
+    def record_renew(owner, *, ttl_seconds=300.0):
+        renewed.set()
+        return original_renew(owner, ttl_seconds=ttl_seconds)
+
+    monkeypatch.setattr(storage, "renew_crawler_lease", record_renew)
+
+    def slow_success(*args, **kwargs):
+        assert renewed.wait(1.0), "heartbeat did not renew the lease"
+        return "completed"
+
+    monkeypatch.setattr(crawler, "_crawl_once", slow_success)
+    assert crawler.crawl() == "completed"
+    assert any(event[0] == "renew" for event in storage.lease_events)
+
+
+def test_lost_lease_is_reported_after_successful_core_and_released(monkeypatch):
+    config, _fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+
+    class LostLeaseStorage(_LeaseTrackingStorage):
+        def renew_crawler_lease(self, owner, *, ttl_seconds=300.0):
+            self.lease_events.append(("renew", owner, ttl_seconds))
+            return False
+
+    storage = LostLeaseStorage()
+    crawler = Crawler(
+        config,
+        storage=storage,
+        fetcher=FakeFetcher({}),
+        lease_ttl_seconds=0.03,
+    )
+
+    def slow_success(*args, **kwargs):
+        time.sleep(0.08)
+        return "completed"
+
+    monkeypatch.setattr(crawler, "_crawl_once", slow_success)
+    with pytest.raises(CrawlerLeaseLostError):
+        crawler.crawl()
+    assert [event[0] for event in storage.lease_events] == [
+        "acquire", "renew", "release"
+    ]
+
+
+def test_nested_same_thread_entrypoint_reuses_lease(monkeypatch):
+    config, _fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = _LeaseTrackingStorage()
+    crawler = Crawler(config, storage=storage, fetcher=FakeFetcher({}))
+    calls = []
+
+    def nested(selection="all", **kwargs):
+        calls.append(selection)
+        if len(calls) == 1:
+            return crawler.crawl(selection, **kwargs)
+        return "nested-result"
+
+    monkeypatch.setattr(crawler, "_crawl_once", nested)
+    assert crawler.crawl() == "nested-result"
+    assert calls == ["all", "all"]
+    assert [event[0] for event in storage.lease_events] == ["acquire", "release"]
+
+
+def test_same_crawler_called_from_another_thread_is_not_reentrant(monkeypatch):
+    config, _fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+    storage = _LeaseTrackingStorage()
+    crawler = Crawler(config, storage=storage, fetcher=FakeFetcher({}))
+    entered = threading.Event()
+    unblock = threading.Event()
+    worker_result = []
+
+    def slow(*args, **kwargs):
+        entered.set()
+        assert unblock.wait(1.0)
+        return "worker-result"
+
+    monkeypatch.setattr(crawler, "_crawl_once", slow)
+
+    def worker():
+        worker_result.append(crawler.crawl())
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    assert entered.wait(1.0)
+    with pytest.raises(CrawlerBusyError):
+        crawler.crawl()
+    unblock.set()
+    thread.join(timeout=2.0)
+
+    assert worker_result == ["worker-result"]
+    assert [event[0] for event in storage.lease_events] == ["acquire", "release"]
+
+
+def test_legacy_storage_without_lease_api_runs_in_compatibility_mode():
+    config, fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+    inner = SQLiteStorage(":memory:")
+
+    class LegacyStorage:
+        def __init__(self, delegate):
+            self.delegate = delegate
+
+        def __getattr__(self, name):
+            if name in {
+                "acquire_crawler_lease",
+                "renew_crawler_lease",
+                "release_crawler_lease",
+            }:
+                raise AttributeError(name)
+            return getattr(self.delegate, name)
+
+    storage = LegacyStorage(inner)
+    result = Crawler(config, storage=storage, fetcher=fetcher).crawl()
+    assert result.status == "completed"
+    assert len(inner.list_articles()) == 1
+
+
+def test_partial_lease_api_fails_closed_before_run_or_network():
+    config, fetcher, _zoo, _sources, _payloads = _next_batch_fixture(candidate_count=1)
+    inner = SQLiteStorage(":memory:")
+
+    class PartialStorage:
+        def acquire_crawler_lease(self, owner, *, ttl_seconds=300.0):
+            return True
+
+        def __getattr__(self, name):
+            if name in {"renew_crawler_lease", "release_crawler_lease"}:
+                raise AttributeError(name)
+            return getattr(inner, name)
+
+    storage = PartialStorage()
+    crawler = Crawler(config, storage=storage, fetcher=fetcher)
+    with pytest.raises(CrawlerLeaseUnavailableError):
+        crawler.crawl()
+    assert fetcher.calls == []
+    assert inner._connection.execute(
+        "SELECT COUNT(*) FROM crawl_runs"
+    ).fetchone()[0] == 0
 
 
 def test_since_days_filters_old_candidate_before_article_fetch(monkeypatch):

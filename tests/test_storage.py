@@ -36,6 +36,46 @@ def test_crawl_run_and_per_source_stat_persist_error_fields():
         assert current and current.last_error == "timeout" and current.last_http_status == 504
 
 
+def test_crawl_run_metadata_update_replaces_by_default_and_merges_explicitly():
+    with SQLiteStorage() as storage:
+        run = storage.start_crawl_run(
+            CrawlRun(id="metadata-run", metadata={"selection": "all", "old": True})
+        )
+        replaced = storage.update_crawl_run_metadata(run.id, {"final": True})
+        assert replaced and replaced.metadata == {"final": True}
+        assert not storage.connection.in_transaction
+
+        merged = storage.update_crawl_run_metadata(
+            run.id, {"status": "completed"}, merge=True
+        )
+        assert merged and merged.metadata == {"final": True, "status": "completed"}
+
+
+def test_crawl_run_metadata_update_unknown_run_is_a_noop():
+    with SQLiteStorage() as storage:
+        assert storage.update_crawl_run_metadata("missing-run", {"final": True}) is None
+        assert storage.list_leases() == []
+
+
+def test_crawl_run_metadata_update_rejects_non_json_objects_before_writing():
+    with SQLiteStorage() as storage:
+        run = storage.start_crawl_run(CrawlRun(id="metadata-invalid", metadata={"old": True}))
+        invalid_values = (
+            (None, TypeError),
+            ([], TypeError),
+            ("metadata", TypeError),
+            ({1: "non-string key"}, TypeError),
+            ({"object": object()}, ValueError),
+            ({"nan": float("nan")}, ValueError),
+        )
+        for value, error_type in invalid_values:
+            with pytest.raises(error_type):
+                storage.update_crawl_run_metadata(run.id, value)
+        with pytest.raises(TypeError, match="merge"):
+            storage.update_crawl_run_metadata(run.id, {"new": True}, merge=1)
+        assert storage.get_crawl_run(run.id).metadata == {"old": True}
+
+
 def test_discovery_null_key_is_idempotent_and_source_url_is_normalized():
     with SQLiteStorage() as storage:
         zoo = storage.upsert_zoo(Zoo(slug="zoo", name="Zoo"))
@@ -1204,7 +1244,7 @@ def test_v7_raw_url_columns_migrate_legacy_rows_idempotently():
         ).fetchone()
     )
     assert raw_after == raw_before
-    assert connection.execute("SELECT value FROM schema_meta WHERE key='version'").fetchone()[0] == "7"
+    assert connection.execute("SELECT value FROM schema_meta WHERE key='version'").fetchone()[0] == str(SQLiteStorage.SCHEMA_VERSION)
 
 
 def test_malformed_legacy_urls_keep_raw_evidence_and_empty_identities_idempotently():
@@ -1267,3 +1307,183 @@ def test_malformed_legacy_urls_keep_raw_evidence_and_empty_identities_idempotent
     }
     assert second == first
     assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+
+def test_fresh_schema_creates_crawler_lease_table_and_indexes():
+    with SQLiteStorage() as storage:
+        columns = SQLiteStorage._columns(storage.connection, "crawler_leases")
+        assert columns == {"name", "owner", "acquired_at", "lease_until", "heartbeat_at"}
+        assert storage.list_leases() == []
+        indexes = {
+            row["name"]
+            for row in storage.connection.execute("PRAGMA index_list(crawler_leases)").fetchall()
+        }
+        assert "ux_crawler_leases_name" in indexes
+        assert "idx_crawler_leases_until" in indexes
+
+
+def test_legacy_database_gets_idempotent_crawler_lease_migration():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(id TEXT PRIMARY KEY, zoo_id TEXT, url TEXT);
+        CREATE TABLE articles(id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT);
+        CREATE TABLE article_discoveries(id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT, discovered_url TEXT);
+        CREATE TABLE crawler_leases(
+            name TEXT, owner TEXT, acquired_at TEXT, lease_until TEXT, heartbeat_at TEXT
+        );
+        INSERT INTO crawler_leases VALUES
+            ('crawler', 'old-owner', '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:10+00:00', '2026-01-01T00:00:00+00:00'),
+            ('crawler', 'newer-owner', '2026-01-01T00:00:01+00:00', '2026-01-01T00:00:20+00:00', '2026-01-01T00:00:01+00:00'),
+            ('invalid-null', NULL, '2026-01-01T00:00:00+00:00', '2099-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00'),
+            ('invalid-blank', '   ', '2026-01-01T00:00:00+00:00', '2099-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00'),
+            ('tie', 'tie-first', '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00'),
+            ('tie', 'tie-second', '2026-01-01T01:00:00+01:00', '2026-01-01T01:00:00+01:00', '2026-01-01T01:00:00+01:00');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    assert connection.execute("SELECT COUNT(*) FROM crawler_leases").fetchone()[0] == 2
+    assert storage.get_lease()["owner"] == "newer-owner"
+    assert storage.get_lease("tie")["owner"] == "tie-first"
+    assert storage.acquire_lease(
+        "invalid-null", "valid-owner", now="2026-01-01T00:00:01+00:00", ttl_seconds=30
+    )
+    storage.create_schema()
+    assert connection.execute("SELECT COUNT(*) FROM crawler_leases").fetchone()[0] == 3
+    assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    assert connection.execute("SELECT value FROM schema_meta WHERE key='version'").fetchone()[0] == str(SQLiteStorage.SCHEMA_VERSION)
+
+
+def test_crawler_lease_acquire_conflict_renew_and_owner_checked_release():
+    first_now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    with SQLiteStorage() as storage:
+        assert storage.acquire_crawler_lease("owner-a", ttl_seconds=60, now=first_now)
+        assert not storage.connection.in_transaction
+        lease = storage.get_lease()
+        assert lease and lease["owner"] == "owner-a"
+        assert lease["acquired_at"] == "2026-01-01T00:00:00+00:00"
+        assert lease["lease_until"] == "2026-01-01T00:01:00+00:00"
+        assert not storage.acquire_crawler_lease(
+            "owner-b", ttl_seconds=60, now=first_now.replace(second=30)
+        )
+        assert not storage.renew_crawler_lease(
+            "owner-b", ttl_seconds=60, now=first_now.replace(second=30)
+        )
+        assert not storage.release_crawler_lease("owner-b")
+        assert storage.renew_crawler_lease(
+            "owner-a", ttl_seconds=60, now=first_now.replace(second=30)
+        )
+        renewed = storage.get_lease()
+        assert renewed and renewed["heartbeat_at"] == "2026-01-01T00:00:30+00:00"
+        assert renewed["lease_until"] == "2026-01-01T00:01:30+00:00"
+        assert storage.release_crawler_lease("owner-a")
+        assert storage.get_lease() is None
+        assert not storage.release_crawler_lease("owner-a")
+
+
+def test_crawler_lease_same_owner_reacquire_is_idempotent_and_expired_takeover_is_atomic():
+    first_now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    with SQLiteStorage() as storage:
+        assert storage.acquire_lease("crawler", "owner-a", ttl_seconds=10, now=first_now)
+        assert storage.acquire_lease(
+            "crawler", "owner-a", ttl_seconds=10, now=first_now.replace(second=5)
+        )
+        renewed = storage.get_lease()
+        assert renewed and renewed["acquired_at"] == "2026-01-01T00:00:00+00:00"
+        assert renewed["lease_until"] == "2026-01-01T00:00:15+00:00"
+        assert storage.acquire_lease(
+            "crawler", "owner-b", ttl_seconds=20, now=first_now.replace(second=16)
+        )
+        taken_over = storage.get_lease()
+        assert taken_over and taken_over["owner"] == "owner-b"
+        assert taken_over["acquired_at"] == "2026-01-01T00:00:16+00:00"
+        assert not storage.renew_lease(
+            "crawler", "owner-a", ttl_seconds=60, now=first_now.replace(second=17)
+        )
+        assert not storage.release_lease("crawler", "owner-a")
+        assert storage.release_lease("crawler", "owner-b")
+
+
+def test_crawler_lease_rejects_missing_or_invalid_owner_for_every_operation():
+    with SQLiteStorage() as storage:
+        for operation in (storage.acquire_lease, storage.renew_lease, storage.release_lease):
+            for owner in (None, "", "   ", "\t\n", 123):
+                with pytest.raises(ValueError, match="owner"):
+                    operation(owner=owner)
+        assert storage.list_leases() == []
+
+
+def test_crawler_lease_rejects_invalid_ttl_without_creating_a_row():
+    with SQLiteStorage() as storage:
+        for ttl in (
+            0,
+            -1,
+            1e-7,
+            1e300,
+            float("inf"),
+            float("nan"),
+            "not-a-number",
+        ):
+            with pytest.raises(ValueError, match="TTL"):
+                storage.acquire_crawler_lease("owner", ttl_seconds=ttl)
+        assert storage.get_lease() is None
+
+
+def test_crawler_lease_rejects_datetime_overflow_and_corrupt_extreme_offsets():
+    with SQLiteStorage() as storage:
+        with pytest.raises(ValueError, match="datetime range"):
+            storage.acquire_crawler_lease(
+                "owner", ttl_seconds=1, now=datetime.max.replace(tzinfo=timezone.utc)
+            )
+        for value in (
+            "0001-01-01T00:00:00+23:59:59",
+            "9999-12-31T23:59:59-23:59:59",
+        ):
+            with pytest.raises(ValueError, match="timestamp"):
+                SQLiteStorage._lease_datetime(value)
+        assert storage.get_lease() is None
+
+
+def test_legacy_extreme_offset_timestamp_is_treated_as_invalid_during_migration():
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE zoos(id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources(id TEXT PRIMARY KEY, zoo_id TEXT, url TEXT);
+        CREATE TABLE articles(id TEXT PRIMARY KEY, canonical_url TEXT, url TEXT, title TEXT);
+        CREATE TABLE article_discoveries(id TEXT PRIMARY KEY, article_id TEXT, source_id TEXT, discovered_url TEXT);
+        CREATE TABLE crawler_leases(
+            name TEXT, owner TEXT, acquired_at TEXT, lease_until TEXT, heartbeat_at TEXT
+        );
+        INSERT INTO crawler_leases VALUES
+            ('extreme', 'bad', '2026-01-01T00:00:00+00:00', '0001-01-01T00:00:00+23:59:59', '2026-01-01T00:00:00+00:00'),
+            ('extreme', 'valid', '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:01+00:00', '2026-01-01T00:00:00+00:00');
+        """
+    )
+    storage = SQLiteStorage(connection=connection)
+    assert storage.get_lease("extreme")["owner"] == "valid"
+    assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+
+def test_crawler_lease_competes_across_two_sqlite_connections(tmp_path):
+    path = tmp_path / "lease.sqlite"
+    first = SQLiteStorage(path)
+    second = SQLiteStorage(path)
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    try:
+        assert first.acquire_crawler_lease("owner-a", ttl_seconds=10, now=now)
+        assert not second.acquire_crawler_lease("owner-b", ttl_seconds=10, now=now)
+        assert second.acquire_crawler_lease(
+            "owner-b", ttl_seconds=10, now=now.replace(second=11)
+        )
+        assert not first.renew_crawler_lease(
+            "owner-a", ttl_seconds=10, now=now.replace(second=12)
+        )
+        assert not first.release_crawler_lease("owner-a")
+        assert second.release_crawler_lease("owner-b")
+    finally:
+        first.close()
+        second.close()

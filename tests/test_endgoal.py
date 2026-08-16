@@ -1002,15 +1002,27 @@ def test_stale_preexisting_screenshot_is_removed_and_cannot_satisfy_observation(
     assert "dashboard screenshot: not written during current browser run" in result["failures"]
 
 
-def _complete_static_report_observation():
+def _complete_static_report_observation(*, expanded_roster_available=False):
+    if expanded_roster_available:
+        scope_banner = (
+            "Acceptance: PASS Scope: Authoritative Phase0 v0.1 roster · "
+            "expanded roster available (73 zoos)."
+        )
+        expected_scope_label = "Authoritative Phase0 v0.1 roster"
+        expected_zoo_count = 73
+    else:
+        scope_banner = (
+            "Acceptance: PASS Scope: Configured registry only · no expanded roster is implied."
+        )
+        expected_scope_label = "Configured registry only"
+        expected_zoo_count = 2
     return {
         "title": "ZooFanCrawler acceptance",
-        "scope_banner": (
-            "Acceptance: PASS Scope: Configured registry only · no expanded roster is implied."
-        ),
-        "expected_scope_label": "Configured registry only",
-        "expected_zoo_count": 2,
-        "row_count": 2,
+        "scope_banner": scope_banner,
+        "expected_scope_label": expected_scope_label,
+        "expanded_roster_available": expanded_roster_available,
+        "expected_zoo_count": expected_zoo_count,
+        "row_count": expected_zoo_count,
         "controls": {
             "country-filter": True,
             "group-filter": True,
@@ -1023,7 +1035,7 @@ def _complete_static_report_observation():
         "sort": {"ok": True, "exercised": True},
         "detail": {"ok": True, "exercised": True},
         "metric_labels": [
-            "Configured zoos", "Enabled zoos", "Configured sources", "Enabled sources",
+            "Configured zoos", "Enabled zoos", "Configured sources", "Enabled source checks",
             "Unique articles (cumulative)", "Source/article associations", "Discovered (latest run)",
             "Fetched (latest run)", "Parsed (latest run)", "Stored (latest run)",
             "Inserted (latest run)", "Updated (latest run)", "Already known (latest run)",
@@ -1066,16 +1078,74 @@ def test_static_report_observation_positive_control_is_strict():
 
 
 def test_static_report_observation_accepts_the_expanded_73_row_roster():
-    observation = _complete_static_report_observation()
-    observation.update(expected_zoo_count=73, row_count=73, initial_row_count=73)
+    observation = _complete_static_report_observation(expanded_roster_available=True)
+    observation.update(initial_row_count=73)
 
     result = evaluate_static_report_observation(
         observation,
         expected_zoo_count=73,
-        expected_scope_label="Configured registry only",
+        expected_scope_label="Authoritative Phase0 v0.1 roster",
     )
 
     assert result == {"status": "PASS", "failures": []}
+
+
+@pytest.mark.parametrize(
+    "expanded_roster_available",
+    [True, False],
+    ids=["authoritative", "configured-only"],
+)
+def test_static_report_observation_uses_expanded_roster_branch_for_scope_banner(
+    expanded_roster_available,
+):
+    observation = _complete_static_report_observation(
+        expanded_roster_available=expanded_roster_available
+    )
+    if expanded_roster_available:
+        observation["scope_banner"] = (
+            "Acceptance: PASS Scope: Configured registry only · no expanded roster is implied."
+        )
+    else:
+        observation["scope_banner"] = (
+            "Acceptance: PASS Scope: Authoritative Phase0 v0.1 roster · "
+            "expanded roster available (73 zoos)."
+        )
+
+    result = evaluate_static_report_observation(observation)
+
+    assert result["status"] == "FAIL"
+    assert any("static report scope banner" in item for item in result["failures"])
+
+
+def test_static_report_observation_requires_current_enabled_source_checks_metric():
+    observation = _complete_static_report_observation()
+    observation["metric_labels"].remove("Enabled source checks")
+
+    result = evaluate_static_report_observation(observation)
+
+    assert result["status"] == "FAIL"
+    assert "static report metrics: missing Enabled source checks" in result["failures"]
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda item: item.pop("expanded_roster_available"),
+        lambda item: item.update(expanded_roster_available="false"),
+    ],
+    ids=["missing", "non-bool"],
+)
+def test_static_report_observation_requires_boolean_expanded_roster_evidence(mutate):
+    observation = _complete_static_report_observation()
+    mutate(observation)
+
+    result = evaluate_static_report_observation(observation)
+
+    assert result["status"] == "FAIL"
+    assert (
+        "static report scope banner: expanded-roster availability evidence is unavailable"
+        in result["failures"]
+    )
 
 
 @pytest.mark.parametrize(
@@ -1139,7 +1209,10 @@ def test_static_report_builder_identifies_fresh_generation(tmp_path, monkeypatch
         paths = {"acceptance/index.html": report_path}
         projection = {
             "generation_id": "fresh-generation",
-            "scope": {"label": "Configured registry only"},
+            "scope": {
+                "label": "Configured registry only",
+                "expanded_roster_available": False,
+            },
         }
 
     def fake_build_reports(**_kwargs):
@@ -1153,6 +1226,7 @@ def test_static_report_builder_identifies_fresh_generation(tmp_path, monkeypatch
     assert result["status"] == "PASS"
     assert result["generation_id"] == "fresh-generation"
     assert result["scope_label"] == "Configured registry only"
+    assert result["expanded_roster_available"] is False
     assert result["report_path"] == str(report_path.resolve())
 
 
@@ -1445,6 +1519,7 @@ def test_endgoal_main_loads_explicit_config_path_without_live_work(tmp_path, mon
         "dedup": {"status": "PASS", "failures": []},
     }
     pass_gate = {"status": "PASS", "failures": []}
+    static_smoke_calls = []
     monkeypatch.setattr(endgoal, "DATA_DIR", tmp_path / "data")
     monkeypatch.setattr(endgoal, "ARTIFACTS_DIR", tmp_path / "artifacts")
     monkeypatch.setattr(endgoal, "DB_PATH", tmp_path / "data" / "acceptance.db")
@@ -1467,10 +1542,16 @@ def test_endgoal_main_loads_explicit_config_path_without_live_work(tmp_path, mon
             "report_path": str(tmp_path / "reports" / "latest" / "acceptance" / "index.html"),
             "generation_id": "fresh-generation",
             "scope_label": "Configured registry only",
+            "expanded_roster_available": False,
             "files": {},
         },
     )
-    monkeypatch.setattr(endgoal, "_static_report_browser_smoke", lambda *args, **kwargs: pass_gate)
+
+    def fake_static_report_browser_smoke(*args, **kwargs):
+        static_smoke_calls.append(kwargs)
+        return pass_gate
+
+    monkeypatch.setattr(endgoal, "_static_report_browser_smoke", fake_static_report_browser_smoke)
     monkeypatch.setattr(endgoal, "_terminate_process", lambda process: None)
     monkeypatch.setattr(endgoal, "_db_connection", lambda path: sqlite3.connect(":memory:"))
     monkeypatch.setattr(storage_module, "SQLiteStorage", FakeStorage)
@@ -1481,5 +1562,7 @@ def test_endgoal_main_loads_explicit_config_path_without_live_work(tmp_path, mon
 
     assert endgoal.main(config_path=config_path) == 0
     assert loaded_paths == [config_path]
+    assert len(static_smoke_calls) == 1
+    assert static_smoke_calls[0]["expected_expanded_roster_available"] is False
     report = json.loads((tmp_path / "artifacts" / "endgoal-report.json").read_text())
     assert report["config"] == str(config_path)

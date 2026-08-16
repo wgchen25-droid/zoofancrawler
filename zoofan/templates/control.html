@@ -21,6 +21,7 @@
         <h2 id="crawl-form-title">New crawl</h2>
         <form action="{{ url_for('crawl') }}" method="post" class="control-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="operation" value="crawl">
           <label for="selection">Zoo selection</label>
           <select id="selection" name="selection" {% if state.status == 'running' %}disabled{% endif %}>
             <option value="all">All enabled zoos</option>
@@ -34,6 +35,27 @@
         </form>
       </section>
 
+      <section class="control-card" aria-labelledby="source-batch-title">
+        <h2 id="source-batch-title">Source batch</h2>
+        <p class="muted">Choose an enabled source from an enabled zoo. The server rechecks this selection before starting.</p>
+        {% if form_error %}<p class="error-text" role="alert">{{ form_error }}</p>{% endif %}
+        <form action="{{ url_for('crawl') }}" method="post" class="control-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="operation" value="next_batch">
+          <label for="source_id">Zoo and source</label>
+          <select id="source_id" name="source_id" {% if state.status == 'running' %}disabled{% endif %}>
+            <option value="">Select a configured source</option>
+            {% for source in sources %}
+              <option value="{{ source.id }}" {% if selected_source_id == source.id %}selected{% endif %}>{{ source.zoo_name }} · {{ source.name }}{% if source.kind %} ({{ source.kind }}){% endif %} · {{ source.id }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" {% if state.status == 'running' or not sources %}disabled aria-disabled="true"{% endif %}>
+            {% if state.status == 'running' %}Crawl in progress{% else %}Start next batch (up to 10) · 开始抓取下一批（最多10个）{% endif %}
+          </button>
+        </form>
+        {% if not sources %}<p class="muted">No enabled sources are available.</p>{% endif %}
+      </section>
+
       <section class="control-card crawl-status" aria-labelledby="status-title" aria-live="polite" aria-atomic="true" data-status-url="{{ url_for('status') }}" data-current-status="{{ state.status }}">
         <div class="card-heading">
           <h2 id="status-title">Run status</h2>
@@ -42,11 +64,21 @@
         <p class="status-message">{{ state.message }}</p>
         <dl class="facts control-facts">
           <div><dt>Selection</dt><dd>{{ state.selection or 'None yet' }}</dd></div>
+          {% if state.source_id %}<div><dt>Source ID</dt><dd>{{ state.source_id }}</dd></div>{% endif %}
           <div><dt>Run ID</dt><dd>{{ state.run_id or '—' }}</dd></div>
           <div><dt>Started</dt><dd>{{ state.started_at or '—' }}</dd></div>
           <div><dt>Finished</dt><dd>{{ state.finished_at or '—' }}</dd></div>
-          <div><dt>Articles stored</dt><dd>{{ state.summary.stored }}</dd></div>
-          <div><dt>Errors</dt><dd>{{ state.summary.errors }}</dd></div>
+          {% if state.source_id %}
+            <div><dt>Processed</dt><dd>{{ state.summary.processed|default(0, true) }}</dd></div>
+            <div><dt>Stored</dt><dd>{{ state.summary.stored|default(0, true) }}</dd></div>
+            <div><dt>Known</dt><dd>{{ state.summary.known|default(0, true) }}</dd></div>
+            <div><dt>Duplicates</dt><dd>{{ state.summary.duplicate|default(0, true) }}</dd></div>
+            <div><dt>Errors</dt><dd>{{ state.summary.errors|default(0, true) }}</dd></div>
+            <div><dt>Remaining estimate</dt><dd>{{ state.summary.remaining_estimate|default(0, true) }}</dd></div>
+          {% else %}
+            <div><dt>Articles stored</dt><dd>{{ state.summary.stored }}</dd></div>
+            <div><dt>Errors</dt><dd>{{ state.summary.errors }}</dd></div>
+          {% endif %}
         </dl>
       </section>
     </main>

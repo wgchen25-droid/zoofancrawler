@@ -16,6 +16,18 @@ from typing import Any, Iterable, Mapping, Optional, Sequence, cast
 DEFAULT_CONFIG = Path(__file__).resolve().parent / "config" / "zoos.yaml"
 
 
+def _positive_int(value: str) -> int:
+    """Parse a strictly positive integer for bounded crawl options."""
+
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="zoofan", description="Crawl configured zoo news sources")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG, help="YAML source registry")
@@ -46,7 +58,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     crawl.add_argument(
         "--max-candidates-per-source",
-        type=int,
+        type=_positive_int,
         default=None,
         metavar="N",
         help="live-smoke bound: fetch at most N article candidates per source",
@@ -63,6 +75,13 @@ def _parser() -> argparse.ArgumentParser:
     scheduler.add_argument("--db", default=":memory:", help="SQLite database path")
     scheduler.add_argument("--hours", type=float, default=6.0)
     scheduler.add_argument("--once", action="store_true", help="run one crawl and exit")
+    scheduler.add_argument(
+        "--max-candidates-per-source",
+        type=_positive_int,
+        default=None,
+        metavar="N",
+        help="fetch at most N article candidates per source per scheduled crawl",
+    )
 
     # These are lazy hooks for modules delivered by a later milestone.
     dashboard = commands.add_parser("dashboard", help="open the optional dashboard module")
@@ -594,7 +613,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             else:
                 from zoofan.scheduler import CrawlScheduler
 
-                scheduler = CrawlScheduler(crawler, hours=args.hours)
+                scheduler_kwargs: dict[str, Any] = {"hours": args.hours}
+                if args.max_candidates_per_source is not None:
+                    scheduler_kwargs["max_candidates_per_source"] = args.max_candidates_per_source
+                scheduler = CrawlScheduler(crawler, **scheduler_kwargs)
                 crawl_result = scheduler.run_once() if args.once else scheduler.start(blocking=True)
                 if not args.once:
                     return 0
