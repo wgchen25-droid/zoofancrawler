@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+import sqlite3
 
 import pytest
 
@@ -242,3 +245,384 @@ def test_console_api_does_not_import_or_query_sqlite_directly():
     source = Path("zoofan/console_api.py").read_text(encoding="utf-8")
     assert "sqlite3" not in source
     assert "SELECT " not in source
+
+
+def test_callable_service_factory_is_request_scoped_reused_and_closed():
+    created = []
+    calls = []
+
+    class RequestService:
+        def __init__(self):
+            self.closed = False
+            created.append(self)
+
+        def get_crawl_run(self, run_id):
+            calls.append(("run", id(self), run_id))
+            return {"id": run_id, "status": "completed"}
+
+        def list_run_zoos(self, run_id, **_filters):
+            calls.append(("zoos", id(self), run_id))
+            return []
+
+        def close(self):
+            self.closed = True
+
+    app = create_app(":memory:", console_service=lambda: RequestService())
+    first = app.test_client().get("/api/crawl-runs/r1/zoos")
+    second = app.test_client().get("/api/crawl-runs/r2/zoos")
+
+    assert first.status_code == second.status_code == 200
+    assert len(created) == 2
+    assert all(instance.closed for instance in created)
+    assert calls[0][1] == calls[1][1]
+    assert calls[2][1] == calls[3][1]
+    assert calls[0][1] != calls[2][1]
+
+
+def test_direct_service_instance_has_external_lifetime():
+    service = FakeConsoleService()
+    service.closed = False
+    service.close = lambda: setattr(service, "closed", True)
+    response = create_app(":memory:", console_service=service).test_client().get(
+        "/api/crawl-runs"
+    )
+    assert response.status_code == 200
+    assert service.closed is False
+
+
+def test_default_service_is_request_scoped_and_closed(monkeypatch):
+    import zoofan.console_api as console_api
+
+    created = []
+
+    class DefaultService:
+        def __init__(self):
+            self.closed = False
+            created.append(self)
+
+        def list_crawl_runs(self, **_filters):
+            return []
+
+        def close(self):
+            self.closed = True
+
+    monkeypatch.setattr(console_api, "_default_service", lambda _path: DefaultService())
+    client = create_app(":memory:").test_client()
+    assert client.get("/api/crawl-runs").status_code == 200
+    assert client.get("/api/crawl-runs").status_code == 200
+    assert len(created) == 2
+    assert created[0] is not created[1]
+    assert all(instance.closed for instance in created)
+
+
+def test_database_failure_is_stable_non_leaking_503():
+    from zoofan.console_repository import ConsoleRepository
+    from zoofan.console_service import ConsoleService
+
+    connection = sqlite3.connect(":memory:")
+    connection.execute("CREATE TABLE crawl_runs (id TEXT PRIMARY KEY, status TEXT)")
+    repository = ConsoleRepository(connection)
+    assert repository.list_runs() == []  # populate valid schema caches first
+    service = ConsoleService(repository)
+    connection.close()
+    response = create_app(":memory:", console_service=service).test_client().get(
+        "/api/crawl-runs"
+    )
+    assert response.status_code == 503
+    assert response.get_json() == {
+        "error": {
+            "code": "service_unavailable",
+            "message": "Crawler console data is temporarily unavailable",
+        }
+    }
+    assert "closed" not in response.get_data(as_text=True).casefold()
+
+
+def test_configured_factory_declared_unavailable_is_safe_503(caplog):
+    from zoofan.console_api import ConsoleServiceUnavailable
+
+    def broken_factory():
+        raise ConsoleServiceUnavailable("secret constructor detail")
+
+    response = create_app(":memory:", console_service=broken_factory).test_client().get(
+        "/api/crawl-runs"
+    )
+    assert response.status_code == 503
+    assert response.get_json()["error"] == {
+        "code": "service_unavailable",
+        "message": "Crawler console service is not configured",
+    }
+    assert "secret" not in response.get_data(as_text=True)
+    assert "secret constructor detail" in caplog.text
+
+
+def test_default_service_construction_failure_is_safe_503(monkeypatch):
+    from zoofan.console_api import ConsoleServiceUnavailable
+    import zoofan.console_service as console_service
+
+    def broken_service(*_args, **_kwargs):
+        raise ConsoleServiceUnavailable("secret default constructor detail")
+
+    monkeypatch.setattr(console_service, "ConsoleService", broken_service)
+    response = create_app(":memory:").test_client().get("/api/crawl-runs")
+    assert response.status_code == 503
+    assert response.get_json()["error"]["code"] == "service_unavailable"
+    assert "secret" not in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("error", [RuntimeError("bug"), TypeError("bug"), ValueError("bug")])
+def test_factory_programming_errors_are_not_converted_to_operational_503(error):
+    def broken_factory():
+        raise error
+
+    app = create_app(":memory:", console_service=broken_factory)
+    app.config["TESTING"] = True
+    with pytest.raises(type(error), match="bug"):
+        app.test_client().get("/api/crawl-runs")
+
+
+def test_internal_service_import_failure_is_logged_and_safe_503(monkeypatch, caplog):
+    import zoofan.console_api as console_api
+
+    def broken_import(_name):
+        raise ModuleNotFoundError(
+            "No module named 'private_dependency'", name="private_dependency"
+        )
+
+    monkeypatch.setattr(console_api.importlib, "import_module", broken_import)
+    response = create_app(":memory:").test_client().get("/api/crawl-runs")
+    assert response.status_code == 503
+    assert response.get_json()["error"]["code"] == "service_unavailable"
+    assert "private_dependency" not in response.get_data(as_text=True)
+    assert "private_dependency" in caplog.text
+
+
+def test_exactly_missing_optional_service_module_keeps_compatible_empty_state(monkeypatch):
+    import zoofan.console_api as console_api
+
+    def missing_service(_name):
+        raise ModuleNotFoundError(
+            "No module named 'zoofan.console_service'", name="zoofan.console_service"
+        )
+
+    monkeypatch.setattr(console_api.importlib, "import_module", missing_service)
+    response = create_app(":memory:").test_client().get("/api/crawl-runs")
+    assert response.status_code == 200
+    assert response.get_json()["items"] == []
+
+
+def test_default_service_database_open_failure_is_safe_503(tmp_path, monkeypatch):
+    import zoofan.console_repository as console_repository
+
+    app = create_app(tmp_path / "not-created.db")
+
+    def fail_connect(*_args, **_kwargs):
+        raise sqlite3.OperationalError("secret database path")
+
+    monkeypatch.setattr(console_repository.sqlite3, "connect", fail_connect)
+    response = app.test_client().get("/api/crawl-runs")
+    assert response.status_code == 503
+    assert response.get_json()["error"]["code"] == "service_unavailable"
+    assert "secret" not in response.get_data(as_text=True)
+
+
+def test_declared_cursor_routes_round_trip_next_page():
+    class PagingService(FakeConsoleService):
+        def _page(self, name, values, limit, offset):
+            items = values[offset : offset + limit]
+            next_offset = offset + len(items) if offset + len(items) < len(values) else None
+            return {
+                name: items,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "total": len(values),
+                    "has_more": next_offset is not None,
+                    "next_offset": next_offset,
+                },
+            }
+
+        def list_crawl_runs(self, limit, offset, **_filters):
+            values = [{"id": f"run-{number}"} for number in range(5)]
+            return self._page("runs", values, limit, offset)
+
+        def list_run_articles(self, run_id, limit, offset, **_filters):
+            values = [
+                {"id": f"article-{number}", "run_id": run_id}
+                for number in range(5)
+            ]
+            return self._page("articles", values, limit, offset)
+
+    client = create_app(":memory:", console_service=PagingService()).test_client()
+    for path, item_key in (
+        ("/api/crawl-runs", "runs"),
+        ("/api/crawl-runs/run-1/articles", "articles"),
+    ):
+        first = client.get(f"{path}?limit=2").get_json()
+        assert [item["id"] for item in first[item_key]] == [
+            "run-0" if item_key == "runs" else "article-0",
+            "run-1" if item_key == "runs" else "article-1",
+        ]
+        assert first["has_more"] is True
+        second = client.get(f"{path}?limit=2&cursor={first['next_cursor']}").get_json()
+        assert [item["id"] for item in second[item_key]] == [
+            "run-2" if item_key == "runs" else "article-2",
+            "run-3" if item_key == "runs" else "article-3",
+        ]
+        assert second["next_cursor"] == 4
+
+
+@pytest.mark.parametrize("path", ["/api/crawl-runs", "/api/crawl-runs/run-1/articles"])
+@pytest.mark.parametrize("query", ["cursor=-1", "cursor=bad", "cursor=1.5", "cursor=1&offset=0"])
+def test_declared_cursor_routes_reject_invalid_or_ambiguous_tokens(client, path, query):
+    response = client.get(f"{path}?{query}")
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "invalid_request"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/crawl-runs",
+        "/api/crawl-runs/run-1/zoos",
+        "/api/crawl-runs/run-1/sources",
+        "/api/crawl-runs/run-1/articles",
+        "/api/crawl-runs/run-1/events",
+        "/api/zoos",
+        "/api/zoos/zoo-1/crawl-history",
+    ],
+)
+def test_list_api_envelope_is_stable_for_non_empty_results(client, path):
+    payload = client.get(path).get_json()
+    assert {"next_cursor", "has_more", "last_updated"} <= payload.keys()
+    if path.endswith("/events"):
+        assert "next_after_id" in payload
+
+
+def test_empty_list_envelopes_and_event_cursor_are_stable():
+    class EmptyCollections(FakeConsoleService):
+        def list_crawl_runs(self, **_filters):
+            return []
+
+        def list_run_zoos(self, run_id, **_filters):
+            return []
+
+        def list_run_source_results(self, run_id, **_filters):
+            return []
+
+        def list_run_articles(self, run_id, **_filters):
+            return []
+
+        def list_run_events(self, run_id, **_filters):
+            return []
+
+        def list_zoos(self, **_filters):
+            return []
+
+        def list_zoo_crawl_history(self, zoo_id, **_filters):
+            return []
+
+    client = create_app(":memory:", console_service=EmptyCollections()).test_client()
+    paths = [
+        "/api/crawl-runs",
+        "/api/crawl-runs/run-1/zoos",
+        "/api/crawl-runs/run-1/sources",
+        "/api/crawl-runs/run-1/articles",
+        "/api/crawl-runs/run-1/events",
+        "/api/zoos",
+        "/api/zoos/zoo-1/crawl-history",
+    ]
+    for path in paths:
+        payload = client.get(path).get_json()
+        assert payload["items"] == []
+        assert (payload["next_cursor"], payload["has_more"], payload["last_updated"]) == (
+            None, False, None
+        )
+        if path.endswith("/events"):
+            assert payload["next_after_id"] is None
+
+
+def test_event_filter_vocabulary_is_case_normalized(client, service):
+    response = client.get(
+        "/api/crawl-runs/run-1/events?level=warning&component=FETCHER&type=HTTP_ERROR"
+    )
+    assert response.status_code == 200
+    assert service.event_filters["level"] == "WARNING"
+    assert service.event_filters["component"] == "fetcher"
+    assert service.event_filters["event_type"] == "http_error"
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["level=debug", "component=network", "event_type=made_up"],
+)
+def test_unknown_event_filter_vocabulary_is_400(client, query):
+    response = client.get(f"/api/crawl-runs/run-1/events?{query}")
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "invalid_request"
+
+
+def test_threaded_product_requests_use_distinct_request_connections(tmp_path):
+    from zoofan.console_service import ConsoleService
+    from zoofan.models import CrawlRun, CrawlZooResult, Zoo
+    from zoofan.storage import SQLiteStorage
+
+    database = tmp_path / "console-threaded.db"
+    with SQLiteStorage(database) as storage:
+        storage.upsert_zoo(Zoo(id="z1", slug="alpha", name="Alpha Zoo"))
+        storage.start_crawl_run(
+            CrawlRun(id="run-1", status="completed", started_at="2026-08-16T00:00:00+00:00")
+        )
+        storage.upsert_zoo_run_result(
+            CrawlZooResult(
+                id="zr1", crawl_run_id="run-1", zoo_id="z1", status="completed"
+            )
+        )
+
+    connections = []
+    services = []
+    overlap = Barrier(8)
+
+    class TrackingService(ConsoleService):
+        def __init__(self, database):
+            super().__init__(database=database)
+            connections.append(self.repository.connection)
+            self.was_closed = False
+            services.append(self)
+            # Eight request-owned connections must all be live before any
+            # request may continue, making overlap deterministic.
+            overlap.wait(timeout=5)
+
+        def close(self):
+            super().close()
+            self.was_closed = True
+
+    app = create_app(database, console_service=TrackingService)
+    paths = [
+        "/api/crawl-runs",
+        "/api/crawl-runs/run-1",
+        "/api/crawl-runs/run-1/zoos",
+    ] * 8
+
+    def fetch(path):
+        with app.test_client() as threaded_client:
+            response = threaded_client.get(path)
+            return path, response.status_code, response.get_json()
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        responses = list(executor.map(fetch, paths))
+
+    assert len(responses) == 24
+    for path, status, payload in responses:
+        assert status == 200
+        if path == "/api/crawl-runs":
+            assert payload["total"] == 1
+            assert [run["id"] for run in payload["runs"]] == ["run-1"]
+        elif path.endswith("/zoos"):
+            assert payload["count"] == 1
+            assert payload["zoos"][0]["zoo_id"] == "z1"
+        else:
+            assert payload["run"]["id"] == "run-1"
+    assert len(connections) == len(paths)
+    assert len({id(connection) for connection in connections}) == len(paths)
+    assert all(service.was_closed for service in services)

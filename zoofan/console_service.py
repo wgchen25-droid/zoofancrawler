@@ -167,6 +167,39 @@ def _page(items: List[Dict[str, Any]], total: int, limit: Any, offset: Any) -> D
     }
 
 
+def _repository_page(
+    items: List[Dict[str, Any]], total: int, limit: Any, offset: Any
+) -> Dict[str, Any]:
+    safe_limit, safe_offset = _page_values(limit, offset)
+    has_more = safe_offset + len(items) < total
+    return {
+        "items": [_json_dto(item) for item in items],
+        "pagination": {
+            "limit": safe_limit,
+            "offset": safe_offset,
+            "total": max(0, int(total)),
+            "has_more": has_more,
+            "next_offset": safe_offset + len(items) if has_more else None,
+        },
+    }
+
+
+def _last_updated(items: List[Any]) -> Any:
+    candidates: List[Any] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        for key in (
+            "last_updated", "updated_at", "occurred_at", "timestamp",
+            "finished_at", "started_at", "created_at",
+        ):
+            value = item.get(key)
+            if value not in (None, ""):
+                candidates.append(value)
+                break
+    return max(candidates, key=lambda value: str(value)) if candidates else None
+
+
 def _json_dto(value: Any) -> Any:
     return _normalise_status_tree(_json_ready(value))
 
@@ -180,6 +213,11 @@ def _named_page(page: Dict[str, Any], name: str) -> Dict[str, Any]:
     if isinstance(pagination, Mapping):
         result.setdefault("total", pagination.get("total", 0))
         result.setdefault("count", len(result[name]))
+        result.setdefault("has_more", bool(pagination.get("has_more", False)))
+        result.setdefault("next_cursor", pagination.get("next_offset"))
+    result.setdefault("has_more", False)
+    result.setdefault("next_cursor", None)
+    result.setdefault("last_updated", _last_updated(result[name]))
     return result
 
 
@@ -419,10 +457,10 @@ class ConsoleService:
             event_type=event_type,
             text=text if text not in (None, "") else search,
             after_id=after_id,
-            limit=None,
-            offset=0,
+            limit=limit,
+            offset=offset,
         )
-        page = _page(rows, total, limit, offset)
+        page = _repository_page(rows, total, limit, offset)
         page["filters"] = {
             "level": level,
             "zoo": zoo_id if zoo_id not in (None, "") else zoo,
@@ -433,6 +471,7 @@ class ConsoleService:
             "after_id": after_id,
         }
         page = _named_page(page, "events")
+        page["next_after_id"] = None
         if page["events"]:
             last_event = page["events"][-1]
             if isinstance(last_event, Mapping):

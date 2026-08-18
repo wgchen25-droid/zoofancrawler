@@ -432,6 +432,23 @@
           });
         }
 
+        function stopAllPolls() {
+          timers.forEach(function (timer) { window.clearInterval(timer.id); });
+          timers = [];
+        }
+
+        window.addEventListener("pagehide", function (event) {
+          root._consolePageWasPersisted = event.persisted === true;
+          stopAllPolls();
+        });
+
+        window.addEventListener("pageshow", function (event) {
+          if (event.persisted === true && root._consolePageWasPersisted) {
+            root._consolePageWasPersisted = false;
+            initializeConsolePage(true);
+          }
+        });
+
         function renderRunSummary(root, run) {
           var titleNode = document.querySelector("[data-console-run-title]");
           if (titleNode) titleNode.textContent = "Run " + text(run.id || run.run_id || run.crawl_run_id, "—");
@@ -543,6 +560,18 @@
           return params;
         }
 
+        function advanceEventCursor(root, value) {
+          var candidate = String(value === undefined || value === null ? "" : value);
+          if (!/^\d+$/.test(candidate)) return;
+          candidate = candidate.replace(/^0+(?=\d)/, "");
+          var current = String(root._consoleLastEventId === undefined || root._consoleLastEventId === null ? "" : root._consoleLastEventId);
+          if (/^\d+$/.test(current)) {
+            current = current.replace(/^0+(?=\d)/, "");
+            if (candidate.length < current.length || (candidate.length === current.length && candidate <= current)) return;
+          }
+          root._consoleLastEventId = candidate;
+        }
+
         async function refreshEvents(root, reset) {
           if (!root.dataset.eventsUrl) return;
           if (reset) { root._consoleEvents = []; root._consoleLastEventId = null; }
@@ -554,11 +583,10 @@
             var incoming = list(body, ["events", "items", "results"]);
             var known = new Set((root._consoleEvents || []).map(eventId));
             incoming.forEach(function (event) { if (!known.has(eventId(event))) { root._consoleEvents.push(event); known.add(eventId(event)); } });
-            var next = body.next_after_id;
-            if (next === undefined || next === null) {
-              incoming.forEach(function (event) { if (/^\d+$/.test(String(event.id || event.event_id || ""))) next = event.id || event.event_id; });
-            }
-            if (next !== undefined && next !== null) root._consoleLastEventId = next;
+            advanceEventCursor(root, body.next_after_id);
+            incoming.forEach(function (event) {
+              advanceEventCursor(root, event.id !== undefined && event.id !== null ? event.id : event.event_id);
+            });
             renderEvents(root);
             setUpdated(body);
             return body;
@@ -570,15 +598,40 @@
         }
 
         function attachEventFilters(root) {
+          if (root._consoleEventFiltersAttached) return;
+          root._consoleEventFiltersAttached = true;
           root.querySelectorAll("[data-event-filter]").forEach(function (field) {
             field.addEventListener("change", function () { refreshEvents(root, true); });
             if (field.tagName === "INPUT") field.addEventListener("keydown", function (event) { if (event.key === "Enter") refreshEvents(root, true); });
           });
         }
 
-        async function refreshRun(root) {
+        async function pollRunSummary(root, generation) {
+          if (generation !== root._consoleRunGeneration || root._consoleRunTerminalObserved || root._consoleRunPollInFlight) return;
+          root._consoleRunPollInFlight = true;
+          root._consoleRunPollInFlightGeneration = generation;
+          try {
+            await refreshRun(root, generation);
+          } finally {
+            if (root._consoleRunPollInFlightGeneration === generation) root._consoleRunPollInFlight = false;
+          }
+        }
+
+        async function pollRunEvents(root, generation) {
+          if (generation !== root._consoleRunGeneration || root._consoleRunTerminalObserved || root._consoleRunEventsPollInFlight) return;
+          root._consoleRunEventsPollInFlight = true;
+          root._consoleRunEventsPollInFlightGeneration = generation;
+          try {
+            await refreshEvents(root, false);
+          } finally {
+            if (root._consoleRunEventsPollInFlightGeneration === generation) root._consoleRunEventsPollInFlight = false;
+          }
+        }
+
+        async function refreshRun(root, generation) {
           try {
             var results = await Promise.all([getJson(root.dataset.runUrl), getJson(root.dataset.zoosUrl), getJson(root.dataset.sourcesUrl), getJson(root.dataset.articlesUrl)]);
+            if (generation !== root._consoleRunGeneration) return;
             var run = detail(results[0], ["run", "crawl_run"]);
             if (!run || (!run.id && !run.run_id && !run.crawl_run_id)) throw new Error("Run not found");
             renderRunSummary(root, run);
@@ -586,17 +639,24 @@
             renderArticles(root.querySelector("[data-console-run-articles]"), results[3]);
             setUpdated(results[0]);
             state("ready", "Run detail ready");
-            var active = runIsActive(run);
-            if (active) startPoll(function () { refreshRun(root); }, root, "run");
-            else stopPollKey("run");
+            var active = !root._consoleRunTerminalObserved && runIsActive(run);
+            if (!active) {
+              root._consoleRunTerminalObserved = true;
+              stopPollKey("run");
+              stopPollKey("run-events");
+            } else {
+              startPoll(function () { pollRunSummary(root, generation); }, root, "run");
+            }
             if (!root._consoleEventsStarted) {
               root._consoleEventsStarted = true;
               attachEventFilters(root);
               await refreshEvents(root, true);
-              if (active) startPoll(function () { refreshEvents(root, false); }, root, "run-events");
             }
-            if (!active) stopPollKey("run-events");
+            if (generation !== root._consoleRunGeneration || root._consoleRunTerminalObserved) return;
+            if (active) startPoll(function () { pollRunEvents(root, generation); }, root, "run-events");
+            else stopPollKey("run-events");
           } catch (error) {
+            if (generation !== root._consoleRunGeneration) return;
             state("error", errorMessage(error));
             showRegionError(root.querySelector("[data-console-run-zoos]"), errorMessage(error));
           }
@@ -622,7 +682,8 @@
             var results = await Promise.all([getJson(root.dataset.zooUrl), getJson(root.dataset.historyUrl)]);
             var zoo = detail(results[0], ["zoo"]);
             var history = list(results[1], ["history", "items", "results"]);
-            root.querySelector("[data-console-zoo-title]").textContent = zoo.name || zoo.zoo_name || zoo.slug || root.dataset.zooId;
+            var titleNode = document.querySelector("[data-console-zoo-title]");
+            if (titleNode) titleNode.textContent = zoo.name || zoo.zoo_name || zoo.slug || root.dataset.zooId;
             var info = root.querySelector("[data-console-zoo-info]");
             clear(info);
             info.appendChild(facts([["Country", zoo.country || zoo.country_code], ["Status", zoo.status || zoo.source_status || "—"], ["Website", link(zoo.website_url || zoo.url, zoo.website_url || zoo.url)], ["Enabled", zoo.enabled === undefined ? "—" : (zoo.enabled ? "Yes" : "No")]]));
@@ -690,7 +751,7 @@
           }
         }
 
-        async function refreshEventsPage(root) {
+        async function refreshEventsPage(root, resume) {
           var selected = await chooseEventsRun(root);
           if (!selected) {
             showEmpty(root.querySelector("[data-console-events]"), "No crawl run is available for event inspection.");
@@ -698,12 +759,27 @@
             return;
           }
           attachEventFilters(root);
-          await refreshEvents(root, true);
+          await refreshEvents(root, !resume);
+          async function pollEventsPage() {
+            if (root._consoleEventsPollInFlight) return;
+            root._consoleEventsPollInFlight = true;
+            try {
+              await refreshEvents(root, false);
+              var nextRunBody = await getJson("/api/crawl-runs/" + encodeURIComponent(root.dataset.runId));
+              var nextRun = detail(nextRunBody, ["run", "crawl_run"]);
+              if (!runIsActive(nextRun)) stopPollKey("events-page");
+              setUpdated(nextRunBody);
+            } catch (error) {
+              state("error", errorMessage(error));
+            } finally {
+              root._consoleEventsPollInFlight = false;
+            }
+          }
           try {
             var runBody = await getJson("/api/crawl-runs/" + encodeURIComponent(root.dataset.runId));
             var run = detail(runBody, ["run", "crawl_run"]);
             var active = runIsActive(run);
-            if (active) startPoll(function () { refreshEvents(root, false); }, root, "events-page");
+            if (active) startPoll(pollEventsPage, root, "events-page");
             else stopPollKey("events-page");
             setUpdated(runBody);
             state("ready", "Events ready");
@@ -712,20 +788,36 @@
           }
         }
 
-        if (root.dataset.consolePage === "overview") refreshOverview();
-        if (root.dataset.consolePage === "runs") {
-          var runsFilter = root.querySelector("[data-runs-status]");
-          if (runsFilter) runsFilter.addEventListener("change", function () { refreshRuns(root); });
-          refreshRuns(root);
+        function initializeConsolePage(resume) {
+          if (root.dataset.consolePage === "overview") refreshOverview();
+          if (root.dataset.consolePage === "runs") {
+            var runsFilter = root.querySelector("[data-runs-status]");
+            if (runsFilter && !root._consoleRunsFilterAttached) {
+              root._consoleRunsFilterAttached = true;
+              runsFilter.addEventListener("change", function () { refreshRuns(root); });
+            }
+            refreshRuns(root);
+          }
+          if (root.dataset.consolePage === "run-detail") {
+            root._consoleRunGeneration = (root._consoleRunGeneration || 0) + 1;
+            root._consoleRunTerminalObserved = false;
+            root._consoleRunPollInFlight = false;
+            root._consoleRunEventsPollInFlight = false;
+            refreshRun(root, root._consoleRunGeneration);
+          }
+          if (root.dataset.consolePage === "zoo-detail") refreshZoo(root);
+          if (root.dataset.consolePage === "articles") {
+            var articleSelect = root.querySelector("[data-article-run-select]");
+            if (articleSelect && !root._consoleArticleSelectAttached) {
+              root._consoleArticleSelectAttached = true;
+              articleSelect.addEventListener("change", function () { root.dataset.runId = articleSelect.value; root.dataset.articlesUrl = "/api/crawl-runs/" + encodeURIComponent(articleSelect.value) + "/articles"; refreshArticles(root); });
+            }
+            refreshArticles(root);
+          }
+          if (root.dataset.consolePage === "events") refreshEventsPage(root, resume === true);
         }
-        if (root.dataset.consolePage === "run-detail") refreshRun(root);
-        if (root.dataset.consolePage === "zoo-detail") refreshZoo(root);
-        if (root.dataset.consolePage === "articles") {
-          var articleSelect = root.querySelector("[data-article-run-select]");
-          if (articleSelect) articleSelect.addEventListener("change", function () { root.dataset.runId = articleSelect.value; root.dataset.articlesUrl = "/api/crawl-runs/" + encodeURIComponent(articleSelect.value) + "/articles"; refreshArticles(root); });
-          refreshArticles(root);
-        }
-        if (root.dataset.consolePage === "events") refreshEventsPage(root);
+
+        initializeConsolePage();
       }());
     </script>
   </body>

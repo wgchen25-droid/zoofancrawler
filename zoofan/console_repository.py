@@ -128,6 +128,10 @@ _TABLE_ALIASES: Dict[str, Tuple[str, ...]] = {
 }
 
 
+class ConsoleRepositoryError(RuntimeError):
+    """A database infrastructure failure while serving a read request."""
+
+
 def _quote_identifier(value: str) -> str:
     """Quote an identifier selected from a fixed internal allow-list."""
 
@@ -558,20 +562,24 @@ class ConsoleRepository:
             self._connection = database
         else:
             path = str(database)
-            if path == ":memory:":
-                self._connection = sqlite3.connect(":memory:")
-            else:
-                candidate = Path(path).expanduser().resolve()
-                if candidate.is_file():
-                    uri = "file:" + quote(str(candidate), safe="/") + "?mode=ro"
-                    self._connection = sqlite3.connect(uri, uri=True)
-                else:
+            try:
+                if path == ":memory:":
                     self._connection = sqlite3.connect(":memory:")
-            self._connection.row_factory = sqlite3.Row
-            self._connection.execute("PRAGMA query_only = ON")
+                else:
+                    candidate = Path(path).expanduser().resolve()
+                    if candidate.is_file():
+                        uri = "file:" + quote(str(candidate), safe="/") + "?mode=ro"
+                        self._connection = sqlite3.connect(uri, uri=True)
+                    else:
+                        self._connection = sqlite3.connect(":memory:")
+                self._connection.row_factory = sqlite3.Row
+                self._connection.execute("PRAGMA query_only = ON")
+            except sqlite3.Error as error:
+                raise ConsoleRepositoryError("console database open failed") from error
             self._owns_connection = True
         self._table_cache: Dict[str, Optional[str]] = {}
         self._column_cache: Dict[str, Dict[str, str]] = {}
+        self._column_info_cache: Dict[str, Dict[str, str]] = {}
 
     @property
     def connection(self) -> sqlite3.Connection:
@@ -595,8 +603,8 @@ class ConsoleRepository:
             rows = self._connection.execute(
                 "PRAGMA table_info(" + _quote_identifier(table) + ")"
             ).fetchall()
-        except sqlite3.Error:
-            rows = []
+        except sqlite3.Error as error:
+            raise ConsoleRepositoryError("console database introspection failed") from error
         columns: Dict[str, str] = {}
         for row in rows:
             if isinstance(row, sqlite3.Row):
@@ -609,6 +617,29 @@ class ConsoleRepository:
                 columns[str(name).casefold()] = str(name)
         self._column_cache[table] = columns
         return columns
+
+    def _column_info(self, table: str) -> Dict[str, str]:
+        if table in self._column_info_cache:
+            return self._column_info_cache[table]
+        try:
+            rows = self._connection.execute(
+                "PRAGMA table_info(" + _quote_identifier(table) + ")"
+            ).fetchall()
+        except sqlite3.Error as error:
+            raise ConsoleRepositoryError("console database introspection failed") from error
+        info: Dict[str, str] = {}
+        for row in rows:
+            if isinstance(row, sqlite3.Row):
+                name, declared_type = row["name"], row["type"]
+            elif isinstance(row, Mapping):
+                name, declared_type = row.get("name"), row.get("type")
+            else:
+                name = row[1] if len(row) > 1 else None
+                declared_type = row[2] if len(row) > 2 else None
+            if name is not None:
+                info[str(name).casefold()] = str(declared_type or "").strip().upper()
+        self._column_info_cache[table] = info
+        return info
 
     def _table(self, logical_name: str) -> Optional[str]:
         if logical_name in self._table_cache:
@@ -642,8 +673,35 @@ class ConsoleRepository:
             cursor = self._connection.execute(sql, tuple(args))
             description = cursor.description or ()
             return [_row_dict(row, description) for row in cursor.fetchall()]
-        except (sqlite3.Error, TypeError, ValueError):
-            return []
+        except (sqlite3.Error, TypeError, ValueError) as error:
+            raise ConsoleRepositoryError("console database query failed") from error
+
+    def _execute(self, sql: str, args: Sequence[Any] = ()) -> Any:
+        try:
+            return self._connection.execute(sql, tuple(args))
+        except sqlite3.Error as error:
+            raise ConsoleRepositoryError("console database query failed") from error
+
+    @staticmethod
+    def _fetchone(cursor: Any) -> Any:
+        try:
+            return cursor.fetchone()
+        except sqlite3.Error as error:
+            raise ConsoleRepositoryError("console database query failed") from error
+
+    @staticmethod
+    def _fetchall(cursor: Any) -> List[Any]:
+        try:
+            return cursor.fetchall()
+        except sqlite3.Error as error:
+            raise ConsoleRepositoryError("console database query failed") from error
+
+    @staticmethod
+    def _fetchmany(cursor: Any, size: int) -> List[Any]:
+        try:
+            return cursor.fetchmany(size)
+        except sqlite3.Error as error:
+            raise ConsoleRepositoryError("console database query failed") from error
 
     def _scalar(self, sql: str, args: Sequence[Any] = (), default: Any = 0) -> Any:
         rows = self._query(sql, args)
@@ -2184,6 +2242,192 @@ class ConsoleRepository:
             )
         return result
 
+    def _canonical_event_table(self) -> Optional[str]:
+        table = self._table("events")
+        if table != "crawl_run_events":
+            return None
+        required = {
+            "id", "run_id", "zoo_id", "source_id", "created_at", "level",
+            "component", "event_type", "message", "metadata_json",
+        }
+        info = self._column_info(table)
+        if not required.issubset(info) or info.get("id") != "INTEGER":
+            return None
+        return table
+
+    @staticmethod
+    def _dimension_ids(
+        requested: Optional[str],
+        records: Mapping[str, Mapping[str, Any]],
+        fields: Sequence[str],
+    ) -> Optional[List[str]]:
+        if requested in (None, ""):
+            return None
+        token = str(requested).casefold()
+        matches = {str(requested)}
+        for record_id, record in records.items():
+            values = (record_id, *(record.get(field) for field in fields))
+            if any(value is not None and str(value).casefold() == token for value in values):
+                matches.add(str(record_id))
+        return sorted(matches)
+
+    @staticmethod
+    def _canonical_event_record(
+        row: Any,
+        run_id: str,
+        zoo_map: Mapping[str, Mapping[str, Any]],
+        source_map: Mapping[str, Mapping[str, Any]],
+    ) -> Dict[str, Any]:
+        if isinstance(row, sqlite3.Row):
+            values = {str(key): row[key] for key in row.keys()}
+        elif isinstance(row, Mapping):
+            values = {str(key): value for key, value in row.items()}
+        else:
+            values = {}
+        zoo_id = _safe_text(values.get("zoo_id"))
+        source_id = _safe_text(values.get("source_id"))
+        zoo_record = zoo_map.get(zoo_id or "", {})
+        source_record = source_map.get(source_id or "", {})
+        event_id = _safe_int(values.get("id"))
+        return {
+            "id": event_id,
+            "event_id": event_id,
+            "run_id": _safe_text(values.get("run_id")) or run_id,
+            "zoo_id": zoo_id,
+            "source_id": source_id,
+            "created_at": _safe_value(values.get("created_at")),
+            "level": _safe_text(values.get("level")) or "INFO",
+            "component": _safe_text(values.get("component")),
+            "event_type": _safe_text(values.get("event_type")),
+            "message": _safe_text(values.get("message")),
+            "metadata": parse_metadata(values.get("metadata_json")),
+            "zoo_name": _safe_text(zoo_record.get("name")),
+            "source_name": _safe_text(source_record.get("name")),
+            "source_kind": _safe_text(source_record.get("kind")),
+        }
+
+    @staticmethod
+    def _event_search_matches(row: Mapping[str, Any], search: str) -> bool:
+        haystack = " ".join(
+            str(row.get(name) or "")
+            for name in (
+                "message", "event_type", "component", "level", "zoo_id",
+                "zoo_name", "source_id", "source_name",
+            )
+        ).casefold()
+        try:
+            haystack += " " + json.dumps(
+                row.get("metadata") or {}, ensure_ascii=False
+            ).casefold()
+        except (TypeError, ValueError, RecursionError):
+            pass
+        return search in haystack
+
+    def _query_canonical_events(
+        self,
+        run_id: str,
+        *,
+        level: Optional[str],
+        requested_zoo: Optional[str],
+        requested_source: Optional[str],
+        component: Optional[str],
+        event_type: Optional[str],
+        text: Optional[str],
+        after_id: Any,
+        limit: Any,
+        offset: Any,
+    ) -> Optional[Tuple[List[Dict[str, Any]], int]]:
+        table = self._canonical_event_table()
+        after_value = _safe_int(after_id) if after_id not in (None, "") else None
+        if (
+            table is None
+            or limit is None
+            or (after_id not in (None, "") and after_value is None)
+        ):
+            return None
+        zoo_map = self._zoo_map()
+        source_map = self._source_map()
+        zoo_ids = self._dimension_ids(requested_zoo, zoo_map, ("name", "slug"))
+        source_ids = self._dimension_ids(
+            requested_source, source_map, ("name", "kind")
+        )
+        clauses = ["run_id = ?"]
+        args: List[Any] = [str(run_id)]
+        if after_value is not None:
+            clauses.append("id > ?")
+            args.append(after_value)
+        for column, value in (
+            ("level", level), ("component", component), ("event_type", event_type)
+        ):
+            if value not in (None, ""):
+                clauses.append(f"{column} = ? COLLATE NOCASE")
+                args.append(str(value))
+        for column, values in (("zoo_id", zoo_ids), ("source_id", source_ids)):
+            if values is not None:
+                placeholders = ",".join("?" for _ in values)
+                clauses.append(f"{column} COLLATE NOCASE IN ({placeholders})")
+                args.extend(values)
+        where = " WHERE " + " AND ".join(clauses)
+        projection = (
+            "id, run_id, zoo_id, source_id, created_at, level, component, "
+            "event_type, message, metadata_json"
+        )
+        safe_limit, safe_offset = _page_values(limit, offset)
+        search = str(text).casefold() if text not in (None, "") else None
+        if search is None:
+            null_projection = ", ".join("NULL" for _ in range(10))
+            sql = (
+                f"WITH filtered AS (SELECT {projection} "
+                f"FROM {_quote_identifier(table)}{where}), "
+                "page AS (SELECT * FROM filtered ORDER BY id ASC LIMIT ? OFFSET ?) "
+                f"SELECT {projection}, (SELECT COUNT(*) FROM filtered) AS __total, "
+                "0 AS __sentinel FROM page "
+                f"UNION ALL SELECT {null_projection}, "
+                "(SELECT COUNT(*) FROM filtered), 1 "
+                "WHERE NOT EXISTS (SELECT 1 FROM page) "
+                "ORDER BY __sentinel ASC, id ASC"
+            )
+            cursor = self._execute(
+                sql,
+                (*args, safe_limit, safe_offset),
+            )
+            result_rows = [
+                _row_dict(row, cursor.description or ()) for row in self._fetchall(cursor)
+            ]
+            total = int(result_rows[0].get("__total") or 0) if result_rows else 0
+            page_rows = [row for row in result_rows if not row.get("__sentinel")]
+            return [
+                self._canonical_event_record(row, str(run_id), zoo_map, source_map)
+                for row in page_rows
+            ], total
+
+        # Unicode casefold, catalog names and parsed JSON metadata cannot be
+        # expressed equivalently by SQLite LIKE.  Stream the already narrowed
+        # ordered cursor and retain only the requested page while counting.
+        cursor = self._execute(
+            f"SELECT {projection} FROM {_quote_identifier(table)}{where} ORDER BY id ASC",
+            args,
+        )
+        page: List[Dict[str, Any]] = []
+        total = 0
+        while True:
+            chunk = self._fetchmany(cursor, 256)
+            if not chunk:
+                break
+            for raw_row in chunk:
+                row = self._canonical_event_record(
+                    _row_dict(raw_row, cursor.description or ()),
+                    str(run_id),
+                    zoo_map,
+                    source_map,
+                )
+                if not self._event_search_matches(row, search):
+                    continue
+                if total >= safe_offset and len(page) < safe_limit:
+                    page.append(row)
+                total += 1
+        return page, total
+
     @staticmethod
     def _event_id_key(value: Any) -> Tuple[int, Union[int, str]]:
         text = "" if value is None else str(value)
@@ -2217,11 +2461,25 @@ class ConsoleRepository:
         limit: Any = DEFAULT_PAGE_SIZE,
         offset: Any = 0,
     ) -> Tuple[List[Dict[str, Any]], int]:
+        requested_zoo = zoo_id if zoo_id not in (None, "") else zoo
+        requested_source = source_id if source_id not in (None, "") else source
+        canonical = self._query_canonical_events(
+            str(run_id),
+            level=level,
+            requested_zoo=requested_zoo,
+            requested_source=requested_source,
+            component=component,
+            event_type=event_type,
+            text=text,
+            after_id=after_id,
+            limit=limit,
+            offset=offset,
+        )
+        if canonical is not None:
+            return canonical
         rows = self._event_rows(str(run_id))
         source_map = self._source_map()
         zoo_map = self._zoo_map()
-        requested_zoo = zoo_id if zoo_id not in (None, "") else zoo
-        requested_source = source_id if source_id not in (None, "") else source
         search = str(text).casefold() if text not in (None, "") else None
         filtered: List[Dict[str, Any]] = []
         after_key = self._event_id_key(after_id) if after_id not in (None, "") else None
@@ -2252,24 +2510,7 @@ class ConsoleRepository:
             if not self._matches_dimension(event_type, row.get("event_type")):
                 continue
             if search is not None:
-                haystack = " ".join(
-                    str(row.get(name) or "")
-                    for name in (
-                        "message",
-                        "event_type",
-                        "component",
-                        "level",
-                        "zoo_id",
-                        "zoo_name",
-                        "source_id",
-                        "source_name",
-                    )
-                ).casefold()
-                try:
-                    haystack += " " + json.dumps(row.get("metadata") or {}, ensure_ascii=False).casefold()
-                except (TypeError, ValueError, RecursionError):
-                    pass
-                if search not in haystack:
+                if not self._event_search_matches(row, search):
                     continue
             if after_key is not None and self._event_id_key(row.get("id")) <= after_key:
                 continue
@@ -2412,6 +2653,7 @@ class ConsoleRepository:
 
 __all__ = [
     "ConsoleRepository",
+    "ConsoleRepositoryError",
     "DEFAULT_PAGE_SIZE",
     "MAX_PAGE_SIZE",
     "parse_metadata",

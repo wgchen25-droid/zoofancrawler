@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zoofan 产品路线图：P0 → P1 → P2</title>
+  <style>
+    :root{
+      --bg:#f5f7f3;
+      --panel:#ffffff;
+      --panel-2:#f0f4ee;
+      --text:#172019;
+      --muted:#6b756e;
+      --line:#dce5dc;
+      --accent:#2f6d45;
+      --accent-2:#dcebdc;
+      --accent-3:#edf6ed;
+      --warn:#a36b18;
+      --warn-bg:#fff6dc;
+      --dark:#173321;
+      --shadow:0 16px 40px rgba(33,52,39,.08);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(70,125,80,.09), transparent 28%),
+        radial-gradient(circle at 95% 10%, rgba(120,160,115,.10), transparent 24%),
+        var(--bg);
+      color:var(--text);
+    }
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+    .hero{
+      background:linear-gradient(135deg,#173321 0%,#28533a 58%,#356b49 100%);
+      color:white;
+      border-radius:30px;
+      padding:34px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .hero:after{
+      content:"";
+      position:absolute;
+      width:320px;height:320px;border-radius:50%;
+      right:-90px;top:-160px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 78px rgba(255,255,255,.025);
+    }
+    .eyebrow{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:7px 11px;border-radius:999px;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.14);
+      font-size:13px;color:#e6f0e8
+    }
+    h1{margin:18px 0 10px;font-size:clamp(34px,6vw,58px);line-height:1.04;letter-spacing:-.04em}
+    .hero p{max-width:760px;margin:0;color:#d6e3d8;font-size:17px;line-height:1.75}
+    .hero-bottom{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+    .hero-chip{padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.085);font-size:13px;color:#eaf2eb}
+    .section{margin-top:26px}
+    .section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:12px}
+    .section h2{margin:0;font-size:24px;letter-spacing:-.02em}
+    .section-sub{font-size:14px;color:var(--muted)}
+    .phase-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .phase-tab{
+      appearance:none;border:1px solid var(--line);background:var(--panel);border-radius:18px;
+      padding:18px;text-align:left;color:var(--text);transition:.2s ease;box-shadow:0 6px 18px rgba(30,50,36,.035)
+    }
+    .phase-tab:hover{transform:translateY(-2px);border-color:#bfd0c0}
+    .phase-tab.active{background:var(--dark);color:white;border-color:var(--dark);box-shadow:0 12px 28px rgba(23,51,33,.16)}
+    .phase-tab small{display:block;color:inherit;opacity:.66;margin-top:6px}
+    .phase-tab strong{font-size:18px}
+    .phase-content{
+      margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)
+    }
+    .phase-content-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}
+    .phase-content h3{margin:0 0 10px;font-size:26px}
+    .lead{font-size:17px;line-height:1.8;margin:0;color:#354139}
+    .goal-box{
+      padding:18px;border-radius:18px;background:var(--accent-3);border:1px solid #d8ead8
+    }
+    .goal-box b{display:block;margin-bottom:6px}
+    .question{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+    .roadmap{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:14px;align-items:stretch}
+    .road-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 22px rgba(33,52,39,.05)}
+    .road-card .num{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .road-card h3{margin:8px 0 8px}
+    .road-card p{margin:0;color:var(--muted);line-height:1.65;font-size:14px}
+    .road-arrow{display:grid;place-items:center;color:var(--accent);font-size:28px}
+    .pipeline{
+      display:flex;gap:9px;align-items:stretch;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin
+    }
+    .pipe-node{
+      min-width:135px;flex:1;background:var(--panel);border:1px solid var(--line);
+      border-radius:17px;padding:15px;position:relative;transition:.2s ease
+    }
+    .pipe-node:hover,.pipe-node.selected{border-color:#8fb49a;background:var(--accent-3);transform:translateY(-2px)}
+    .pipe-node .icon{font-size:24px}
+    .pipe-node strong{display:block;margin:8px 0 4px;font-size:14px}
+    .pipe-node span{font-size:12px;color:var(--muted);line-height:1.5}
+    .pipe-arrow{display:grid;place-items:center;color:#8ca393}
+    .pipe-detail{
+      margin-top:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:16px;min-height:74px
+    }
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 22px rgba(33,52,39,.04)}
+    .card h3{margin:0 0 6px}
+    .card p{color:var(--muted);font-size:14px;line-height:1.6}
+    .checklist{display:grid;gap:10px;margin-top:14px}
+    .check-item{
+      display:flex;gap:11px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff
+    }
+    .check-item input{width:18px;height:18px;margin-top:1px;accent-color:var(--accent)}
+    .check-item span{font-size:14px;line-height:1.45}
+    .check-item.done span{text-decoration:line-through;color:var(--muted)}
+    .progress-row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:16px}
+    .progress-track{height:10px;background:#e6ece6;border-radius:999px;overflow:hidden;flex:1}
+    .progress-bar{height:100%;width:0;background:var(--accent);transition:width .25s ease}
+    .progress-label{font-size:13px;color:var(--muted);min-width:46px;text-align:right}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .metric{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+    .metric label{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}
+    .metric .value{font-size:28px;font-weight:700;letter-spacing:-.04em}
+    .metric small{color:var(--muted);font-size:12px}
+    .north-star{
+      margin-top:14px;padding:18px;border-radius:18px;border:1px solid #efdba9;background:var(--warn-bg)
+    }
+    .north-star b{color:#755015}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .btn{
+      border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 14px;color:var(--text)
+    }
+    .btn.primary{background:var(--dark);color:white;border-color:var(--dark)}
+    .btn:hover{filter:brightness(.98)}
+    .gate-note{font-size:13px;color:var(--muted);margin-top:9px}
+    .architecture{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:12px
+    }
+    .arch{padding:18px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+    .arch .tag{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.05em}
+    .arch h3{font-size:16px;margin:7px 0}
+    .arch p{font-size:13px;color:var(--muted);margin:0;line-height:1.55}
+    .footer-note{
+      margin-top:26px;padding:18px 20px;background:#e9f1e8;border:1px solid #d0dfcf;border-radius:18px;
+      display:flex;gap:14px;align-items:flex-start
+    }
+    .footer-note strong{display:block;margin-bottom:4px}
+    .footer-note p{margin:0;color:var(--muted);font-size:14px;line-height:1.6}
+    @media (max-width:900px){
+      .phase-content-grid,.two-col{grid-template-columns:1fr}
+      .metrics,.architecture{grid-template-columns:repeat(2,1fr)}
+      .roadmap{grid-template-columns:1fr}
+      .road-arrow{transform:rotate(90deg)}
+    }
+    @media (max-width:640px){
+      .wrap{padding:14px 12px 42px}
+      .hero{padding:24px;border-radius:24px}
+      .phase-tabs{grid-template-columns:1fr}
+      .metrics,.architecture{grid-template-columns:1fr}
+      .section-head{align-items:flex-start;flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <span class="eyebrow">🐾 Zoofan · Product Roadmap</span>
+      <h1>P0 → P1 → P2</h1>
+      <p>先验证内容，再建立自己的入口，最后把高频关系和社区装进 App。避免一开始就把 Zoofan 做成一个巨大软件项目。</p>
+      <div class="hero-bottom">
+        <span class="hero-chip">P0：爬虫 + 小红书</span>
+        <span class="hero-chip">P1：Zoofan Web</span>
+        <span class="hero-chip">P2：Zoofan App</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>阶段总览</h2>
+          <div class="section-sub">点击阶段卡片查看目标、产品形态和验证问题。</div>
+        </div>
+      </div>
+      <div class="phase-tabs" id="phaseTabs">
+        <button class="phase-tab active" data-phase="p0">
+          <strong>P0 · 验证内容</strong>
+          <small>爬虫 + 数据库 + AI + 小红书</small>
+        </button>
+        <button class="phase-tab" data-phase="p1">
+          <strong>P1 · 占领入口</strong>
+          <small>自己的内容平台 Web</small>
+        </button>
+        <button class="phase-tab" data-phase="p2">
+          <strong>P2 · 建立关系</strong>
+          <small>App + Follow + Community</small>
+        </button>
+      </div>
+      <div class="phase-content" id="phaseContent"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>真正的产品路线</h2>
+          <div class="section-sub">不是“爬虫 → 网站 → App”，而是每一步验证下一步。</div>
+        </div>
+      </div>
+      <div class="roadmap">
+        <article class="road-card">
+          <div class="num">Phase 0</div>
+          <h3>验证内容</h3>
+          <p>确认全球动物园资讯能稳定获取，并找出真正能驱动用户兴趣的题材、动物、事件和叙事方式。</p>
+        </article>
+        <div class="road-arrow">→</div>
+        <article class="road-card">
+          <div class="num">Phase 1</div>
+          <h3>占领入口</h3>
+          <p>把已验证的内容模型沉淀为 Zoofan 自己的 Web 产品，让用户主动访问、收藏、搜索和 Follow。</p>
+        </article>
+        <div class="road-arrow">→</div>
+        <article class="road-card">
+          <div class="num">Phase 2</div>
+          <h3>建立关系与社区</h3>
+          <p>当用户存在高频 Follow、通知、照片分享与复访需求时，再进入 App 和社区阶段。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>P0 内容闭环</h2>
+          <div class="section-sub">点击任一步骤查看它在 P0 中的职责。</div>
+        </div>
+      </div>
+      <div class="pipeline" id="pipeline"></div>
+      <div class="pipe-detail" id="pipeDetail" aria-live="polite"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>P0 核心架构</h2>
+          <div class="section-sub">这四块做完，P0 才算真正形成系统。</div>
+        </div>
+      </div>
+      <div class="architecture">
+        <div class="arch">
+          <div class="tag">01 · SUPPLY</div>
+          <h3>Supply Engine</h3>
+          <p>动物园注册、来源发现、抓取、解析、去重、运行记录与错误监控。</p>
+        </div>
+        <div class="arch">
+          <div class="tag">02 · INTELLIGENCE</div>
+          <h3>Content Intelligence</h3>
+          <p>识别 Zoo / Animal / Event，并对重要性、趣味性、稀缺性、小红书适配度评分。</p>
+        </div>
+        <div class="arch">
+          <div class="tag">03 · PUBLISH</div>
+          <h3>Publishing Engine</h3>
+          <p>生成中文标题、正文、标签、封面/配图建议，进入人工审核与发布队列。</p>
+        </div>
+        <div class="arch">
+          <div class="tag">04 · LEARN</div>
+          <h3>Performance Analytics</h3>
+          <p>记录浏览、点赞、收藏、评论和粉丝增长，反向训练选题与内容策略。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section two-col">
+      <div class="card">
+        <h3>P0 → P1 Gate</h3>
+        <p>不以“代码写完”为标准，而以内容系统是否已经产生可重复信号为标准。</p>
+        <div class="checklist" data-gate="p0">
+          <label class="check-item"><input type="checkbox" data-id="p0-1"><span>50–100 家动物园可以稳定抓取</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p0-2"><span>每天能自动产生候选新闻</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p0-3"><span>AI 能够自动筛选与排序优质内容</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p0-4"><span>小红书形成稳定的生成 → 审核 → 发布流程</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p0-5"><span>累计发布约 50–100 篇内容</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p0-6"><span>已经知道哪些内容类型明显表现更好</span></label>
+        </div>
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-bar" id="p0Bar"></div></div>
+          <div class="progress-label" id="p0Label">0%</div>
+        </div>
+        <div class="gate-note">勾选状态会保存在当前浏览器中。</div>
+      </div>
+
+      <div class="card">
+        <h3>P1 → P2 Gate</h3>
+        <p>只有当 Web 已经证明用户存在高频关系型需求，才值得开发原生 App。</p>
+        <div class="checklist" data-gate="p1">
+          <label class="check-item"><input type="checkbox" data-id="p1-1"><span>用户会主动访问 Zoofan Web，而不只是被小红书触达</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p1-2"><span>Zoo / Animal / Story 页面产生稳定复访</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p1-3"><span>Follow / 收藏 / Saved Zoos 有真实使用</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p1-4"><span>通知需求明显，用户希望及时收到动物园或动物动态</span></label>
+          <label class="check-item"><input type="checkbox" data-id="p1-5"><span>照片上传、Visited Zoo、Community 等需求已被验证</span></label>
+        </div>
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-bar" id="p1Bar"></div></div>
+          <div class="progress-label" id="p1Label">0%</div>
+        </div>
+        <div class="gate-note">App 是需求的结果，而不是路线图上的必选项。</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>P0 建议关注的指标</h2>
+          <div class="section-sub">这些不是硬性目标，而是判断内容系统是否开始“有规律”的仪表盘。</div>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <label>稳定抓取动物园</label>
+          <div class="value">50–100</div>
+          <small>Supply coverage</small>
+        </div>
+        <div class="metric">
+          <label>累计发布内容</label>
+          <div class="value">50–100</div>
+          <small>Enough samples to learn</small>
+        </div>
+        <div class="metric">
+          <label>内容类型</label>
+          <div class="value">3–5</div>
+          <small>找到可重复的高表现题材</small>
+        </div>
+        <div class="metric">
+          <label>核心闭环</label>
+          <div class="value">1</div>
+          <small>Crawl → Learn → Publish → Feedback</small>
+        </div>
+      </div>
+      <div class="north-star">
+        <b>North Star：</b>
+        P0 最重要的结果不是“爬到了多少新闻”，而是找到 <strong>内容 → 用户反馈</strong> 之间可以重复出现的规律。
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>数据资产的长期方向</h2>
+          <div class="section-sub">P0 的数据库设计最好为 P1 / P2 留出结构化演进空间。</div>
+        </div>
+      </div>
+      <div class="roadmap" style="grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;">
+        <article class="road-card"><div class="num">Entity</div><h3>Zoo</h3><p>动物园是一级实体，承载地点、来源、Follow 与内容归属。</p></article>
+        <div class="road-arrow">→</div>
+        <article class="road-card"><div class="num">Entity</div><h3>Animal</h3><p>物种与具体个体，未来形成动物档案、关系和关注。</p></article>
+        <div class="road-arrow">→</div>
+        <article class="road-card"><div class="num">Entity</div><h3>Event</h3><p>出生、转移、死亡、繁育、展区开放、保护项目等事件。</p></article>
+        <div class="road-arrow">→</div>
+        <article class="road-card"><div class="num">Content</div><h3>Article / Timeline</h3><p>文章只是证据来源，最终沉淀为 Zoo / Animal 的时间线资产。</p></article>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <div style="font-size:26px">🧭</div>
+      <div>
+        <strong>Zoofan 路线的一句话版本</strong>
+        <p><b>P0 验证内容 → P1 占领入口 → P2 建立关系和社区。</b> 每个阶段都应该用 Gate 决定是否进入下一阶段，而不是因为“计划里写了 P2”就自动去做 App。</p>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn primary" id="exportBtn" type="button">导出 Gate 状态</button>
+      <button class="btn" id="resetBtn" type="button">重置所有勾选</button>
+    </div>
+  </main>
+
+  <script>
+    const phases = {
+      p0: {
+        title: "P0 · 验证内容",
+        lead: "自动发现全球动物园资讯 → 结构化 → 筛选 → AI 加工 → 人工审核 → 小红书发布 → 收集反馈。",
+        goal: "验证“内容供给 + 用户兴趣”是否成立，并找到可重复的内容规律。",
+        question: "关键问题：全球动物园资讯有没有稳定供给？什么 Zoo、Animal、Event 和叙事方式最能驱动阅读、收藏与关注？"
+      },
+      p1: {
+        title: "P1 · Zoofan Web",
+        lead: "把 P0 已经验证过的内容模型放到自己的平台中，形成 Zoo、Animal、Event、Story 和 Timeline 等长期资产。",
+        goal: "验证用户是否愿意离开第三方平台，主动访问、搜索、收藏和 Follow Zoofan。",
+        question: "关键问题：用户会不会主动回来？Zoofan 是否开始拥有自己的流量入口、搜索价值和数据关系？"
+      },
+      p2: {
+        title: "P2 · Zoofan App",
+        lead: "围绕 Follow、通知、Saved Zoos、Visited Zoos、照片上传、动物识别和 Community 构建高频关系。",
+        goal: "只有当高频使用与社区需求被验证时，才进入 App 阶段。",
+        question: "关键问题：用户是否需要即时通知、个人收藏、访问记录与社区互动到足以支持一个 App？"
+      }
+    };
+
+    const pipelineData = [
+      {icon:"🌍",name:"Sources",desc:"全球动物园官网 / 新闻源",detail:"管理 Zoo 注册信息和 Source 配置。目标是扩大覆盖，而不是无限深爬单一动物园。"},
+      {icon:"🕷️",name:"Crawler",desc:"发现、抓取、解析",detail:"运行自动化爬虫，保留 crawl run、每个 zoo/source 的统计、HTTP 状态、错误和抓取证据。"},
+      {icon:"🧹",name:"Normalize",desc:"清洗 / 去重 / 归属",detail:"Canonical URL、内容 hash、跨来源发现关系、Zoo identity，以及后续 Animal / Event 实体识别。"},
+      {icon:"🧠",name:"AI Score",desc:"重要性 / 趣味性 / 稀缺性",detail:"给候选文章进行评分和分类，重点增加“小红书适配度”和是否值得二次加工。"},
+      {icon:"✍️",name:"Generate",desc:"标题 / 正文 / 标签",detail:"根据原始证据生成中文内容、多个标题候选、标签、配图与封面建议，不直接越过人工审核。"},
+      {icon:"✅",name:"Review",desc:"人工确认",detail:"确认事实、措辞、图片版权/来源、是否适合发布，并选择发布时间与账号策略。"},
+      {icon:"📕",name:"XHS Publish",desc:"小红书发布",detail:"P0 先把小红书当作分发和需求验证渠道，不把第三方平台本身当作最终产品。"},
+      {icon:"📈",name:"Feedback",desc:"浏览 / 赞 / 藏 / 评",detail:"回收表现数据，关联到 Zoo、Animal、Event、内容类型和写法，最终反向优化选题。"}
+    ];
+
+    const phaseContent = document.getElementById("phaseContent");
+    function renderPhase(key){
+      const p = phases[key];
+      phaseContent.innerHTML = `
+        <div class="phase-content-grid">
+          <div>
+            <h3>${p.title}</h3>
+            <p class="lead">${p.lead}</p>
+            <div class="question">${p.question}</div>
+          </div>
+          <div class="goal-box">
+            <b>阶段目标</b>
+            <div>${p.goal}</div>
+          </div>
+        </div>
+      `;
+    }
+    renderPhase("p0");
+
+    document.querySelectorAll(".phase-tab").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll(".phase-tab").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        renderPhase(btn.dataset.phase);
+      });
+    });
+
+    const pipeline = document.getElementById("pipeline");
+    const pipeDetail = document.getElementById("pipeDetail");
+    pipelineData.forEach((item, index)=>{
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = "pipe-node";
+      node.innerHTML = `<div class="icon">${item.icon}</div><strong>${item.name}</strong><span>${item.desc}</span>`;
+      node.addEventListener("click",()=>{
+        document.querySelectorAll(".pipe-node").forEach(n=>n.classList.remove("selected"));
+        node.classList.add("selected");
+        pipeDetail.innerHTML = `<strong>${item.icon} ${item.name}</strong><div style="margin-top:5px;color:var(--muted);font-size:14px;line-height:1.6">${item.detail}</div>`;
+      });
+      pipeline.appendChild(node);
+      if(index < pipelineData.length - 1){
+        const arrow = document.createElement("div");
+        arrow.className = "pipe-arrow";
+        arrow.textContent = "→";
+        pipeline.appendChild(arrow);
+      }
+    });
+    document.querySelector(".pipe-node").classList.add("selected");
+    pipeDetail.innerHTML = `<strong>${pipelineData[0].icon} ${pipelineData[0].name}</strong><div style="margin-top:5px;color:var(--muted);font-size:14px;line-height:1.6">${pipelineData[0].detail}</div>`;
+
+    const storageKey = "zoofan-roadmap-gates-v1";
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    document.querySelectorAll('.check-item input[type="checkbox"]').forEach(input=>{
+      input.checked = !!saved[input.dataset.id];
+      input.closest(".check-item").classList.toggle("done", input.checked);
+      input.addEventListener("change",()=>{
+        const state = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        state[input.dataset.id] = input.checked;
+        localStorage.setItem(storageKey, JSON.stringify(state));
+        input.closest(".check-item").classList.toggle("done", input.checked);
+        updateProgress();
+      });
+    });
+
+    function updateProgress(){
+      ["p0","p1"].forEach(gate=>{
+        const items = [...document.querySelectorAll(`[data-gate="${gate}"] input`)];
+        const done = items.filter(i=>i.checked).length;
+        const pct = items.length ? Math.round(done/items.length*100) : 0;
+        document.getElementById(`${gate}Bar`).style.width = pct + "%";
+        document.getElementById(`${gate}Label`).textContent = pct + "%";
+      });
+    }
+    updateProgress();
+
+    document.getElementById("resetBtn").addEventListener("click",()=>{
+      localStorage.removeItem(storageKey);
+      document.querySelectorAll('.check-item input[type="checkbox"]').forEach(input=>{
+        input.checked = false;
+        input.closest(".check-item").classList.remove("done");
+      });
+      updateProgress();
+    });
+
+    document.getElementById("exportBtn").addEventListener("click",()=>{
+      const state = {};
+      document.querySelectorAll('.check-item input[type="checkbox"]').forEach(input=>{
+        state[input.dataset.id] = input.checked;
+      });
+      const payload = {
+        project:"Zoofan",
+        roadmap:"P0 → P1 → P2",
+        exportedAt:new Date().toISOString(),
+        gates:state
+      };
+      const blob = new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "zoofan-roadmap-gates.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

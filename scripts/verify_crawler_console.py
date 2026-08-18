@@ -22,6 +22,7 @@ import tempfile
 import threading
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -152,6 +153,92 @@ def _git_commit() -> str:
         return "unavailable"
 
 
+def _parse_pytest_summary(
+    output: str,
+) -> Tuple[str, Dict[str, int], Optional[int]]:
+    """Parse pytest's terminal summary without assuming its duration format."""
+
+    counts = {
+        "passed": 0,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "deselected": 0,
+    }
+    # Pytest renders short durations as decimal seconds (``101.51s``), clock
+    # values (``01:40`` / ``0:01:40``), or both for long runs
+    # (``100.89s (0:01:40)``).
+    clock_duration = r"\d+:\d{2}(?::\d{2})?(?:\.\d+)?"
+    duration = (
+        r"(?:\d+(?:\.\d+)?s(?:\s+\(" + clock_duration + r"\))?|"
+        + clock_duration
+        + r")"
+    )
+    status = r"\b(?:passed|failed|errors?|skipped|xfailed|xpassed|deselected)\b"
+    summary_pattern = re.compile(r"\bin\s+" + duration + r"\s*$")
+    summary_lines = [
+        line.strip()
+        for line in output.splitlines()
+        if summary_pattern.search(line) and re.search(status, line)
+    ]
+    summary = summary_lines[-1] if summary_lines else ""
+    labels = re.compile(
+        r"(?P<count>\d+)\s+(?P<label>passed|failed|errors?|skipped|xfailed|xpassed|deselected)\b"
+    )
+    for match in labels.finditer(summary):
+        label = match.group("label")
+        if label == "error":
+            label = "errors"
+        counts[label] = int(match.group("count"))
+
+    parsed_count = sum(counts[label] for label in counts if label != "deselected")
+    test_count: Optional[int] = parsed_count if summary else None
+    return summary, counts, test_count
+
+
+def _pytest_summary_parser_self_check(report: Report) -> None:
+    cases = [
+        ("754 passed in 101.51s", {"passed": 754, "failed": 0, "skipped": 0, "total": 754}),
+        ("754 passed in 0:01:40", {"passed": 754, "failed": 0, "skipped": 0, "total": 754}),
+        (
+            "754 passed in 100.89s (0:01:40)",
+            {"passed": 754, "failed": 0, "skipped": 0, "total": 754},
+        ),
+        (
+            "2 failed, 750 passed, 3 skipped in 01:41",
+            {"passed": 750, "failed": 2, "skipped": 3, "total": 755},
+        ),
+    ]
+    evidence: List[Dict[str, Any]] = []
+    passed = True
+    for sample, expected in cases:
+        summary, counts, total = _parse_pytest_summary(sample)
+        actual = {
+            "passed": counts["passed"],
+            "failed": counts["failed"] + counts["errors"],
+            "skipped": counts["skipped"],
+            "total": total,
+        }
+        ok = summary == sample and actual == expected
+        passed = passed and ok
+        evidence.append(
+            {
+                "sample": sample,
+                "expected": expected,
+                "actual": actual,
+                "result": "PASS" if ok else "FAIL",
+            }
+        )
+    report.add(
+        "Regression Tests",
+        "Pytest summary parser supports seconds and clock durations",
+        "PASS" if passed else "FAIL",
+        evidence,
+    )
+
+
 def _run_regression(report: Report) -> None:
     command = "python3 -m pytest -q"
     started = time.perf_counter()
@@ -181,36 +268,7 @@ def _run_regression(report: Report) -> None:
         output = str(error)
         return_code = 127
     duration = time.perf_counter() - started
-    summary_lines = [
-        line.strip()
-        for line in output.splitlines()
-        if re.search(r"\bin\s+[0-9.]+s\s*$", line)
-        and re.search(
-            r"\b(?:passed|failed|errors?|skipped|xfailed|xpassed|deselected)\b",
-            line,
-        )
-    ]
-    summary = summary_lines[-1] if summary_lines else ""
-    counts = {
-        "passed": 0,
-        "failed": 0,
-        "errors": 0,
-        "skipped": 0,
-        "xfailed": 0,
-        "xpassed": 0,
-        "deselected": 0,
-    }
-    labels = re.compile(
-        r"(?P<count>\d+)\s+(?P<label>passed|failed|errors?|skipped|xfailed|xpassed|deselected)\b"
-    )
-    for match in labels.finditer(summary):
-        label = match.group("label")
-        if label == "error":
-            label = "errors"
-        counts[label] = int(match.group("count"))
-
-    parsed_count = sum(counts[label] for label in counts if label != "deselected")
-    test_count: Optional[int] = parsed_count if summary else None
+    summary, counts, test_count = _parse_pytest_summary(output)
     failed_total = counts["failed"] + counts["errors"]
     report.regression = {
         "command": command,
@@ -355,6 +413,7 @@ def _run_scenarios(storage: Any) -> Dict[str, Any]:
         "result": normal_result,
         "zoo_id": normal_zoo.id,
         "source_id": normal_sources[0].id,
+        "article_url": normal_url,
         "run_id": _obj(_obj(normal_result, "run"), "id"),
         "expected": "completed / stored article / lifecycle events",
     }
@@ -578,12 +637,180 @@ def _json_response(client: Any, path: str) -> Tuple[int, Dict[str, Any], str]:
     return response.status_code, payload, body_text
 
 
-def _api_checks(report: Report, storage: Any, scenarios: Mapping[str, Any]) -> Any:
-    from zoofan.console_service import ConsoleService
+def _collection_items(payload: Mapping[str, Any], *keys: str) -> List[Mapping[str, Any]]:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, Mapping)]
+    return []
+
+
+def _concurrent_http_checks(
+    report: Report,
+    app: Any,
+    scenarios: Mapping[str, Any],
+) -> None:
+    """Exercise request-scoped console services through a real threaded server."""
+
+    from urllib.error import HTTPError, URLError
+    from urllib.request import Request, urlopen
+
+    from werkzeug.serving import make_server
+
+    normal = scenarios["Normal Crawl"]
+    normal_run = str(normal["run_id"])
+    expected: Dict[str, Dict[str, Any]] = {
+        "runs": {
+            "path": "/api/crawl-runs?limit=20",
+            "count": len(scenarios),
+            "id": normal_run,
+        },
+        "run_detail": {
+            "path": "/api/crawl-runs/" + normal_run,
+            "id": normal_run,
+        },
+        "zoos": {
+            "path": "/api/crawl-runs/" + normal_run + "/zoos",
+            "count": 1,
+            "id": str(normal["zoo_id"]),
+        },
+        "sources": {
+            "path": "/api/crawl-runs/" + normal_run + "/sources",
+            "count": 1,
+            "id": str(normal["source_id"]),
+        },
+        "articles": {
+            "path": "/api/crawl-runs/" + normal_run + "/articles",
+            "count": 1,
+            "url": str(normal["article_url"]),
+        },
+    }
+    # Five passes over five distinct endpoint families provide 25 genuinely
+    # concurrent HTTP requests while keeping every response independently
+    # verifiable.
+    requests = [
+        (name, str(spec["path"]))
+        for _pass in range(5)
+        for name, spec in expected.items()
+    ]
+    server: Any = None
+    thread: Optional[threading.Thread] = None
+    responses: List[Dict[str, Any]] = []
+
+    def fetch(item: Tuple[str, str]) -> Dict[str, Any]:
+        name, path = item
+        request = Request(base_url + path, headers={"Accept": "application/json"})
+        try:
+            with urlopen(request, timeout=10) as response:
+                body = response.read().decode("utf-8")
+                return {
+                    "name": name,
+                    "path": path,
+                    "status": int(response.status),
+                    "payload": json.loads(body),
+                }
+        except HTTPError as error:
+            return {"name": name, "path": path, "status": error.code, "error": str(error)}
+        except (OSError, URLError, ValueError) as error:
+            return {"name": name, "path": path, "status": None, "error": str(error)}
+
+    base_url = ""
+    try:
+        server = make_server("127.0.0.1", 0, app, threaded=True)
+        base_url = "http://127.0.0.1:" + str(server.server_port)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            responses = list(executor.map(fetch, requests))
+    finally:
+        if server is not None:
+            server.shutdown()
+            server.server_close()
+        if thread is not None:
+            thread.join(timeout=5)
+
+    endpoint_results: List[Dict[str, Any]] = []
+    all_passed = len(responses) == len(requests)
+    for result in responses:
+        name = str(result["name"])
+        spec = expected[name]
+        payload_value = result.get("payload")
+        if isinstance(payload_value, Mapping):
+            payload: Mapping[str, Any] = payload_value
+            ok = result.get("status") == 200
+        else:
+            payload = {}
+            ok = False
+        observed_count: Optional[int] = None
+        observed_ids: List[str] = []
+        if ok and name == "runs":
+            items = _collection_items(payload, "runs", "items", "results")
+            observed_count = len(items)
+            observed_ids = [str(item.get("id")) for item in items]
+            ok = observed_count == spec["count"] and spec["id"] in observed_ids
+        elif ok and name == "run_detail":
+            run_value = payload.get("run")
+            run: Mapping[str, Any] = run_value if isinstance(run_value, Mapping) else payload
+            observed_ids = [str(run.get("id"))]
+            ok = observed_ids == [spec["id"]]
+        elif ok and name == "zoos":
+            items = _collection_items(payload, "zoos", "items", "results")
+            observed_count = len(items)
+            observed_ids = [str(item.get("zoo_id")) for item in items]
+            ok = observed_count == spec["count"] and observed_ids == [spec["id"]]
+        elif ok and name == "sources":
+            items = _collection_items(payload, "sources", "items", "results")
+            observed_count = len(items)
+            observed_ids = [str(item.get("source_id")) for item in items]
+            ok = observed_count == spec["count"] and observed_ids == [spec["id"]]
+        elif ok and name == "articles":
+            items = _collection_items(payload, "articles", "items", "results")
+            observed_count = len(items)
+            observed_ids = [str(item.get("id") or item.get("article_id")) for item in items]
+            ok = (
+                observed_count == spec["count"]
+                and [str(item.get("canonical_url")) for item in items] == [spec["url"]]
+                and all(observed_id not in {"", "None"} for observed_id in observed_ids)
+            )
+        all_passed = all_passed and ok
+        endpoint_results.append(
+            {
+                "endpoint": result["path"],
+                "http_status": result.get("status"),
+                "count": observed_count,
+                "ids": observed_ids,
+                "error": result.get("error"),
+                "result": "PASS" if ok else "FAIL",
+            }
+        )
+
+    server_stopped = thread is None or not thread.is_alive()
+    all_passed = all_passed and len(requests) >= 20 and server_stopped
+    report.add(
+        "API Validation",
+        "Threaded HTTP requests preserve run, zoo, source, and article data",
+        "PASS" if all_passed else "FAIL",
+        {
+            "threaded_server": True,
+            "request_count": len(requests),
+            "response_count": len(responses),
+            "all_http_200": bool(responses) and all(item.get("status") == 200 for item in responses),
+            "server_stopped": server_stopped,
+            "responses": endpoint_results,
+        },
+    )
+
+
+def _api_checks(
+    report: Report,
+    database_path: Path,
+    scenarios: Mapping[str, Any],
+) -> Any:
     from zoofan.dashboard import create_app
 
-    service = ConsoleService(storage)
-    app = create_app(":memory:", console_service=service)
+    # Use the product factory exactly as deployed: each request constructs and
+    # tears down its own read-only service over a real SQLite file.
+    app = create_app(database_path)
     client = app.test_client()
     normal = scenarios["Normal Crawl"]
     normal_run = normal["run_id"]
@@ -747,9 +974,8 @@ def _api_checks(report: Report, storage: Any, scenarios: Mapping[str, Any]) -> A
     missing_ok = missing_status == 404 and missing_payload.get("error", {}).get("code") == "not_found"
     report.add("API Validation", "Missing run returns stable 404 JSON", "PASS" if missing_ok else "FAIL", {"http_status": missing_status, "payload": missing_payload})
 
-    # Keep this service alive for the optional browser server.  The repository
-    # borrows the SQLiteStorage connection and does not close it here.
-    return app, service, client
+    _concurrent_http_checks(report, app, scenarios)
+    return app, client
 
 
 def _read(path: Path) -> str:
@@ -1061,6 +1287,7 @@ def _architecture_checks(report: Report, storage_fixture: Any = None) -> None:
     )
 
     verifier_text = _read(Path(__file__).resolve())
+    shared_connection_override = "check_same_thread" + "=False"
     unsafe_cleanup_tokens = [
         token
         for token in (
@@ -1078,7 +1305,8 @@ def _architecture_checks(report: Report, storage_fixture: Any = None) -> None:
     bounded_fixture_ok = (
         not unsafe_cleanup_tokens
         and "TemporaryDirectory" in verifier_text
-        and 'SQLiteStorage(":memory:")' in verifier_text
+        and "console-acceptance.db" in verifier_text
+        and shared_connection_override not in verifier_text
     )
     report.add(
         "Verifier Safety",
@@ -1087,7 +1315,8 @@ def _architecture_checks(report: Report, storage_fixture: Any = None) -> None:
         {
             "unsafe_cleanup_tokens": unsafe_cleanup_tokens,
             "uses_temporary_directory": "TemporaryDirectory" in verifier_text,
-            "uses_in_memory_acceptance_db": 'SQLiteStorage(":memory:")' in verifier_text,
+            "uses_temporary_file_sqlite": "console-acceptance.db" in verifier_text,
+            "shared_cross_thread_connection_override": shared_connection_override in verifier_text,
             "report_path": str(REPORT_PATH),
         },
     )
@@ -1194,7 +1423,7 @@ def _ui_checks(report: Report, client: Any, scenarios: Mapping[str, Any]) -> Non
     report.add("UI Validation", "Polling and incremental event refresh contract", "PASS" if polling_ok else "FAIL", {"setInterval": "setInterval" in template_text, "interval_ms_2500": "2500" in template_text, "after_id": "after_id" in template_text, "clearInterval": "clearInterval" in template_text})
 
 
-def _browser_check(report: Report, app: Any, storage: Any, scenarios: Mapping[str, Any]) -> None:
+def _browser_check(report: Report, app: Any, scenarios: Mapping[str, Any]) -> None:
     """Attempt a real headless browser only when the installed browser is usable."""
 
     try:
@@ -1205,7 +1434,6 @@ def _browser_check(report: Report, app: Any, storage: Any, scenarios: Mapping[st
         report.add("UI Validation", "Browser visual check", "UNAVAILABLE", str(error), required=False)
         return
 
-    browser_connection: Optional[sqlite3.Connection] = None
     server: Any = None
     thread: Optional[threading.Thread] = None
     browser: Any = None
@@ -1213,15 +1441,7 @@ def _browser_check(report: Report, app: Any, storage: Any, scenarios: Mapping[st
     try:
         # Flask's development server would be unsafe to run in a verifier; a
         # disposable Werkzeug server is enough for a localhost browser smoke.
-        browser_connection = sqlite3.connect(":memory:", check_same_thread=False)
-        browser_connection.row_factory = sqlite3.Row
-        storage.connection.commit()
-        storage.connection.backup(browser_connection)
-        from zoofan.console_service import ConsoleService
-        from zoofan.dashboard import create_app
-
-        browser_app = create_app(":memory:", console_service=ConsoleService(browser_connection))
-        server = make_server("127.0.0.1", 0, browser_app)
+        server = make_server("127.0.0.1", 0, app, threaded=True)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         url = "http://127.0.0.1:" + str(server.server_port)
@@ -1267,10 +1487,9 @@ def _browser_check(report: Report, app: Any, storage: Any, scenarios: Mapping[st
     finally:
         if server is not None:
             server.shutdown()
+            server.server_close()
         if thread is not None:
-            thread.join(timeout=2)
-        if browser_connection is not None:
-            browser_connection.close()
+            thread.join(timeout=5)
 
 
 def _render_report(report: Report) -> str:
@@ -1326,7 +1545,7 @@ def _render_report(report: Report) -> str:
 @media(prefers-color-scheme:dark){:root{--bg:#0b1220;--panel:#111827;--text:#e5e7eb;--muted:#98a2b3;--line:#263247}.metric{background:var(--panel)}}
 </style></head><body><main>
 <div class="hero"><div class="metric status __STATUS_CLASS__"><span>Acceptance</span><strong>__STATUS__</strong></div><h1>Crawler Console Acceptance Report</h1><p>Generated by <code>python3 scripts/verify_crawler_console.py</code>.</p>
-<div class="meta"><div><b>Timestamp</b> __TIMESTAMP__</div><div><b>Python</b> __PYTHON__</div><div><b>Git commit</b> __COMMIT__</div><div><b>DB fixture</b> SQLiteStorage(':memory:')</div></div></div>
+<div class="meta"><div><b>Timestamp</b> __TIMESTAMP__</div><div><b>Python</b> __PYTHON__</div><div><b>Git commit</b> __COMMIT__</div><div><b>DB fixture</b> temporary file SQLite</div></div></div>
 <div class="summary"><div class="metric"><span>Blocker Count</span><strong>__BLOCKERS__</strong></div><div class="metric"><span>Test Count</span><strong>__TEST_COUNT__</strong></div><div class="metric"><span>Passed</span><strong>__PASSED__</strong></div><div class="metric"><span>Failed</span><strong>__FAILED__</strong></div><div class="metric"><span>Regression exit</span><strong>__EXIT__</strong></div></div>
 __SECTIONS__
 <section><h2>Blockers</h2><ul>__BLOCKER_LIST__</ul><h3>Warnings</h3><ul>__WARNING_LIST__</ul></section>
@@ -1370,14 +1589,22 @@ def main() -> int:
     }
     report.known_limitations.extend(
         [
-            "The scenarios use deterministic in-memory fixtures; no production data or real website is crawled.",
+            "The scenarios use a deterministic temporary-file fixture; no production data or real website is crawled.",
             "This P0 verifier does not exercise start/stop controls, WebSockets, or anomaly detection.",
         ]
     )
     app: Any = None
     storage: Any = None
+    fixture_directory: Any = None
+    fixture_path: Optional[Path] = None
     scenarios: Dict[str, Any] = {}
     try:
+        _guarded(
+            report,
+            "Regression Tests",
+            "Pytest summary parser self-check completed",
+            lambda: _pytest_summary_parser_self_check(report),
+        )
         _guarded(report, "Regression Tests", "Regression command completed", lambda: _run_regression(report))
         storage_module = _guarded(
             report,
@@ -1386,13 +1613,18 @@ def main() -> int:
             lambda: __import__("zoofan.storage", fromlist=["SQLiteStorage"]),
         )
         if storage_module is not None:
+            fixture_directory = tempfile.TemporaryDirectory(
+                prefix="zoofancrawler-console-acceptance-"
+            )
+            fixture_path = Path(fixture_directory.name) / "console-acceptance.db"
             storage = _guarded(
                 report,
                 "Scenario Validation",
                 "Acceptance fixture database initialized",
-                lambda: storage_module.SQLiteStorage(":memory:"),
+                lambda: storage_module.SQLiteStorage(fixture_path),
             )
         if storage is not None:
+            assert fixture_path is not None
             scenarios = _guarded(
                 report,
                 "Scenario Validation",
@@ -1405,14 +1637,15 @@ def main() -> int:
                 "Database scenario evidence collected",
                 lambda: _scenario_checks(report, storage, scenarios),
             )
+            storage.connection.commit()
             api_result = _guarded(
                 report,
                 "API Validation",
                 "API scenario checks completed",
-                lambda: _api_checks(report, storage, scenarios),
+                lambda: _api_checks(report, fixture_path, scenarios),
             )
-            if isinstance(api_result, tuple) and len(api_result) == 3:
-                app, _service, client = api_result
+            if isinstance(api_result, tuple) and len(api_result) == 2:
+                app, client = api_result
                 _guarded(
                     report,
                     "UI Validation",
@@ -1444,7 +1677,7 @@ def main() -> int:
                 report,
                 "UI Validation",
                 "Browser visual check completed",
-                lambda: _browser_check(report, app, storage, scenarios),
+                lambda: _browser_check(report, app, scenarios),
                 required=True,
             )
         else:
@@ -1464,6 +1697,27 @@ def main() -> int:
                 storage.close()
         except Exception:
             pass
+        try:
+            if fixture_directory is not None:
+                fixture_directory.cleanup()
+            cleanup_ok = fixture_path is not None and not fixture_path.exists()
+            report.add(
+                "Verifier Safety",
+                "Temporary SQLite fixture is removed after server shutdown",
+                "PASS" if cleanup_ok else "FAIL",
+                {
+                    "temporary_fixture": fixture_path.name if fixture_path else None,
+                    "fixture_removed": cleanup_ok,
+                    "production_database_used": False,
+                },
+            )
+        except Exception:
+            report.add(
+                "Verifier Safety",
+                "Temporary SQLite fixture is removed after server shutdown",
+                "FAIL",
+                traceback.format_exc(limit=3),
+            )
         try:
             REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
             REPORT_PATH.write_text(_render_report(report), encoding="utf-8")

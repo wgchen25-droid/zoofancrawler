@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zoofan P0 详细执行计划</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --text:#111827; --muted:#6b7280; --border:#e5e7eb;
+    --accent:#111827; --accent2:#2563eb; --soft:#eef2ff; --good:#047857; --warn:#b45309;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+  h1,h2,h3,p{margin-top:0}
+  h1{font-size:30px;margin-bottom:8px}
+  h2{font-size:22px}
+  h3{font-size:17px}
+  .muted{color:var(--muted)}
+  .hero{display:flex;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+  .badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:#f3f4f6;border:1px solid var(--border);font-size:12px;font-weight:600}
+  .grid{display:grid;gap:14px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card,.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px}
+  .card{padding:16px}
+  .panel{padding:18px}
+  .metric .value{font-size:28px;font-weight:800;margin:5px 0}
+  .callout{padding:15px 16px;background:var(--soft);border:1px solid #c7d2fe;border-radius:14px}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 16px}
+  .tab{border:1px solid var(--border);background:#fff;color:var(--text);padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:650}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .section{display:none}
+  .section.active{display:block}
+  .node{padding:14px;border-radius:13px;background:#fafafa;border:1px solid var(--border)}
+  .flow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:center}
+  .arrow{text-align:center;color:var(--muted);font-size:20px}
+  details{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+  details+details{margin-top:10px}
+  summary{font-weight:750;cursor:pointer}
+  ul,ol{line-height:1.7}
+  .checkrow{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+  .progress > div{height:100%;width:0;background:var(--accent2);transition:.2s}
+  .timeline{position:relative;padding-left:22px}
+  .timeline:before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:#d1d5db}
+  .tlitem{position:relative;margin-bottom:14px}
+  .tlitem:before{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--accent2);left:-20px;top:20px}
+  input[type="range"]{width:100%}
+  .gate{display:flex;gap:10px;align-items:flex-start}
+  .status-good{color:var(--good);font-weight:800}
+  .status-warn{color:var(--warn);font-weight:800}
+  .footer-note{margin-top:24px;color:var(--muted);font-size:13px}
+  @media(max-width:850px){
+    .g4,.g3,.g2,.flow{grid-template-columns:1fr}
+    .arrow{transform:rotate(90deg)}
+    .hero{align-items:flex-start;flex-direction:column}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <div class="muted">Zoofan · Phase 0</div>
+      <h1>P0 详细执行计划</h1>
+      <p class="muted">Crawler → Database → Content Intelligence → 小红书内容包 → 人工审核 → 发布 → 数据反馈</p>
+    </div>
+    <span class="badge">建议周期：6 周</span>
+  </div>
+
+  <div class="grid g4">
+    <div class="card metric"><div class="muted">稳定动物园</div><div class="value">60–100</div><div>作为 P0 Gate</div></div>
+    <div class="card metric"><div class="muted">小红书发布</div><div class="value">4–7/周</div><div>持续 4 周以上</div></div>
+    <div class="card metric"><div class="muted">人工处理</div><div class="value">≤20 min</div><div>每篇内容</div></div>
+    <div class="card metric"><div class="muted">验证样本</div><div class="value">40–60</div><div>篇已发布内容</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:16px">
+    <strong>P0 的唯一目标：</strong>证明“全球动物园资讯可以稳定被发现、加工、发布，并且存在可重复的用户兴趣规律”。P0 不做用户端网站、不做 App、不做社区。
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">总体架构</button>
+    <button class="tab" data-tab="workstreams">工作流拆解</button>
+    <button class="tab" data-tab="timeline">6周计划</button>
+    <button class="tab" data-tab="data">数据与表结构</button>
+    <button class="tab" data-tab="gate">验收 Gate</button>
+    <button class="tab" data-tab="sim">参数模拟</button>
+  </div>
+
+  <section id="overview" class="section active">
+    <div class="panel">
+      <h2>最终闭环</h2>
+      <div class="flow">
+        <div class="node"><strong>Sources</strong><div class="muted">Zoo 官网 / News / RSS</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><strong>Crawler</strong><div class="muted">发现 / 抓取 / 停止条件</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><strong>Article DB</strong><div class="muted">清洗 / 去重 / 图片</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><strong>Candidate Queue</strong><div class="muted">AI评分 / 选题</div></div>
+      </div>
+      <div class="flow" style="margin-top:8px">
+        <div class="node"><strong>Feedback</strong><div class="muted">浏览 / 赞 / 藏 / 评</div></div>
+        <div class="arrow">←</div>
+        <div class="node"><strong>Publish</strong><div class="muted">人工确认</div></div>
+        <div class="arrow">←</div>
+        <div class="node"><strong>Review</strong><div class="muted">事实 / 语气 / 图片</div></div>
+        <div class="arrow">←</div>
+        <div class="node"><strong>XHS Package</strong><div class="muted">标题 / 正文 / 图 / 标签</div></div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div class="panel">
+        <h3>P0 要做</h3>
+        <ul>
+          <li>动物园与来源 Registry</li>
+          <li>可中止、可限额、可审计的爬虫</li>
+          <li>文章清洗、canonical 去重、图片元数据</li>
+          <li>AI 选题评分与候选池</li>
+          <li>小红书标题 / 正文 / 标签 / 配图建议</li>
+          <li>人工审核台 + 发布记录</li>
+          <li>表现数据回填 + 每周复盘</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>P0 明确不做</h3>
+        <ul>
+          <li>用户注册 / 登录</li>
+          <li>用户端新闻网站</li>
+          <li>原生 App</li>
+          <li>图片社区 / 评论 / Follow</li>
+          <li>复杂推荐算法</li>
+          <li>为了“全自动”而开发高风险的小红书自动登录机器人</li>
+          <li>过早迁移到复杂云架构</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h3>建议日常运行节奏</h3>
+      <div class="grid g4">
+        <div class="node"><span class="badge">06:00</span><h3 style="margin-top:10px">自动抓取</h3><div class="muted">增量 crawl + run report</div></div>
+        <div class="node"><span class="badge">07:00</span><h3 style="margin-top:10px">AI 候选</h3><div class="muted">分类、摘要、评分、Top stories</div></div>
+        <div class="node"><span class="badge">人工窗口</span><h3 style="margin-top:10px">选题审核</h3><div class="muted">只看高分候选，不扫全库</div></div>
+        <div class="node"><span class="badge">次日+</span><h3 style="margin-top:10px">数据回填</h3><div class="muted">24h / 72h / 7d 表现</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="workstreams" class="section">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap">
+        <div><h2>7 个工作流</h2><div class="muted">展开查看任务和验收条件；勾选后实时计算进度。</div></div>
+        <div style="min-width:220px;flex:0 0 260px">
+          <div style="display:flex;justify-content:space-between"><span>进度</span><strong id="progressText">0%</strong></div>
+          <div class="progress" style="margin-top:7px"><div id="progressFill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <details open>
+        <summary>WS1 · Crawler Hardening — 先解决无限爬和不可控</summary>
+        <div class="grid g2" style="margin-top:12px">
+          <div>
+            <strong>任务</strong>
+            <ul>
+              <li>source 级抓取预算与 hard stop</li>
+              <li>canonical URL 标准化</li>
+              <li>过滤分页 / 日历 / 搜索陷阱</li>
+              <li>连续 3 页无新增 URL 自动停止</li>
+              <li>wall-clock timeout + 最大请求数</li>
+              <li>有限 retry，不允许无限 retry</li>
+              <li>run stats 写入 stop_reason</li>
+            </ul>
+          </div>
+          <div>
+            <strong>推荐默认预算</strong>
+            <ul>
+              <li>50 新文章 / source / run</li>
+              <li>200 discovered URLs 上限</li>
+              <li>20 pagination pages 上限</li>
+              <li>180 秒 / zoo</li>
+            </ul>
+          </div>
+        </div>
+        <p><strong>验收：</strong>10 家不同结构动物园连续跑 3 次，无无限循环；每次都能解释为什么停止。</p>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS1 完成</label>
+      </details>
+
+      <details>
+        <summary>WS2 · Data Quality — 让数据库真正能做内容</summary>
+        <ul>
+          <li>title / body / published_at / language 标准化</li>
+          <li>canonical + content_hash 双层去重</li>
+          <li>article ↔ zoo identity 稳定关联</li>
+          <li>图片 URL、alt、caption、source、尺寸入库</li>
+          <li>raw_html 继续作为可追溯证据</li>
+          <li>crawl 后自动生成 quality report</li>
+        </ul>
+        <p><strong>验收：</strong>≥95% 有 title + canonical_url；≥90% 能识别 zoo；重复文章不重复进入候选池。</p>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS2 完成</label>
+      </details>
+
+      <details>
+        <summary>WS3 · Zoo Scale-up — 分三层扩张</summary>
+        <ol>
+          <li><strong>10 家：</strong>验证 crawler 类型覆盖、预算与停止机制</li>
+          <li><strong>30 家：</strong>验证数据模型与 daily batch 稳定性</li>
+          <li><strong>60–100 家：</strong>验证内容供给丰富度</li>
+        </ol>
+        <p><strong>验收：</strong>启用来源批次成功率 ≥85%；异常 source 可以独立 disable，不拖垮整批。</p>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS3 完成</label>
+      </details>
+
+      <details>
+        <summary>WS4 · Content Intelligence — 从 Article 变 Candidate</summary>
+        <ul>
+          <li>event_type：出生 / 死亡 / 转移 / 新展区 / 保护 / 研究 / 运营</li>
+          <li>animal_species / animal_name</li>
+          <li>summary_zh</li>
+          <li>novelty / emotion / rarity / freshness</li>
+          <li>xhs_fit_score / overall_score</li>
+          <li>reason_to_publish</li>
+        </ul>
+        <p><strong>评分 v0：</strong>35% 趣味/情绪 + 25% 稀缺 + 20% 新鲜度 + 20% 小红书适配。</p>
+        <p><strong>人工队列：</strong>overall ≥75 或命中强事件类型。</p>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS4 完成</label>
+      </details>
+
+      <details>
+        <summary>WS5 · XHS Package Generator — 生成可审核内容包</summary>
+        <div class="grid g3" style="margin-top:12px">
+          <div class="node"><strong>标题</strong><div class="muted">事实型 / 情绪型 / 悬念型 3 版</div></div>
+          <div class="node"><strong>正文</strong><div class="muted">中文重写、保留事实、不编造细节</div></div>
+          <div class="node"><strong>素材</strong><div class="muted">候选图片、来源、使用风险备注</div></div>
+        </div>
+        <p style="margin-top:12px">同时生成 hashtags、动物园/城市标签、封面短句、原文 URL、事实核对清单。</p>
+        <p><strong>验收：</strong>≥70% 内容包只需轻改；目标人工编辑 ≤10 分钟。</p>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS5 完成</label>
+      </details>
+
+      <details>
+        <summary>WS6 · Review & Publishing — 人工确认作为 P0 风控层</summary>
+        <ul>
+          <li>事实：时间、动物、数量、地点</li>
+          <li>来源：原文可回溯</li>
+          <li>图片：来源与使用风险可见</li>
+          <li>表达：避免夸大、误导与机器味</li>
+        </ul>
+        <p><strong>P0 不把自动登录并自动发小红书作为核心目标：</strong>先证明内容运营模型。</p>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS6 完成</label>
+      </details>
+
+      <details>
+        <summary>WS7 · Analytics Loop — 让反馈反过来训练选题</summary>
+        <div class="grid g2" style="margin-top:12px">
+          <div>
+            <strong>每篇发布记录</strong>
+            <ul>
+              <li>published_at / xhs_post_id / package_id</li>
+              <li>views / likes / saves / comments</li>
+              <li>24h / 72h / 7d snapshots</li>
+              <li>event_type / animal / zoo / title_style</li>
+            </ul>
+          </div>
+          <div>
+            <strong>每周只回答 4 个问题</strong>
+            <ol>
+              <li>哪类事件最容易被收藏？</li>
+              <li>哪些动物互动最高？</li>
+              <li>哪种标题结构更稳定？</li>
+              <li>哪些 source 抓很多却不产好内容？</li>
+            </ol>
+          </div>
+        </div>
+        <label class="checkrow"><input class="work-check" type="checkbox"> WS7 完成</label>
+      </details>
+    </div>
+  </section>
+
+  <section id="timeline" class="section">
+    <div class="panel">
+      <h2>6 周执行节奏</h2>
+      <p class="muted">先稳定 → 再扩张 → 再验证内容。每周必须有 Exit Criteria。</p>
+    </div>
+    <div class="timeline" style="margin-top:16px">
+      <div class="tlitem panel"><strong>Week 1 · Crawler 稳定性</strong><span class="badge" style="float:right">10 zoos</span><p>budgets、stop_reason、分页陷阱、重复陷阱、source disable、回归测试。</p><p><strong>Exit：</strong>10 家 × 3 连续运行，无无限循环；每家都有 run report。</p></div>
+      <div class="tlitem panel"><strong>Week 2 · 数据质量 + 扩到 30 家</strong><span class="badge" style="float:right">30 zoos</span><p>canonical、content hash、日期、语言、media、zoo identity、quality report。</p><p><strong>Exit：</strong>30 家 daily run 稳定；重复内容不重复进入下游。</p></div>
+      <div class="tlitem panel"><strong>Week 3 · AI 选题层</strong><span class="badge" style="float:right">Candidate Queue</span><p>事件分类、动物实体、中文摘要、评分、reason_to_publish、每日 Top stories。</p><p><strong>Exit：</strong>运营时不再需要人工扫整个 articles 表。</p></div>
+      <div class="tlitem panel"><strong>Week 4 · 小红书内容包 + 审核台</strong><span class="badge" style="float:right">Draft → Ready</span><p>标题 A/B/C、正文、hashtags、配图建议、来源卡、事实清单、approve/reject/edit。</p><p><strong>Exit：</strong>候选 → ready package 机器 ≤2 分钟，人工 ≤15 分钟。</p></div>
+      <div class="tlitem panel"><strong>Week 5 · 发布运营 + 数据回流</strong><span class="badge" style="float:right">4–7 / week</span><p>publication_records、24h/72h/7d 快照、每周内容复盘。</p><p><strong>Exit：</strong>可以按 zoo / animal / event / title_style 比较表现。</p></div>
+      <div class="tlitem panel"><strong>Week 6 · 60–100 家 + P0 Gate</strong><span class="badge" style="float:right">Decision</span><p>扩大 source，跑完整闭环，核算人工成本、候选产量、题材规律、技术稳定性。</p><p><strong>Exit：</strong>满足 Gate 才进入 P1 Web；否则继续优化 P0 的瓶颈。</p></div>
+    </div>
+  </section>
+
+  <section id="data" class="section">
+    <div class="panel">
+      <h2>在当前 SQLite 上增量扩展</h2>
+      <p class="muted">已有 zoo/source/article/crawl 相关表继续保留；补上媒体、候选、内容包、发布、表现五层。</p>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><strong>article_media</strong><p class="muted">article_id, url, media_type, alt, caption, width, height, source_url, fetched_at, rights_note</p></div>
+      <div class="card"><strong>content_candidates</strong><p class="muted">article_id, event_type, species, animal_name, summary_zh, scores_json, overall_score, reason, status</p></div>
+      <div class="card"><strong>content_packages</strong><p class="muted">candidate_id, title_variants, body_zh, hashtags, cover_text, media_selection, source_facts, review_status, version</p></div>
+      <div class="card"><strong>publication_records</strong><p class="muted">package_id, platform, platform_post_id, published_at, final_title, final_body, final_media, operator_note</p></div>
+      <div class="card"><strong>performance_snapshots</strong><p class="muted">publication_id, snapshot_at, age_hours, views, likes, saves, comments, shares(optional), followers_delta(optional)</p></div>
+      <div class="card"><strong>crawler stop metadata</strong><p class="muted">stop_reason, request_count, discovered_count, new_count, elapsed_seconds, budget_config_snapshot</p></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>内容状态机</h3>
+      <p><span class="badge">article</span> → <span class="badge">candidate</span> → <span class="badge">draft</span> → <span class="badge">reviewed</span> → <span class="badge">ready</span> → <span class="badge">published</span> → <span class="badge">measured</span></p>
+      <p class="muted">失败保留状态和 error reason，不用文件夹或 latest report 隐式表示业务状态。</p>
+    </div>
+  </section>
+
+  <section id="gate" class="section">
+    <div class="panel">
+      <h2>P0 → P1 Gate</h2>
+      <p class="muted">6 项满足至少 5 项，并且“技术稳定性”和“内容规律”必须满足，才建议正式进入 P1。</p>
+    </div>
+    <div style="margin-top:12px;display:grid;gap:10px">
+      <label class="panel gate"><input class="gate-check" data-required="true" type="checkbox"><span><strong>技术稳定性（必选）</strong>：60–100 家启用来源批次成功率 ≥85%，无无限 crawl，失败可定位。</span></label>
+      <label class="panel gate"><input class="gate-check" type="checkbox"><span><strong>内容供给</strong>：每周自然产生足够候选，稳定支撑 4–7 篇发布。</span></label>
+      <label class="panel gate"><input class="gate-check" type="checkbox"><span><strong>生产效率</strong>：候选到发布平均人工投入 ≤20 分钟/篇。</span></label>
+      <label class="panel gate"><input class="gate-check" type="checkbox"><span><strong>样本量</strong>：累计至少 40–60 篇已发布内容，可进行基础分组比较。</span></label>
+      <label class="panel gate"><input class="gate-check" data-required="true" type="checkbox"><span><strong>内容规律（必选）</strong>：找到至少 3 类可重复表现较好的“事件 × 动物 × 标题”组合。</span></label>
+      <label class="panel gate"><input class="gate-check" type="checkbox"><span><strong>反馈闭环</strong>：发布记录与 24h/72h/7d 数据可以回填，并影响下一周选题。</span></label>
+    </div>
+    <div class="callout" style="margin-top:14px">
+      <strong id="gateResult">当前：0 / 6</strong>
+      <span id="gateDecision" class="badge" style="margin-left:8px">继续 P0</span>
+      <p id="gateReason" style="margin:8px 0 0">先跑完技术与内容验证，不按“开发完成”宣布 P0 成功。</p>
+    </div>
+  </section>
+
+  <section id="sim" class="section">
+    <div class="panel">
+      <h2>P0 参数模拟器</h2>
+      <p class="muted">用于容量规划，不是业务承诺。</p>
+      <div class="grid g2">
+        <label>启用动物园：<strong id="zooVal">60</strong><input id="zooRange" type="range" min="10" max="120" step="10" value="60"></label>
+        <label>每 source 每次新文章上限：<strong id="fetchVal">50</strong><input id="fetchRange" type="range" min="10" max="100" step="10" value="50"></label>
+        <label>每周计划发布：<strong id="postVal">5</strong> 篇<input id="postRange" type="range" min="2" max="14" step="1" value="5"></label>
+        <label>单篇人工审核：<strong id="reviewVal">15</strong> 分钟<input id="reviewRange" type="range" min="5" max="40" step="5" value="15"></label>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-top:14px">
+      <div class="card metric"><div class="muted">理论抓取预算</div><div class="value" id="crawlBudget">3,000</div><div>articles / run 上限</div></div>
+      <div class="card metric"><div class="muted">每周人工审核</div><div class="value" id="reviewHours">1.3h</div><div>只计内容审核</div></div>
+      <div class="card metric"><div class="muted">6周发布量</div><div class="value" id="sixWeekPosts">30</div><div>内容样本</div></div>
+      <div class="card metric"><div class="muted">当前判断</div><div class="value" id="simStatus">健康</div><div id="simHint">适合 P0</div></div>
+    </div>
+  </section>
+
+  <div class="panel" style="margin-top:18px">
+    <h3>Coding Agent 的可循环终结目标</h3>
+    <div class="grid g3">
+      <div class="node">1. 固定 fixtures / 3-zoo regression</div>
+      <div class="node">2. 所有 crawl budgets 生效</div>
+      <div class="node">3. DB schema + constraints 通过</div>
+      <div class="node">4. E2E 生成 candidate + XHS package</div>
+      <div class="node">5. HTML acceptance report = 0 blocker</div>
+      <div class="node">6. 失败 → 修复 → 重跑，直到 Gate 通过</div>
+    </div>
+  </div>
+
+  <div class="footer-note">Zoofan P0 · 单文件 HTML · 可离线打开</div>
+</div>
+
+<script>
+  document.querySelectorAll(".tab").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  const works=[...document.querySelectorAll(".work-check")];
+  function updateProgress(){
+    const done=works.filter(x=>x.checked).length;
+    const pct=Math.round(done/works.length*100);
+    document.getElementById("progressText").textContent=pct+"%";
+    document.getElementById("progressFill").style.width=pct+"%";
+  }
+  works.forEach(x=>x.addEventListener("change",updateProgress));
+
+  const gates=[...document.querySelectorAll(".gate-check")];
+  function updateGate(){
+    const done=gates.filter(x=>x.checked).length;
+    const required=gates.filter(x=>x.dataset.required==="true").every(x=>x.checked);
+    const pass=done>=5 && required;
+    document.getElementById("gateResult").textContent=`当前：${done} / ${gates.length}`;
+    document.getElementById("gateDecision").textContent=pass?"可进入 P1":"继续 P0";
+    document.getElementById("gateDecision").className="badge " + (pass?"status-good":"status-warn");
+    document.getElementById("gateReason").textContent=pass
+      ?"Gate 满足：可以开始 P1 Web，同时 P0 管线继续作为底层内容系统运行。"
+      :"需要至少满足 5 项，并同时满足“技术稳定性”和“内容规律”。";
+  }
+  gates.forEach(x=>x.addEventListener("change",updateGate));
+
+  const zr=document.getElementById("zooRange");
+  const fr=document.getElementById("fetchRange");
+  const pr=document.getElementById("postRange");
+  const rr=document.getElementById("reviewRange");
+
+  function updateSim(){
+    const zoos=Number(zr.value), fetch=Number(fr.value), posts=Number(pr.value), review=Number(rr.value);
+    document.getElementById("zooVal").textContent=zoos;
+    document.getElementById("fetchVal").textContent=fetch;
+    document.getElementById("postVal").textContent=posts;
+    document.getElementById("reviewVal").textContent=review;
+
+    const budget=zoos*fetch;
+    const hours=posts*review/60;
+    const sample=posts*6;
+
+    document.getElementById("crawlBudget").textContent=budget.toLocaleString();
+    document.getElementById("reviewHours").textContent=hours.toFixed(1)+"h";
+    document.getElementById("sixWeekPosts").textContent=sample;
+
+    let status="健康", hint="适合 P0";
+    if(zoos>100 || fetch>80 || posts>10 || hours>5){
+      status="偏重"; hint="先减规模或提高自动化";
+    } else if(sample<24){
+      status="样本少"; hint="难判断内容规律";
+    }
+    document.getElementById("simStatus").textContent=status;
+    document.getElementById("simHint").textContent=hint;
+  }
+  [zr,fr,pr,rr].forEach(x=>x.addEventListener("input",updateSim));
+  updateProgress(); updateGate(); updateSim();
+</script>
+</body>
+</html>

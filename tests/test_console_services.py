@@ -1,4 +1,5 @@
 import sqlite3
+from threading import Event, Thread
 
 from zoofan.console_repository import ConsoleRepository, parse_metadata
 from zoofan.console_service import ConsoleService
@@ -460,3 +461,338 @@ def test_malformed_metadata_parser_is_json_ready_and_bounded():
     }
     deep = "{" * 100 + "\"x\":1" + "}" * 100
     assert parse_metadata(deep) == {}
+
+
+def test_legacy_missing_tables_stay_empty_without_schema_mutation():
+    connection = sqlite3.connect(":memory:")
+    connection.execute("PRAGMA user_version = 37")
+    connection.execute("CREATE TABLE crawl_runs (id TEXT PRIMARY KEY, status TEXT)")
+    try:
+        service = ConsoleService(ConsoleRepository(connection))
+        assert service.get_run_events("legacy")["items"] == []
+        assert service.get_run_articles("legacy")["items"] == []
+        assert service.get_zoos() == []
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 37
+        assert connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        ).fetchall() == [("crawl_runs",)]
+    finally:
+        connection.close()
+
+
+def test_service_list_envelopes_include_stable_cursor_fields_when_empty():
+    connection = sqlite3.connect(":memory:")
+    try:
+        service = ConsoleService(ConsoleRepository(connection))
+        for page in (
+            service.list_runs(),
+            service.get_run_articles("missing"),
+            service.get_run_events("missing"),
+            service.get_zoo_history("missing"),
+        ):
+            assert page["next_cursor"] is None
+            assert page["has_more"] is False
+            assert page["last_updated"] is None
+        assert service.get_run_events("missing")["next_after_id"] is None
+    finally:
+        connection.close()
+
+
+class _RecordingConnection(sqlite3.Connection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.executed = []
+        self.after_page_execute = None
+
+    def execute(self, sql, parameters=()):
+        cursor = super().execute(sql, parameters)
+        self.executed.append((sql, tuple(parameters)))
+        if sql.startswith("WITH filtered AS") and self.after_page_execute is not None:
+            hook = self.after_page_execute
+            self.after_page_execute = None
+            hook()
+        return cursor
+
+
+def _canonical_event_database(
+    event_count=1005, database=":memory:", factory=sqlite3.Connection
+):
+    connection = sqlite3.connect(database, factory=factory)
+    if database != ":memory:":
+        connection.execute("PRAGMA journal_mode=WAL")
+    connection.executescript(
+        """
+        CREATE TABLE zoos (id TEXT PRIMARY KEY, slug TEXT, name TEXT);
+        CREATE TABLE sources (
+            id TEXT PRIMARY KEY, zoo_id TEXT, kind TEXT, name TEXT
+        );
+        CREATE TABLE crawl_run_events (
+            id INTEGER PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            zoo_id TEXT,
+            source_id TEXT,
+            created_at TEXT NOT NULL,
+            level TEXT NOT NULL,
+            component TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            message TEXT NOT NULL,
+            metadata_json TEXT NOT NULL
+        );
+        CREATE INDEX idx_test_events_run_id_id
+            ON crawl_run_events(run_id, id);
+        INSERT INTO zoos VALUES ('z1', 'alpha-zoo', 'Alpha Zoo');
+        INSERT INTO sources VALUES ('s1', 'z1', 'archive', 'Daily News');
+        """
+    )
+    connection.executemany(
+        "INSERT INTO crawl_run_events VALUES (?, 'run-large', 'z1', 's1', ?, "
+        "'INFO', 'crawler', 'crawl_started', ?, '{}')",
+        [
+            (event_id, f"2026-08-16T00:00:{event_id % 60:02d}+00:00", f"event {event_id}")
+            for event_id in range(1, event_count + 1)
+        ],
+    )
+    connection.execute(
+        "UPDATE crawl_run_events SET level='WARNING', component='fetcher', "
+        "event_type='http_error', message='Café failed', "
+        "metadata_json=? WHERE id=1001",
+        ('{"detail":"Überraschung"}',),
+    )
+    connection.execute(
+        "UPDATE crawl_run_events SET level='WARNING', component='fetcher', "
+        "event_type='http_error', message='second failure' WHERE id=1002"
+    )
+    connection.execute(
+        "UPDATE crawl_run_events SET metadata_json='needle-secret malformed' WHERE id=1003"
+    )
+    connection.commit()
+    if isinstance(connection, _RecordingConnection):
+        connection.executed.clear()
+    return connection
+
+
+def test_canonical_events_use_bounded_sql_paging_and_preserve_page_contract():
+    connection = _canonical_event_database()
+    statements = []
+    connection.set_trace_callback(statements.append)
+    try:
+        service = ConsoleService(ConsoleRepository(connection))
+        page = service.get_run_events("run-large", limit=2, offset=3)
+        assert [event["id"] for event in page["items"]] == [4, 5]
+        assert page["pagination"] == {
+            "limit": 2,
+            "offset": 3,
+            "total": 1005,
+            "has_more": True,
+            "next_offset": 5,
+        }
+        assert page["has_more"] is True
+        assert page["next_after_id"] == 5
+
+        event_selects = [
+            sql for sql in statements
+            if "SELECT id, run_id" in sql and "FROM \"crawl_run_events\"" in sql
+        ]
+        assert event_selects
+        assert all("ORDER BY id ASC LIMIT 2 OFFSET 3" in sql for sql in event_selects)
+        assert any("SELECT COUNT(*)" in sql for sql in statements)
+        assert not any(
+            "SELECT id, run_id" in sql
+            and "FROM \"crawl_run_events\"" in sql
+            and "LIMIT" not in sql
+            for sql in statements
+        )
+    finally:
+        connection.close()
+
+
+def test_canonical_event_structured_filters_push_down_and_resolve_catalog_names():
+    connection = _canonical_event_database()
+    statements = []
+    connection.set_trace_callback(statements.append)
+    try:
+        repository = ConsoleRepository(connection)
+        filters = {
+            "after_id": 1000,
+            "level": "warning",
+            "component": "FETCHER",
+            "event_type": "HTTP_ERROR",
+            "limit": 2,
+            "offset": 0,
+        }
+        for zoo in ("z1", "Alpha Zoo", "alpha-zoo"):
+            rows, total = repository.query_run_events(
+                "run-large", zoo=zoo, source="Daily News", **filters
+            )
+            assert [row["id"] for row in rows] == [1001, 1002]
+            assert total == 2
+        for source in ("s1", "Daily News", "archive"):
+            rows, total = repository.query_run_events(
+                "run-large", zoo="Alpha Zoo", source=source, **filters
+            )
+            assert [row["id"] for row in rows] == [1001, 1002]
+            assert total == 2
+        page_selects = [
+            sql for sql in statements
+            if "SELECT id, run_id" in sql and "FROM \"crawl_run_events\"" in sql
+        ]
+        assert page_selects
+        assert all("id > 1000" in sql and "LIMIT 2 OFFSET 0" in sql for sql in page_selects)
+        assert all("level = 'warning' COLLATE NOCASE" in sql for sql in page_selects)
+    finally:
+        connection.close()
+
+
+def test_canonical_event_zoo_source_filters_are_case_insensitive_for_orphans_and_catalog_ids():
+    connection = _canonical_event_database()
+    connection.execute(
+        "UPDATE crawl_run_events SET zoo_id='OrPhAn-Z', source_id='OrPhAn-S' WHERE id=10"
+    )
+    connection.execute(
+        "UPDATE crawl_run_events SET zoo_id='Z1', source_id='S1' WHERE id=11"
+    )
+    try:
+        repository = ConsoleRepository(connection)
+        orphan_rows, orphan_total = repository.query_run_events(
+            "run-large", zoo="orphan-z", source="orphan-s", limit=2
+        )
+        assert [row["id"] for row in orphan_rows] == [10]
+        assert orphan_total == 1
+
+        catalog_rows, catalog_total = repository.query_run_events(
+            "run-large", zoo="ALPHA ZOO", source="DAILY NEWS", limit=2
+        )
+        assert [row["id"] for row in catalog_rows] == [1, 2]
+        assert catalog_total == 1004
+        assert any(row["zoo_name"] == "Alpha Zoo" for row in catalog_rows)
+    finally:
+        connection.close()
+
+
+def test_canonical_event_search_stream_preserves_rich_unicode_and_metadata_semantics():
+    connection = _canonical_event_database()
+    try:
+        service = ConsoleService(ConsoleRepository(connection))
+        cases = {
+            "CAFÉ": [1001],
+            "alpha zoo": [1, 2],
+            "daily news": [1, 2],
+            "ÜBERRASCHUNG": [1001],
+        }
+        for search, expected_ids in cases.items():
+            page = service.get_run_events("run-large", search=search, limit=2)
+            assert [event["id"] for event in page["items"]] == expected_ids
+            if search in {"alpha zoo", "daily news"}:
+                assert page["pagination"]["total"] == 1005
+                assert page["has_more"] is True
+            else:
+                assert page["pagination"]["total"] == 1
+        malformed = service.get_run_events(
+            "run-large", search="needle-secret", limit=2
+        )
+        assert malformed["items"] == []
+        assert malformed["pagination"]["total"] == 0
+    finally:
+        connection.close()
+
+
+def test_canonical_event_count_and_page_share_snapshot_during_concurrent_insert(tmp_path):
+    database = tmp_path / "event-snapshot.db"
+    connection = _canonical_event_database(
+        event_count=2, database=database, factory=_RecordingConnection
+    )
+    insert_requested = Event()
+    insert_finished = Event()
+
+    def insert_event():
+        assert insert_requested.wait(timeout=5)
+        writer = sqlite3.connect(database)
+        try:
+            writer.execute(
+                "INSERT INTO crawl_run_events VALUES "
+                "(3, 'run-large', 'z1', 's1', '2026-08-16T00:00:03+00:00', "
+                "'INFO', 'crawler', 'crawl_started', 'concurrent', '{}')"
+            )
+            writer.commit()
+        finally:
+            writer.close()
+            insert_finished.set()
+
+    writer_thread = Thread(target=insert_event)
+    writer_thread.start()
+
+    def concurrent_insert_after_statement_starts():
+        insert_requested.set()
+        assert insert_finished.wait(timeout=5)
+
+    connection.after_page_execute = concurrent_insert_after_statement_starts
+    try:
+        rows, total = ConsoleRepository(connection).query_run_events(
+            "run-large", limit=10, offset=0
+        )
+        writer_thread.join(timeout=5)
+        assert not writer_thread.is_alive()
+        assert len(rows) == total
+        assert [row["id"] for row in rows] in ([1, 2], [1, 2, 3])
+        verifier = sqlite3.connect(database)
+        try:
+            assert verifier.execute(
+                "SELECT COUNT(*) FROM crawl_run_events WHERE run_id='run-large'"
+            ).fetchone()[0] == 3
+        finally:
+            verifier.close()
+        production_queries = [
+            item for item in connection.executed if item[0].startswith("WITH filtered AS")
+        ]
+        assert len(production_queries) == 1
+    finally:
+        connection.close()
+
+
+def test_canonical_event_cursor_query_plan_uses_actual_repository_sql():
+    connection = _canonical_event_database(factory=_RecordingConnection)
+    try:
+        repository = ConsoleRepository(connection)
+        rows, total = repository.query_run_events(
+            "run-large", after_id=1000, limit=2, offset=0
+        )
+        assert [row["id"] for row in rows] == [1001, 1002]
+        assert total == 5
+        production_queries = [
+            item for item in connection.executed if item[0].startswith("WITH filtered AS")
+        ]
+        assert len(production_queries) == 1
+        sql, parameters = production_queries[0]
+        plan = connection.execute(
+            "EXPLAIN QUERY PLAN " + sql,
+            parameters,
+        ).fetchall()
+        detail = " ".join(str(row[3]) for row in plan)
+        assert "idx_test_events_run_id_id" in detail
+        assert "run_id=? AND id>?" in detail
+    finally:
+        connection.close()
+
+
+def test_legacy_text_event_ids_keep_compatible_fallback_pagination():
+    connection = sqlite3.connect(":memory:")
+    connection.executescript(
+        """
+        CREATE TABLE run_events (
+            event_id TEXT, crawl_run_id TEXT, timestamp TEXT, severity TEXT,
+            module TEXT, kind TEXT, text TEXT, details_json TEXT
+        );
+        INSERT INTO run_events VALUES
+            ('event-a', 'legacy', '2026-01-01T00:00:00Z', 'INFO', 'crawler', 'start', 'one', '{}'),
+            ('event-b', 'legacy', '2026-01-01T00:00:01Z', 'ERROR', 'parser', 'failed', 'two', '{}'),
+            ('event-c', 'legacy', '2026-01-01T00:00:02Z', 'INFO', 'crawler', 'done', 'three', '{}');
+        """
+    )
+    try:
+        service = ConsoleService(ConsoleRepository(connection))
+        page = service.get_run_events("legacy", limit=1, offset=1)
+        assert [event["id"] for event in page["items"]] == ["event-b"]
+        assert page["pagination"]["total"] == 3
+        assert page["next_after_id"] == "event-b"
+    finally:
+        connection.close()

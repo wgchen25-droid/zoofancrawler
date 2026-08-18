@@ -14,6 +14,12 @@ data/*.sqlite3
 *.db-wal
 *.db-shm
 data/artifacts/
+data/backups/
+data/imports/
+data/manifests/
+
+# macOS filesystem metadata
+**/.DS_Store
 
 # Keep only the documented root acceptance artifacts
 artifacts/*

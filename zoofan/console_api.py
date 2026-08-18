@@ -25,7 +25,9 @@ from types import ModuleType
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence
 from urllib.parse import urlparse
 
-from flask import Blueprint, Response, current_app, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
+
+from .console_repository import ConsoleRepositoryError
 
 
 logger = logging.getLogger(__name__)
@@ -71,6 +73,10 @@ class ConsoleValidationError(ValueError):
 
 class ConsoleServiceUnavailable(RuntimeError):
     """Raised internally when an injected service lacks a required method."""
+
+
+class ConsoleServiceInitializationError(ConsoleServiceUnavailable):
+    """Raised when a request-owned service cannot be constructed."""
 
 
 _MISSING = object()
@@ -169,6 +175,14 @@ _BUDGET_REASONS = {
     "article_limit", "page_limit", "runtime_limit", "url_discovery_limit",
     "candidate_limit", "batch_limit", "max_candidates_per_source", "max_pages",
     "max_sitemaps", "archive_page_limit", "sitemap_page_limit", "no_new_urls",
+}
+_EVENT_LEVELS = {"INFO", "WARNING", "ERROR"}
+_EVENT_COMPONENTS = {"crawler", "discovery", "fetcher", "parser", "storage"}
+_EVENT_TYPES = {
+    "crawl_started", "crawl_completed", "crawl_failed", "source_started",
+    "source_completed", "source_failed", "discovery_completed", "article_stored",
+    "crawl_budget_hit", "retry_exhausted", "robots_blocked", "http_error",
+    "parse_failed", "event_persistence_failed",
 }
 
 
@@ -431,6 +445,26 @@ def _collection_body(
                 if last.get(key) is not None:
                     body.setdefault("next_after_id", last[key])
                     break
+    if "events" in names:
+        body.setdefault("next_after_id", None)
+    if isinstance(pagination, Mapping):
+        body.setdefault("has_more", bool(pagination.get("has_more", False)))
+        body.setdefault("next_cursor", pagination.get("next_cursor", pagination.get("next_offset")))
+    body.setdefault("has_more", False)
+    body.setdefault("next_cursor", None)
+    if "last_updated" not in body:
+        timestamps = []
+        for item in items:
+            if not isinstance(item, Mapping):
+                continue
+            for key in (
+                "last_updated", "updated_at", "occurred_at", "timestamp",
+                "finished_at", "started_at", "created_at",
+            ):
+                if item.get(key) not in (None, ""):
+                    timestamps.append(item[key])
+                    break
+        body["last_updated"] = max(timestamps, key=lambda value: str(value)) if timestamps else None
     return body
 
 
@@ -484,6 +518,37 @@ def _query_text(*names: str) -> Optional[str]:
     return None
 
 
+def _cursor_offset(*, maximum: int = 1000000) -> int:
+    """Decode the current offset-compatible cursor transport contract.
+
+    Decimal cursor tokens deliberately preserve the existing offset semantics.
+    Supplying both parameters is rejected instead of silently choosing one.
+    """
+
+    raw = request.args.get("cursor")
+    if raw is None:
+        return _query_int("offset", default=0, minimum=0, maximum=maximum)
+    if "offset" in request.args:
+        raise ConsoleValidationError("cursor and offset cannot be used together")
+    token = raw.strip()
+    if not re.fullmatch(r"\d+", token):
+        raise ConsoleValidationError("cursor must be a non-negative integer token")
+    value = int(token)
+    if value > maximum:
+        raise ConsoleValidationError(f"cursor must be between 0 and {maximum}")
+    return value
+
+
+def _event_filter(name: str, allowed: set[str], *, uppercase: bool = False) -> Optional[str]:
+    value = _query_text(name, "type" if name == "event_type" else name)
+    if value is None:
+        return None
+    normalized = value.upper() if uppercase else value.casefold()
+    if normalized not in allowed:
+        raise ConsoleValidationError(f"unknown {name}")
+    return normalized
+
+
 def _invoke_factory(factory: Callable[..., Any], db_path: Any) -> Any:
     """Construct a service with either ``db_path`` keyword or positional API."""
 
@@ -517,28 +582,29 @@ def _default_service(db_path: Any) -> Any:
     try:
         module = importlib.import_module("zoofan.console_service")
     except ModuleNotFoundError as error:
-        if error.name not in {"zoofan.console_service", "zoofan.console_repository"}:
-            logger.warning("Crawler console service import failed: %s", error)
-        return _EmptyConsoleService()
+        if error.name == "zoofan.console_service":
+            return _EmptyConsoleService()
+        logger.exception("Crawler console service dependency import failed")
+        raise ConsoleServiceInitializationError(_MISSING_SERVICE_MESSAGE) from error
     except ImportError as error:
-        logger.warning("Crawler console service is unavailable: %s", error)
-        return _EmptyConsoleService()
+        logger.exception("Crawler console service import failed")
+        raise ConsoleServiceInitializationError(_MISSING_SERVICE_MESSAGE) from error
 
     for factory_name in ("get_console_service", "create_console_service", "build_console_service"):
         factory = getattr(module, factory_name, None)
         if callable(factory):
             try:
                 return _invoke_factory(factory, db_path)
-            except Exception:  # pragma: no cover - defensive integration boundary
+            except (ConsoleRepositoryError, OSError, ConsoleServiceUnavailable) as error:
                 logger.exception("Unable to construct crawler console service")
-                return _EmptyConsoleService()
+                raise ConsoleServiceInitializationError(_MISSING_SERVICE_MESSAGE) from error
     service_class = getattr(module, "ConsoleService", None)
     if callable(service_class):
         try:
             return _invoke_factory(service_class, db_path)
-        except Exception:  # pragma: no cover - defensive integration boundary
-            logger.exception("Unable to construct ConsoleService")
-            return _EmptyConsoleService()
+        except (ConsoleRepositoryError, OSError, ConsoleServiceUnavailable) as error:
+            logger.exception("Unable to construct default ConsoleService")
+            raise ConsoleServiceInitializationError(_MISSING_SERVICE_MESSAGE) from error
     if any(callable(getattr(module, name, None)) for names in _SERVICE_METHODS.values() for name in names):
         return module
     logger.warning("zoofan.console_service has no supported read interface")
@@ -552,20 +618,27 @@ def _service_for_request(captured: Any = None) -> Any:
     if configured is None:
         configured = captured
     if configured is not None:
-        if any(callable(getattr(configured, name, None)) for names in _SERVICE_METHODS.values() for name in names):
+        is_factory = inspect.isclass(configured) or (
+            callable(configured)
+            and not any(callable(getattr(configured, name, None)) for names in _SERVICE_METHODS.values() for name in names)
+        )
+        if not is_factory and any(callable(getattr(configured, name, None)) for names in _SERVICE_METHODS.values() for name in names):
             return configured
-        if callable(configured):
+        if is_factory:
             cache_key = "_crawler_console_configured_service"
-            if cache_key not in current_app.extensions:
-                current_app.extensions[cache_key] = _invoke_factory(
-                    configured, current_app.config.get("DB_PATH")
-                )
-            return current_app.extensions[cache_key]
+            if cache_key not in g:
+                try:
+                    instance = _invoke_factory(configured, current_app.config.get("DB_PATH"))
+                except (ConsoleRepositoryError, OSError, ConsoleServiceUnavailable) as error:
+                    logger.exception("Unable to construct configured crawler console service")
+                    raise ConsoleServiceInitializationError(_MISSING_SERVICE_MESSAGE) from error
+                setattr(g, cache_key, instance)
+            return getattr(g, cache_key)
         return configured
     cache_key = "_crawler_console_default_service"
-    if cache_key not in current_app.extensions:
-        current_app.extensions[cache_key] = _default_service(current_app.config.get("DB_PATH"))
-    return current_app.extensions[cache_key]
+    if cache_key not in g:
+        setattr(g, cache_key, _default_service(current_app.config.get("DB_PATH")))
+    return getattr(g, cache_key)
 
 
 def _invoke_method(method: Callable[..., Any], kwargs: Mapping[str, Any]) -> Any:
@@ -616,6 +689,8 @@ def _call(service: Any, role: str, **kwargs: Any) -> Any:
 def _read(role: str, *, default: Any = _MISSING, **kwargs: Any) -> Any:
     try:
         return _call(_service_for_request(), role, **kwargs)
+    except ConsoleServiceInitializationError:
+        raise
     except ConsoleServiceUnavailable:
         if default is not _MISSING:
             return default
@@ -623,14 +698,10 @@ def _read(role: str, *, default: Any = _MISSING, **kwargs: Any) -> Any:
 
 
 def _api_call(role: str, *, default: Any = _MISSING, **kwargs: Any) -> Any:
-    try:
-        return _read(role, default=default, **kwargs)
-    except ConsoleNotFoundError:
-        raise
-    except ConsoleValidationError:
-        raise
-    except (ValueError, TypeError) as error:
-        raise ConsoleValidationError(str(error)) from error
+    # HTTP input validation raises ConsoleValidationError before this point.
+    # Unclassified ValueError/TypeError from a service are programming errors,
+    # not client errors, and must retain their traceback for diagnosis.
+    return _read(role, default=default, **kwargs)
 
 
 def _require_parent(role: str, identifier: str) -> None:
@@ -661,6 +732,9 @@ def _handle_api_errors(function: Callable[..., Response]) -> Callable[..., Respo
         except ConsoleServiceUnavailable as error:
             logger.warning("Crawler console endpoint unavailable: %s", error)
             return _error_response("service_unavailable", _MISSING_SERVICE_MESSAGE, 503)
+        except ConsoleRepositoryError:
+            logger.exception("Crawler console database request failed")
+            return _error_response("service_unavailable", "Crawler console data is temporarily unavailable", 503)
 
     wrapped.__name__ = function.__name__
     return wrapped
@@ -689,6 +763,19 @@ def create_console_blueprint(service: Any = None) -> Blueprint:
         if service is not None and current_app.config.get("CONSOLE_SERVICE") is None:
             current_app.extensions.setdefault("console_service", service)
 
+    @blueprint.teardown_app_request
+    def _close_request_service(_error: Optional[BaseException]) -> None:
+        for cache_key in (
+            "_crawler_console_configured_service", "_crawler_console_default_service"
+        ):
+            instance = g.pop(cache_key, None)
+            close = getattr(instance, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception:
+                    logger.exception("Unable to close crawler console request service")
+
     @blueprint.get("/api/crawler/status")
     @_handle_api_errors
     def api_status() -> Response:
@@ -701,7 +788,7 @@ def create_console_blueprint(service: Any = None) -> Blueprint:
     @_handle_api_errors
     def api_runs() -> Response:
         limit = _query_int("limit", default=50, minimum=1, maximum=200)
-        offset = _query_int("offset", default=0, minimum=0, maximum=1000000)
+        offset = _cursor_offset()
         status = _query_text("status")
         result = _api_call("runs", default=[], status=status, limit=limit, offset=offset)
         return _json_response(
@@ -756,7 +843,7 @@ def create_console_blueprint(service: Any = None) -> Blueprint:
     def api_run_articles(run_id: str) -> Response:
         _require_parent("run", run_id)
         limit = _query_int("limit", default=100, minimum=1, maximum=500)
-        offset = _query_int("offset", default=0, minimum=0, maximum=1000000)
+        offset = _cursor_offset()
         search = _query_text("search", "q")
         result = _api_call(
             "run_articles",
@@ -780,11 +867,11 @@ def create_console_blueprint(service: Any = None) -> Blueprint:
         filters = {
             "run_id": run_id,
             "after_id": after_id,
-            "level": _query_text("level"),
+            "level": _event_filter("level", _EVENT_LEVELS, uppercase=True),
             "zoo": _query_text("zoo", "zoo_id"),
             "source": _query_text("source", "source_id"),
-            "component": _query_text("component"),
-            "event_type": _query_text("event_type", "type"),
+            "component": _event_filter("component", _EVENT_COMPONENTS),
+            "event_type": _event_filter("event_type", _EVENT_TYPES),
             "search": _query_text("search", "q"),
             "limit": limit,
         }

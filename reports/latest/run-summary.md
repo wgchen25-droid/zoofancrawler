@@ -1,12 +1,12 @@
 # ZooFanCrawler run summary
 
 - Acceptance: **PASS**
-- Generation: `c49257ece8394a83ae072175f9c05483`
-- Generated: `2026-08-14T09:40:40.968736+00:00`
-- Git commit: `ec65921`
-- Git tree state: `dirty`; code-state fingerprint: `5c60facfecce4460d7f896bffa727d6507fbd143009cf728369483ecb8e8f0da`
+- Generation: `438deca0118d4d7595b99d2c3f7e2c39`
+- Generated: `2026-08-15T21:11:30.688036+00:00`
+- Git commit: `a0ed994`
+- Git tree state: `dirty`; code-state fingerprint: `7f22d2c98b5bcb0075471dcfaa3695cd0cab857882a3e90490ccb667106cb52e`
 - Configuration: `config/zoos.yaml` (73 zoos, 116 sources)
-- Database: `/tmp/zoofancrawler-final-fresh.lSmQrT/final.db` (available=True, schema=7)
+- Database: `/Users/leichen/AIcoding/zoofancrawler/data/acceptance.db` (available=True, schema=8)
 
 ## Acceptance scope
 
@@ -17,12 +17,12 @@
 
 ## Coverage and run counts
 
-Configured zoos: 73; enabled zoos: 73; unique articles (cumulative DB): 31; source/article associations: 34
-Registered sources: 116/63 (100.0%); latest-run zoo-result coverage: 100.0%; quality warnings: 60
+Configured zoos: 73; enabled zoos: 73; unique articles (cumulative DB): 260; source/article associations: 291
+Registered sources: 116/63 (100.0%); latest-run zoo-result coverage: 100.0%; quality warnings: 112
 Source checks: 63 enabled; article-capable executable: 44; health-only registry_only: 19
 External-limited evidence: **True**; external failure reasons retained: 66
-Latest run: `completed_with_errors`; start=`2026-08-14T09:09:18.236696+00:00`, end=`2026-08-14T09:10:51.051416+00:00`, wall duration=92815 ms; summed per-zoo duration=92713 ms
-Latest-run totals: discovered=6759, fetched=2, parsed=2, stored=0, inserted=0, updated=0, already_known=31, failed=0, duplicate_filtered=13, errors=13, wall_duration_ms=92815
+Latest run: `completed_with_errors`; start=`2026-08-15T21:09:12.960660+00:00`, end=`2026-08-15T21:11:29.903223+00:00`, wall duration=136943 ms; summed per-zoo duration=136751 ms
+Latest-run totals: discovered=6937, fetched=36, parsed=36, stored=0, inserted=0, updated=11, already_known=260, failed=0, duplicate_filtered=52, errors=13, wall_duration_ms=136943
 Latest-run result rows: raw=73; canonical unique=73; duplicate rows excluded=0
 
 ## Supported source categories
@@ -65,21 +65,22 @@ Raw/internal completion categories (compatibility evidence):
 
 ## Quality warning categories
 
-- `long_title`: 1
-- `over_old`: 6
+- `long_title`: 13
+- `over_old`: 44
+- `same_date`: 2
 - `source_error`: 53
 
 ## Adapter statistics
 
 | Adapter | Configured | Enabled | Registered | Success | Errors | Associations | Unique articles |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| archive | 40 | 28 | 40 | 24 | 4 | 21 | 19 |
+| archive | 40 | 28 | 40 | 24 | 4 | 188 | 169 |
 | atom | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | custom\_adapter | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | json\_api | 5 | 0 | 5 | 0 | 0 | 0 | 0 |
 | registry\_only | 22 | 19 | 22 | 12 | 7 | 0 | 0 |
-| rss | 14 | 8 | 14 | 7 | 1 | 6 | 6 |
-| sitemap | 14 | 8 | 14 | 7 | 1 | 7 | 7 |
+| rss | 14 | 8 | 14 | 7 | 1 | 33 | 33 |
+| sitemap | 14 | 8 | 14 | 7 | 1 | 70 | 70 |
 | unsupported | 21 | 0 | 21 | 0 | 0 | 0 | 0 |
 
 ## Adapter changes
@@ -237,13 +238,13 @@ Evidence complete: **False**; previous source adapter evidence is incomplete
 
 ## Relative change
 
-Previous run: `1f0f213ae0d34af9836c3a6fe0e20d3b`
+Previous run: `b802de8888c545da9769c87ce2bb6db0`
 - `discovered`: +0
-- `parsed`: -30
-- `inserted`: -31
-- `updated`: -1
+- `parsed`: -250
+- `inserted`: -260
+- `updated`: -15
 - `failed`: -13
-- `duplicate_filtered`: +1
+- `duplicate_filtered`: +15
 
 ## End criteria
 
@@ -267,14 +268,14 @@ Overall: **PASS**
 
 | Name | Country | Region | Groups | Official site | News source URL | Adapter | Completion | Run status | HTTP | Discovered | Parsed | Inserted | Failed | Latest errors | Latest news date | Duration (ms) | Error summary |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: | --- |
-| ZooParc de Beauval | FR |  | core30; europe\_top10 | `https://www.zoobeauval.com/en/` | `https://actus.zoobeauval.com/en/; https://actus.zoobeauval.com/sitemap_index.xml; https://www.zoobeauval.com/en/press/press-releases; https://www.zoobeauval.com/sitemap.xml; https://actus.zoobeauval.com/` | `archive;registry_only;sitemap` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 2 | robots\_disallowed: robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt |  | 468 | robots\_disallowed: robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt |
-| Bird Park De Lorkeershoeve | NL |  | dutch\_border; regional\_lab | `https://www.vogelparkdelorkeershoeve.nl/` | `https://www.vogelparkdelorkeershoeve.nl/nieuws.html` | `registry_only` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 1 | robots\_disallowed: robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/; robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/ |  | 102 | robots\_disallowed: robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/; robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/ |
-| Dierenpark 't Goor | NL |  | dutch\_border; regional\_lab | `https://www.dierenparkhetgoor.nl/` | `https://www.dierenparkhetgoor.nl/` | `registry_only` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 1 | robots\_disallowed: robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/; robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/ |  | 115 | robots\_disallowed: robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/; robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/ |
-| Hof van Eckberge | NL |  | dutch\_border; regional\_lab | `https://www.hofvaneckberge.nl/` | `https://www.hofvaneckberge.nl/nieuws-uit-het-park?format=feed&type=rss` | `rss` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 1 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt; robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt |  | 119 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt; robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt |
-| Tierpark Hagenbeck | DE |  | core30; germany\_top10 | `https://www.hagenbeck.de/` | `https://www.hagenbeck.de/de/tierpark/tierpark/news_aktuelles.php; https://www.hagenbeck.de/de/pressebereich/pressemitteilungen.php` | `registry_only` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 2 | robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots.txt contains malformed directive at https://www.hagenbeck.de/404.php |  | 3167 | robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots.txt contains malformed directive at https://www.hagenbeck.de/404.php |
-| Tierpark Hellabrunn | DE |  | core30; germany\_top10 | `https://www.hellabrunn.de/` | `https://www.hellabrunn.de/der-tierpark/aktuelles/neues-aus-hellabrunn; https://www.hellabrunn.de/presse` | `archive` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 2 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt |  | 1146 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt |
-| Zoo Leipzig | DE |  | core30; germany\_top10 | `https://www.zoo-leipzig.de/` | `https://www.zoo-leipzig.de/aktuelles/neuigkeiten/; https://www.zoo-leipzig.de/type/news/sitemap.xml; https://www.zoo-leipzig.de/presse/` | `archive;registry_only;sitemap` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 3 | robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt |  | 2148 | robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt |
-| ZSL London Zoo | GB |  | core30; europe\_top10 | `https://www.londonzoo.org/` | `https://www.londonzoo.org/zoo-stories/news; https://www.londonzoo.org/zoo-stories/blog; https://www.londonzoo.org/sitemap.xml; https://www.zsl.org/about-zsl/press` | `archive;registry_only;sitemap` | BLOCKED | failed | 403 | 0 | 0 | 0 | 1 | blocked: HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press; HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press |  | 1194 | blocked: HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press; HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press |
+| ZooParc de Beauval | FR |  | core30; europe\_top10 | `https://www.zoobeauval.com/en/` | `https://actus.zoobeauval.com/en/; https://actus.zoobeauval.com/sitemap_index.xml; https://www.zoobeauval.com/en/press/press-releases; https://www.zoobeauval.com/sitemap.xml; https://actus.zoobeauval.com/` | `archive;registry_only;sitemap` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 2 | robots\_disallowed: robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt |  | 310 | robots\_disallowed: robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://actus.zoobeauval.com/robots.txt; robots.txt rule has no user-agent at https://www.zoobeauval.com/robots.txt |
+| Bird Park De Lorkeershoeve | NL |  | dutch\_border; regional\_lab | `https://www.vogelparkdelorkeershoeve.nl/` | `https://www.vogelparkdelorkeershoeve.nl/nieuws.html` | `registry_only` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 1 | robots\_disallowed: robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/; robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/ |  | 71 | robots\_disallowed: robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/; robots.txt returned HTTP 404 for https://www.vogelparkdelorkeershoeve.nl/ |
+| Dierenpark 't Goor | NL |  | dutch\_border; regional\_lab | `https://www.dierenparkhetgoor.nl/` | `https://www.dierenparkhetgoor.nl/` | `registry_only` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 1 | robots\_disallowed: robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/; robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/ |  | 77 | robots\_disallowed: robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/; robots.txt returned HTTP 403 for https://www.dierenparkhetgoor.nl/ |
+| Hof van Eckberge | NL |  | dutch\_border; regional\_lab | `https://www.hofvaneckberge.nl/` | `https://www.hofvaneckberge.nl/nieuws-uit-het-park?format=feed&type=rss` | `rss` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 1 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt; robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt |  | 87 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt; robots.txt rule has no user-agent at https://www.hofvaneckberge.nl/robots.txt |
+| Tierpark Hagenbeck | DE |  | core30; germany\_top10 | `https://www.hagenbeck.de/` | `https://www.hagenbeck.de/de/tierpark/tierpark/news_aktuelles.php; https://www.hagenbeck.de/de/pressebereich/pressemitteilungen.php` | `registry_only` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 2 | robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots.txt contains malformed directive at https://www.hagenbeck.de/404.php |  | 3128 | robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots\_disallowed: robots.txt contains malformed directive at https://www.hagenbeck.de/404.php; robots.txt contains malformed directive at https://www.hagenbeck.de/404.php |
+| Tierpark Hellabrunn | DE |  | core30; germany\_top10 | `https://www.hellabrunn.de/` | `https://www.hellabrunn.de/der-tierpark/aktuelles/neues-aus-hellabrunn; https://www.hellabrunn.de/presse` | `archive` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 2 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt |  | 1087 | robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt; robots.txt rule has no user-agent at https://www.hellabrunn.de/robots.txt |
+| Zoo Leipzig | DE |  | core30; germany\_top10 | `https://www.zoo-leipzig.de/` | `https://www.zoo-leipzig.de/aktuelles/neuigkeiten/; https://www.zoo-leipzig.de/type/news/sitemap.xml; https://www.zoo-leipzig.de/presse/` | `archive;registry_only;sitemap` | ROBOTS\_DISALLOWED | failed |  | 0 | 0 | 0 | 3 | robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt |  | 2125 | robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots\_disallowed: robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt; robots.txt rule has no user-agent at https://www.zoo-leipzig.de/robots.txt |
+| ZSL London Zoo | GB |  | core30; europe\_top10 | `https://www.londonzoo.org/` | `https://www.londonzoo.org/zoo-stories/news; https://www.londonzoo.org/zoo-stories/blog; https://www.londonzoo.org/sitemap.xml; https://www.zsl.org/about-zsl/press` | `archive;registry_only;sitemap` | BLOCKED | failed | 403 | 0 | 0 | 0 | 1 | blocked: HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press; HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press |  | 152 | blocked: HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press; HTTP 403 for source core-europe-zsl-london-zoo-press-registry at https://www.zsl.org/about-zsl/press |
 | Aachener Tierpark Euregiozoo | DE | NRW | nrw; regional\_lab | `https://www.euregiozoo.de/` | `https://www.euregiozoo.de/de/kontakt/rss.php` | `unsupported` | ROBOTS\_DISALLOWED | success\_no\_items |  | 0 | 0 | 0 | 0 | robots\_disallowed: no enabled sources configured |  | 0 | robots\_disallowed: no enabled sources configured |
 | Affen- und Vogelpark Eckenhagen | DE | NRW | nrw; regional\_lab | `https://affen-und-vogelpark.de/` | `https://affen-und-vogelpark.de/feed/` | `unsupported` | SOURCE\_NOT\_FOUND | success\_no\_items |  | 0 | 0 | 0 | 0 | source\_not\_found: no enabled sources configured |  | 0 | source\_not\_found: no enabled sources configured |
 | Allwetterzoo Münster | DE | NRW | nrw; regional\_lab | `https://www.allwetterzoo.de/` | `https://www.allwetterzoo.de/de/ueber-den-zoo/news/` | `unsupported` | UNSUPPORTED | success\_no\_items |  | 0 | 0 | 0 | 0 | unsupported: no enabled sources configured |  | 0 | unsupported: no enabled sources configured |
@@ -311,91 +312,131 @@ Overall: **PASS**
 | Zoo Duisburg | DE | NRW | nrw; regional\_lab | `https://zoo-duisburg.de/` | `https://zoo-duisburg.de/unser-zoo/aktuelles` | `unsupported` | ROBOTS\_DISALLOWED | success\_no\_items |  | 0 | 0 | 0 | 0 | robots\_disallowed: no enabled sources configured |  | 0 | robots\_disallowed: no enabled sources configured |
 | Zoo im Brückenkopfpark | DE | NRW | nrw; regional\_lab | `https://brueckenkopf-park.de/` | `https://brueckenkopf-park.de/events/` | `unsupported` | SOURCE\_NOT\_FOUND | success\_no\_items |  | 0 | 0 | 0 | 0 | source\_not\_found: no enabled sources configured |  | 0 | source\_not\_found: no enabled sources configured |
 | Zoo Krefeld | DE | NRW | nrw; regional\_lab | `https://www.zookrefeld.de/` | `https://www.zookrefeld.de/aktuelles` | `unsupported` | ROBOTS\_DISALLOWED | success\_no\_items |  | 0 | 0 | 0 | 0 | robots\_disallowed: no enabled sources configured |  | 0 | robots\_disallowed: no enabled sources configured |
-| Erlebnis-Zoo Hannover | DE |  | core30; germany\_top10 | `https://www.zoo-hannover.de/` | `https://www.zoo-hannover.de/news; https://www.zoo-hannover.de/pressemitteilungen; https://www.zoo-hannover.de/blog` | `registry_only` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 3379 |  |
-| GaiaZOO | NL | Limburg | dutch\_border; regional\_lab | `https://www.gaiazoo.nl/` | `https://www.gaiazoo.nl/category/nieuws/feed/; https://www.gaiazoo.nl/nieuws-vlogs/; https://www.gaiazoo.nl/sitemap_index.xml; https://www.gaiazoo.nl/pers/` | `archive;registry_only;rss` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 8204 |  |
-| Taman Indonesia | NL |  | dutch\_border; regional\_lab | `https://www.taman-indonesia.nl/` | `https://www.taman-indonesia.nl/Nieuws; https://www.taman-indonesia.nl/taman-indonesia-Nieuws.rss` | `archive;rss` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 1478 |  |
-| Wilhelma | DE |  | core30; germany\_top10 | `https://www.wilhelma.de/` | `https://www.wilhelma.de/aktuelles/aktuelles/news-presse` | `registry_only` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 1314 |  |
-| Aquazoo Löbbecke Museum | DE | NRW | nrw; regional\_lab | `https://aquazoo-duesseldorf.de/` | `https://aquazoo-duesseldorf.de/aktuelles` | `archive` | SUPPORTED | success | 200 | 18 | 0 | 0 | 0 |  | 2025-06-23T09:51:00+00:00 | 2103 |  |
-| Copenhagen Zoo | DK |  | core30; europe\_top10 | `https://www.zoo.dk/en` | `https://www.zoo.dk/nyheder; https://www.zoo.dk/sitemap.xml; https://www.zoo.dk/om-zoo/presse` | `archive;registry_only;sitemap` | SUPPORTED | success | 200 | 189 | 0 | 0 | 0 |  | 2026-08-14T00:00:00+00:00 | 3432 |  |
-| Het DierenRijck | NL |  | dutch\_border; regional\_lab | `https://dierenrijck.nl/` | `https://dierenrijck.nl/category/nieuwedieren/feed/` | `rss` | SUPPORTED | success | 200 | 2 | 0 | 0 | 0 |  | 2024-07-17T00:00:00+00:00 | 2222 |  |
-| Onze Beestenboel | NL |  | dutch\_border; regional\_lab | `https://www.beestenboelvenlo.nl/` | `https://www.beestenboelvenlo.nl/category/nieuwsberichten/feed/` | `rss` | SUPPORTED | success | 200 | 10 | 0 | 0 | 0 |  | 2024-10-26T18:07:25+00:00 | 2899 |  |
-| Tiergarten Schönbrunn | AT |  | core30; europe\_top10 | `https://www.zoovienna.at/en/` | `https://www.zoovienna.at/de/news/; https://www.zoovienna.at/presse/archiv; https://www.zoovienna.at/en/news/` | `archive` | SUPPORTED | success | 200 | 30 | 0 | 0 | 0 |  | 2026-08-13T00:00:00+00:00 | 3467 |  |
-| Uilen- en Dierenpark De Paay | NL |  | dutch\_border; regional\_lab | `https://depaay.nl/` | `https://depaay.nl/category/nieuws/feed/` | `rss` | SUPPORTED | success | 200 | 2 | 0 | 0 | 0 |  | 2021-07-26T19:07:17+00:00 | 2626 |  |
-| Zoo Zürich | CH |  | core30; europe\_top10 | `https://www.zoo.ch/en` | `https://www.zoo.ch/de/zoonews; https://www.zoo.ch/de/medien; https://www.zoo.ch/de/medien/archiv-medienmitteilungen; https://www.zoo.ch/de/sitemap.xml; https://www.zoo.ch/en/zoonews` | `archive;sitemap` | SUPPORTED | success | 200 | 681 | 0 | 0 | 0 |  | 2026-08-12T13:00:00+00:00 | 5560 |  |
-| Adlerwarte Berlebeck | DE | NRW | nrw; regional\_lab | `https://www.detmold-adlerwarte.de/` | `https://www.detmold-adlerwarte.de/aktuelles/` | `archive` | SUPPORTED | success | 200 | 12 | 0 | 0 | 0 |  | 2026-07-15T00:00:00+00:00 | 1337 |  |
-| Apenheul | NL |  | dutch\_border; regional\_lab | `https://www.apenheul.nl/` | `https://www.apenheul.nl/rss/` | `rss` | SUPPORTED | success | 200 | 60 | 0 | 0 | 0 |  | 2026-07-28T13:19:09+00:00 | 1539 |  |
-| Bronx Zoo | US |  | core30; global\_top10 | `https://bronxzoo.com/` | `https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25` | `rss` | SUPPORTED | success | 200 | 8 | 0 | 0 | 0 |  | 2026-08-12T15:56:00+00:00 | 2046 |  |
-| Brook Valley Zoo | NL |  | dutch\_border; regional\_lab | `https://brookvalleyzoo.com/` | `https://brookvalleyzoo.com/feed/` | `rss` | SUPPORTED | success | 200 | 1 | 0 | 0 | 0 |  | 2025-09-22T10:37:46+00:00 | 2737 |  |
-| Burgers' Zoo | NL |  | core30; europe\_top10 | `https://www.burgerszoo.com/` | `https://www.burgerszoo.com/news; https://www.burgerszoo.com/sitemap.xml` | `archive;sitemap` | SUPPORTED | success | 200 | 230 | 0 | 0 | 0 |  | 2026-08-06T00:00:00+00:00 | 2286 |  |
-| Chester Zoo | GB |  | core30; europe\_top10 | `https://www.chesterzoo.org/` | `https://www.chesterzoo.org/news; https://www.chesterzoo.org/sitemap.xml; https://www.chesterzoo.org/footer/press-and-media` | `archive;registry_only;sitemap` | SUPPORTED | success | 200 | 12 | 0 | 0 | 0 |  |  | 2321 |  |
-| Diergaarde Blijdorp | NL |  | core30; europe\_top10 | `https://diergaardeblijdorp.nl/en/` | `https://diergaardeblijdorp.nl/en/media; https://diergaardeblijdorp.nl/sitemap.xml; https://diergaardeblijdorp.nl/nl/media` | `archive;sitemap` | SUPPORTED | success | 200 | 52 | 0 | 0 | 0 |  |  | 2687 |  |
-| Kölner Zoo | DE | North Rhine-Westphalia | core30; germany\_top10 | `https://koelnerzoo.de/` | `https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml; https://koelnerzoo.de/aktuell/` | `registry_only;sitemap` | SUPPORTED | success | 200 | 12 | 0 | 0 | 0 |  |  | 3470 |  |
-| NaturZoo Rheine | DE | NRW | nrw; regional\_lab | `https://www.naturzoo.de/` | `https://www.naturzoo.de/aktuelles/` | `archive` | SUPPORTED | success | 200 | 10 | 0 | 0 | 0 |  | 2026-05-29T08:55:00+00:00 | 1747 |  |
-| Pairi Daiza | BE |  | core30; europe\_top10 | `https://www.pairidaiza.eu/en/` | `https://www.pairidaiza.eu/en/news/; https://www.pairidaiza.eu/en/wp-sitemap-posts-news-1.xml` | `archive;sitemap` | SUPPORTED | success | 200 | 68 | 0 | 0 | 0 |  |  | 3897 |  |
-| Prague Zoo | CZ |  | core30; europe\_top10 | `https://www.zoopraha.cz/en/` | `https://www.zoopraha.cz/en/about-zoo/news; https://www.zoopraha.cz/sitemap.xml; https://www.zoopraha.cz/en/about-zoo/142-contacts` | `archive;registry_only;sitemap` | SUPPORTED | success | 200 | 5208 | 0 | 0 | 0 |  |  | 6415 |  |
-| San Diego Zoo | US |  | core30; global\_top10 | `https://zoo.sandiegozoo.org/` | `https://sandiegozoowildlifealliance.org/story-hub/search-news` | `archive` | SUPPORTED | success | 200 | 10 | 0 | 0 | 0 |  | 2026-07-30T18:01:38+00:00 | 1134 |  |
-| Tiergarten Nürnberg | DE |  | core30; germany\_top10 | `https://tiergarten.nuernberg.de/` | `https://tiergarten.nuernberg.de/entdecken/aktuell; https://tiergarten.nuernberg.de/presse` | `archive` | SUPPORTED | success | 200 | 50 | 1 | 0 | 0 |  | 2026-08-01T00:00:00+00:00 | 3579 |  |
-| Tierpark + Fossilium Bochum | DE | NRW | nrw; regional\_lab | `https://www.tierpark-bochum.de/` | `https://www.tierpark-bochum.de/neuigkeiten/aktuelles` | `archive` | SUPPORTED | success | 200 | 50 | 0 | 0 | 0 |  | 2026-08-11T00:00:00+00:00 | 1875 |  |
-| Tierpark Berlin | DE |  | core30; germany\_top10 | `https://www.tierpark-berlin.de/` | `https://www.tierpark-berlin.de/de/aktuelles/news; https://www.tierpark-berlin.de/de/aktuelles/presse` | `archive;registry_only` | SUPPORTED | success | 200 | 9 | 0 | 0 | 0 |  | 2026-08-13T00:00:00+00:00 | 2951 |  |
-| Zoo Berlin | DE | Berlin | core30; germany\_top10 | `https://www.zoo-berlin.de/` | `https://www.zoo-berlin.de/de/aktuelles/news; https://www.zoo-berlin.de/de/aktuelles/presse` | `archive;registry_only` | SUPPORTED | success | 200 | 9 | 0 | 0 | 0 |  | 2026-08-12T00:00:00+00:00 | 2938 |  |
-| Zoo Frankfurt | DE |  | core30; germany\_top10 | `https://www.zoo-frankfurt.de/` | `https://www.zoo-frankfurt.de/de/presse/aktuell` | `archive` | SUPPORTED | success | 200 | 20 | 1 | 0 | 0 |  | 2026-07-14T00:00:00+00:00 | 2410 |  |
-| ZOOM Erlebniswelt | DE | NRW | nrw; regional\_lab | `https://www.zoom-erlebniswelt.de/` | `https://www.zoom-erlebniswelt.de/presse/` | `archive` | SUPPORTED | success | 200 | 6 | 0 | 0 | 0 |  | 2026-07-27T11:56:08+00:00 | 2201 |  |
+| Erlebnis-Zoo Hannover | DE |  | core30; germany\_top10 | `https://www.zoo-hannover.de/` | `https://www.zoo-hannover.de/news; https://www.zoo-hannover.de/pressemitteilungen; https://www.zoo-hannover.de/blog` | `registry_only` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 2293 |  |
+| GaiaZOO | NL | Limburg | dutch\_border; regional\_lab | `https://www.gaiazoo.nl/` | `https://www.gaiazoo.nl/category/nieuws/feed/; https://www.gaiazoo.nl/nieuws-vlogs/; https://www.gaiazoo.nl/sitemap_index.xml; https://www.gaiazoo.nl/pers/` | `archive;registry_only;rss` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 6916 |  |
+| Taman Indonesia | NL |  | dutch\_border; regional\_lab | `https://www.taman-indonesia.nl/` | `https://www.taman-indonesia.nl/Nieuws; https://www.taman-indonesia.nl/taman-indonesia-Nieuws.rss` | `archive;rss` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 2136 |  |
+| Wilhelma | DE |  | core30; germany\_top10 | `https://www.wilhelma.de/` | `https://www.wilhelma.de/aktuelles/aktuelles/news-presse` | `registry_only` | SUPPORTED\_NO\_CURRENT\_NEWS | success\_no\_items | 200 | 0 | 0 | 0 | 0 |  |  | 225 |  |
+| San Diego Zoo | US |  | core30; global\_top10 | `https://zoo.sandiegozoo.org/` | `https://sandiegozoowildlifealliance.org/story-hub/search-news` | `archive` | SUPPORTED | success | 200 | 20 | 0 | 0 | 0 |  | 2026-07-30T18:01:38+00:00 | 1137 |  |
+| Bronx Zoo | US |  | core30; global\_top10 | `https://bronxzoo.com/` | `https://newsroom.wcs.org/DesktopModules/DnnForge%20-%20NewsArticles/Rss.aspx?TabID=13614&ModuleID=28242&MaxCount=25` | `rss` | SUPPORTED | success | 200 | 8 | 0 | 0 | 0 |  | 2026-08-12T15:56:00+00:00 | 952 |  |
+| Zoo Frankfurt | DE |  | core30; germany\_top10 | `https://www.zoo-frankfurt.de/` | `https://www.zoo-frankfurt.de/de/presse/aktuell` | `archive` | SUPPORTED | success | 200 | 40 | 10 | 0 | 0 |  | 2026-07-14T00:00:00+00:00 | 11391 |  |
+| Tiergarten Schönbrunn | AT |  | core30; europe\_top10 | `https://www.zoovienna.at/en/` | `https://www.zoovienna.at/de/news/; https://www.zoovienna.at/presse/archiv; https://www.zoovienna.at/en/news/` | `archive` | SUPPORTED | success | 200 | 60 | 9 | 0 | 0 |  | 2026-08-13T00:00:00+00:00 | 14395 |  |
+| Aquazoo Löbbecke Museum | DE | NRW | nrw; regional\_lab | `https://aquazoo-duesseldorf.de/` | `https://aquazoo-duesseldorf.de/aktuelles` | `archive` | SUPPORTED | success | 200 | 18 | 0 | 0 | 0 |  | 2025-06-23T09:51:00+00:00 | 1088 |  |
+| Chester Zoo | GB |  | core30; europe\_top10 | `https://www.chesterzoo.org/` | `https://www.chesterzoo.org/news; https://www.chesterzoo.org/sitemap.xml; https://www.chesterzoo.org/footer/press-and-media` | `archive;registry_only;sitemap` | SUPPORTED | success | 200 | 24 | 0 | 0 | 0 |  |  | 11434 |  |
+| Copenhagen Zoo | DK |  | core30; europe\_top10 | `https://www.zoo.dk/en` | `https://www.zoo.dk/nyheder; https://www.zoo.dk/sitemap.xml; https://www.zoo.dk/om-zoo/presse` | `archive;registry_only;sitemap` | SUPPORTED | success | 200 | 189 | 0 | 0 | 0 |  | 2026-08-14T00:00:00+00:00 | 2349 |  |
+| Het DierenRijck | NL |  | dutch\_border; regional\_lab | `https://dierenrijck.nl/` | `https://dierenrijck.nl/category/nieuwedieren/feed/` | `rss` | SUPPORTED | success | 200 | 2 | 0 | 0 | 0 |  | 2024-07-17T00:00:00+00:00 | 1225 |  |
+| Kölner Zoo | DE | North Rhine-Westphalia | core30; germany\_top10 | `https://koelnerzoo.de/` | `https://koelnerzoo.de/wp-sitemap-posts-aktuellartical-1.xml; https://koelnerzoo.de/aktuell/` | `registry_only;sitemap` | SUPPORTED | success | 200 | 12 | 0 | 0 | 0 |  | 2026-07-23T00:00:00+00:00 | 2200 |  |
+| Onze Beestenboel | NL |  | dutch\_border; regional\_lab | `https://www.beestenboelvenlo.nl/` | `https://www.beestenboelvenlo.nl/category/nieuwsberichten/feed/` | `rss` | SUPPORTED | success | 200 | 10 | 0 | 0 | 0 |  | 2024-10-26T18:07:25+00:00 | 1919 |  |
+| Tiergarten Nürnberg | DE |  | core30; germany\_top10 | `https://tiergarten.nuernberg.de/` | `https://tiergarten.nuernberg.de/entdecken/aktuell; https://tiergarten.nuernberg.de/presse` | `archive` | SUPPORTED | success | 200 | 100 | 10 | 0 | 0 |  | 2026-08-14T00:00:00+00:00 | 13481 |  |
+| Uilen- en Dierenpark De Paay | NL |  | dutch\_border; regional\_lab | `https://depaay.nl/` | `https://depaay.nl/category/nieuws/feed/` | `rss` | SUPPORTED | success | 200 | 2 | 0 | 0 | 0 |  | 2021-07-26T19:07:17+00:00 | 1602 |  |
+| Zoo Zürich | CH |  | core30; europe\_top10 | `https://www.zoo.ch/en` | `https://www.zoo.ch/de/zoonews; https://www.zoo.ch/de/medien; https://www.zoo.ch/de/medien/archiv-medienmitteilungen; https://www.zoo.ch/de/sitemap.xml; https://www.zoo.ch/en/zoonews` | `archive;sitemap` | SUPPORTED | success | 200 | 701 | 0 | 0 | 0 |  | 2026-08-12T13:00:00+00:00 | 24677 |  |
+| Adlerwarte Berlebeck | DE | NRW | nrw; regional\_lab | `https://www.detmold-adlerwarte.de/` | `https://www.detmold-adlerwarte.de/aktuelles/` | `archive` | SUPPORTED | success | 200 | 12 | 0 | 0 | 0 |  | 2026-07-15T00:00:00+00:00 | 199 |  |
+| Apenheul | NL |  | dutch\_border; regional\_lab | `https://www.apenheul.nl/` | `https://www.apenheul.nl/rss/` | `rss` | SUPPORTED | success | 200 | 60 | 0 | 0 | 0 |  | 2026-07-28T13:19:09+00:00 | 356 |  |
+| Brook Valley Zoo | NL |  | dutch\_border; regional\_lab | `https://brookvalleyzoo.com/` | `https://brookvalleyzoo.com/feed/` | `rss` | SUPPORTED | success | 200 | 1 | 0 | 0 | 0 |  | 2025-09-22T10:37:46+00:00 | 1909 |  |
+| Burgers' Zoo | NL |  | core30; europe\_top10 | `https://www.burgerszoo.com/` | `https://www.burgerszoo.com/news; https://www.burgerszoo.com/sitemap.xml` | `archive;sitemap` | SUPPORTED | success | 200 | 230 | 0 | 0 | 0 |  | 2026-08-06T00:00:00+00:00 | 1370 |  |
+| Diergaarde Blijdorp | NL |  | core30; europe\_top10 | `https://diergaardeblijdorp.nl/en/` | `https://diergaardeblijdorp.nl/en/media; https://diergaardeblijdorp.nl/sitemap.xml; https://diergaardeblijdorp.nl/nl/media` | `archive;sitemap` | SUPPORTED | success | 200 | 52 | 0 | 0 | 0 |  |  | 1420 |  |
+| NaturZoo Rheine | DE | NRW | nrw; regional\_lab | `https://www.naturzoo.de/` | `https://www.naturzoo.de/aktuelles/` | `archive` | SUPPORTED | success | 200 | 18 | 0 | 0 | 0 |  | 2026-05-29T08:55:00+00:00 | 1501 |  |
+| Pairi Daiza | BE |  | core30; europe\_top10 | `https://www.pairidaiza.eu/en/` | `https://www.pairidaiza.eu/en/news/; https://www.pairidaiza.eu/en/wp-sitemap-posts-news-1.xml` | `archive;sitemap` | SUPPORTED | success | 200 | 68 | 0 | 0 | 0 |  |  | 2349 |  |
+| Prague Zoo | CZ |  | core30; europe\_top10 | `https://www.zoopraha.cz/en/` | `https://www.zoopraha.cz/en/about-zoo/news; https://www.zoopraha.cz/sitemap.xml; https://www.zoopraha.cz/en/about-zoo/142-contacts` | `archive;registry_only;sitemap` | SUPPORTED | success | 200 | 5218 | 0 | 0 | 0 |  |  | 4932 |  |
+| Tierpark + Fossilium Bochum | DE | NRW | nrw; regional\_lab | `https://www.tierpark-bochum.de/` | `https://www.tierpark-bochum.de/neuigkeiten/aktuelles` | `archive` | SUPPORTED | success | 200 | 50 | 0 | 0 | 0 |  | 2026-08-11T00:00:00+00:00 | 660 |  |
+| Tierpark Berlin | DE |  | core30; germany\_top10 | `https://www.tierpark-berlin.de/` | `https://www.tierpark-berlin.de/de/aktuelles/news; https://www.tierpark-berlin.de/de/aktuelles/presse` | `archive;registry_only` | SUPPORTED | success | 200 | 18 | 5 | 0 | 0 |  | 2026-08-13T00:00:00+00:00 | 7733 |  |
+| Zoo Berlin | DE | Berlin | core30; germany\_top10 | `https://www.zoo-berlin.de/` | `https://www.zoo-berlin.de/de/aktuelles/news; https://www.zoo-berlin.de/de/aktuelles/presse` | `archive;registry_only` | SUPPORTED | success | 200 | 18 | 0 | 0 | 0 |  | 2026-08-12T00:00:00+00:00 | 2672 |  |
+| ZOOM Erlebniswelt | DE | NRW | nrw; regional\_lab | `https://www.zoom-erlebniswelt.de/` | `https://www.zoom-erlebniswelt.de/presse/` | `archive` | SUPPORTED | success | 200 | 6 | 2 | 0 | 0 |  | 2026-07-03T09:15:55+00:00 | 5193 |  |
 
 ## Recent articles
 
-### Aquazoo Löbbecke Museum
-- Dem Staatsziel Artenschutz verpflichtet: Wie Zoos die Biodiversität retten — 2025-06-23T09:51:00+00:00 — `https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten`
-### Copenhagen Zoo
-- Er der en pandaunge på vej? \| Zoologisk Have København — 2026-08-14T00:00:00+00:00 — `https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej`
-- Årets store optælling er netop slut: København ZOO har produceret mere end 119.000 dyr i 2022 — 2023-01-25T00:00:00+00:00 — `https://www.zoo.dk/nyheder/arets-store-optaelling-er-netop-slut-koebenhavn-zoo-har-produceret-mere-end-119000-dyr-i-2022`
-### Het DierenRijck
-- Kippen en siësta 13 juli 2024 — 2024-07-17T00:00:00+00:00 — `https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024`
-### Onze Beestenboel
-- Vrijwilligers gezocht — 2024-10-26T18:07:25+00:00 — `https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht`
-### Tiergarten Schönbrunn
-- Große Vielfalt mit kleinen Flügeln: 134 Schmetterlingsarten im Tiergarten Schönbrunn nachgewiesen – Tiergarten Schönbrunn — 2026-08-13T00:00:00+00:00 — `https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl`
-- Presse – Tiergarten Schönbrunn — 2026-08-13T00:00:00+00:00 — `https://www.zoovienna.at/presse/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl`
-### Uilen- en Dierenpark De Paay
-- Watusi kalf geboren — 2021-07-26T19:07:17+00:00 — `https://depaay.nl/2021/07/26/126`
-### Zoo Zürich
-- Die Kunst, ein Blatt zu sein \| Zoo Zürich — 2026-08-12T13:00:00+00:00 — `https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein`
-- Nachwuchs bei den Gorillas \| Zoo Zürich — 2026-07-29T06:30:00+00:00 — `https://www.zoo.ch/de/medien/medienmitteilung/nachwuchs-bei-den-gorillas`
-- Noch ein Jahr bis Lewa \| Zoo Zürich — 2019-03-20T10:00:00+00:00 — `https://www.zoo.ch/de/zoonews/noch-ein-jahr-bis-lewa`
-### Adlerwarte Berlebeck
-- Ferienprogramm FLIEGENDE ZOOSCHULE — 2026-07-15T00:00:00+00:00 — `https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule`
-### Apenheul
-- Zes doodshoofdaapjes geboren — 2026-07-28T13:19:09+00:00 — `https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren`
+### San Diego Zoo
+- All-new Lab in Kenya Fills Critical Gap in Wildlife Health — 2026-07-30T18:01:38+00:00 — `https://sandiegozoowildlifealliance.org/PR/Lab-in-Northern-Kenya-LiNK`
+- First-of-its-Kind Surgery Performed on Western Lowland Gorilla at the San Diego Zoo Safari Park — 2026-07-30T18:01:38+00:00 — `https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0`
+- Gut Microbiomes of Elephants Altered by Livestock in Shared Spaces — 2026-07-30T18:01:38+00:00 — `https://sandiegozoowildlifealliance.org/PR/elephant-microbiome-study`
 ### Bronx Zoo
 - As Arctic Sea Ice Shrinks, Polar Bears Spend More Time on Land—and More Time Consuming Seabird Eggs — 2026-08-12T15:56:00+00:00 — `https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26530/As-Arctic-Sea-Ice-Shrinks-Polar-Bears-Spend-More-Time-on-Landand-More-Time-Consuming-Seabird-Eggs.aspx`
+- The Wildlife Conservation Society and Multi-Media Artist Anita Glesta Team Up to Project Public Artwork about the Hudson Canyon onto the Brooklyn Bridge — 2026-08-07T13:27:00+00:00 — `https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26519/The-Wildlife-Conservation-Society-and-Multi-Media-Artist-Anita-Glesta-Team-Up-to-Project-Public-Artwork-about-the-Hudson-Canyon-onto-the-Brooklyn-Bridge.aspx`
+- The Future of Patty, an Asian Elephant at WCS’s Bronx Zoo, Will Be Decided by One Standard: What's Best for Patty — 2026-07-07T11:24:00+00:00 — `https://newsroom.wcs.org/News-Releases/articleType/ArticleView/articleId/26395/The-Future-of-Patty-an-Asian-Elephant-at-WCSs-Bronx-Zoo-Will-Be-Decided-by-One-Standard-Whats-Best-for-Patty.aspx`
+### Zoo Frankfurt
+- Abschied von den Turen im Zoo Frankfurt — 2026-07-14T00:00:00+00:00 — `https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo`
+- Gut geschützt und doch bedroht: Mit den seltenen Ohrenschuppentieren ist eine neue Art ins Grzimekhaus eingezogen — 2026-06-17T00:00:00+00:00 — `https://www.zoo-frankfurt.de/de/news/news-detail/well-protected-and-yet-endangered-a-new-species-has-moved-into-the-grzimek-house-the-rare-chinese-pangolin`
+- Baustart für das neue Zoorestaurant — 2026-05-19T00:00:00+00:00 — `https://www.zoo-frankfurt.de/de/news/news-detail/start-of-construction-for-the-new-zoo-restaurant`
+### Tiergarten Schönbrunn
+- Große Vielfalt mit kleinen Flügeln: 134 Schmetterlingsarten im Tiergarten Schönbrunn nachgewiesen – Tiergarten Schönbrunn — 2026-08-13T00:00:00+00:00 — `https://www.zoovienna.at/de/news/grosse-vielfalt-mit-kleinen-flugeln-134-schmetterl`
+- Der Tiergartenkalender 2027 ist da! – Tiergarten Schönbrunn — 2026-08-11T00:00:00+00:00 — `https://www.zoovienna.at/de/news/kalender2027`
+- Hitzewelle: Elefantenkalb im Tiergarten entdeckt Badevergnügen – Tiergarten Schönbrunn — 2026-08-04T00:00:00+00:00 — `https://www.zoovienna.at/de/news/hitzewelle-elefantenkalb-im-tiergarten-entdeckt-ba`
+### Aquazoo Löbbecke Museum
+- Dem Staatsziel Artenschutz verpflichtet: Wie Zoos die Biodiversität retten — 2025-06-23T09:51:00+00:00 — `https://aquazoo-duesseldorf.de/aktuelles/dem-staatsziel-artenschutz-verpflichtet-wie-zoos-die-biodiversitaet-retten`
+- Abkühlung im Aquazoo — 2025-06-16T08:28:00+00:00 — `https://aquazoo-duesseldorf.de/aktuelles/abkuehlung-im-aquazoo`
+- Aquazoo sucht Fotos zum Thema "150 Jahre Zoo in Düsseldorf" — 2025-06-11T09:06:00+00:00 — `https://aquazoo-duesseldorf.de/aktuelles/aquazoo-sucht-fotos-zum-thema-150-jahre-zoo-in-duesseldorf`
+### Chester Zoo
+- Chester Zoo \| Orchids and Invertebrates — undated — `https://www.chesterzoo.org/news/saving-orchids-and-invertebrates`
+- The race to save one of the world's most endangered birds has begun \| Chester Zoo — undated — `https://www.chesterzoo.org/news/the-race-to-save-one-of-the-worlds-most-endangered-birds-has-begun`
+- Chester Zoo to host Met Office and tourism leaders for weather summit \| Chester Zoo — undated — `https://www.chesterzoo.org/news/chester-zoo-to-host-met-office-and-tourism-leaders-for-weather-summit`
+### Copenhagen Zoo
+- Regulering i løveflokken — undated — `https://www.zoo.dk/nyheder/regulering-i-loeveflokken`
+- Er der en pandaunge på vej? \| Zoologisk Have København — 2026-08-14T00:00:00+00:00 — `https://www.zoo.dk/nyheder/er-der-en-pandaunge-paa-vej`
+- ZOO har måttet aflive en chimpanse — 2026-08-03T00:00:00+00:00 — `https://www.zoo.dk/nyheder/zoo-har-maattet-aflive-en-chimpanse`
+### Het DierenRijck
+- Kippen en siësta 13 juli 2024 — 2024-07-17T00:00:00+00:00 — `https://dierenrijck.nl/2024/07/17/kippen-en-siesta-13-juli-2024`
+- Lente 2022 — 2022-05-17T00:00:00+00:00 — `https://dierenrijck.nl/2022/05/17/lente-2022`
+### Kölner Zoo
+- Das gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft — undated — `https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft`
+- Kleinster Hirsch der Welt: Pudu-Weibchen „Yenai“ im Kölner Zoo geboren — 2026-07-23T00:00:00+00:00 — `https://koelnerzoo.de/aktuellartical/kleinster-hirsch-der-welt-pudu-weibchen-yenai-im-koelner-zoo-geboren`
+- Rosarot und beflügelt: Zwei Kuba-Flamingos im Kölner Zoo geschlüpft Vorverkauf für den Single Abend im Kölner Zoo läuft — 2026-07-16T00:00:00+00:00 — `https://koelnerzoo.de/aktuellartical/rosarot-und-befluegelt-zwei-kuba-flamingos-im-koelner-zoo-geschluepft-vorverkauf-fuer-den-single-abend-im-koelner-zoo-laeuft`
+### Onze Beestenboel
+- Vrijwilligers gezocht — 2024-10-26T18:07:25+00:00 — `https://www.beestenboelvenlo.nl/nieuwsberichten/vrijwilligers-gezocht`
+- Einde lockdown — 2022-01-10T08:04:39+00:00 — `https://www.beestenboelvenlo.nl/nieuwsberichten/einde-lockdown`
+- Grappig geschenk — 2020-10-30T10:24:03+00:00 — `https://www.beestenboelvenlo.nl/nieuwsberichten/grappig-geschenk`
+### Tiergarten Nürnberg
+- Aktionen, Spiele und Unterricht im Raubtierhaus: Tiergarten feiert 40 Jahre Zoopädagogik — 2026-08-14T00:00:00+00:00 — `https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/aktionen-spiele-und-unterricht-im-raubtierhaus-tiergarten-feiert-40-jahre-zoopaedagogik`
+- Fahrdienst zum Klimawaldpfad im Tiergarten während der Sommerferien — 2026-08-14T00:00:00+00:00 — `https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien`
+- Freier Eintritt für kleine Künstlerinnen und Künstler am ersten Ferientag — 2026-08-14T00:00:00+00:00 — `https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/freier-eintritt-fuer-kleine-kuenstlerinnen-und-kuenstler-am-ersten-ferientag`
+### Uilen- en Dierenpark De Paay
+- Watusi kalf geboren — 2021-07-26T19:07:17+00:00 — `https://depaay.nl/2021/07/26/126`
+- Witoorpenseelaapje geboren — 2021-06-26T19:18:00+00:00 — `https://depaay.nl/2021/06/26/witoorpenseelaapje-geboren`
+### Zoo Zürich
+- Die Kunst, ein Blatt zu sein \| Zoo Zürich — 2026-08-12T13:00:00+00:00 — `https://www.zoo.ch/de/zoonews/die-kunst-ein-blatt-zu-sein`
+- Ein hüpfender Sänger \| Zoo Zürich — 2026-08-12T12:15:00+00:00 — `https://www.zoo.ch/de/zoonews/ein-huepfender-saenger`
+- Erster Nachwuchs bei den Gorillas \| Zoo Zürich — 2026-07-29T06:30:00+00:00 — `https://www.zoo.ch/de/zoonews/erster-nachwuchs-bei-den-gorillas`
+### Adlerwarte Berlebeck
+- Ferienprogramm FLIEGENDE ZOOSCHULE — 2026-07-15T00:00:00+00:00 — `https://www.detmold-adlerwarte.de/news/ferienprogramm-fliegende-zooschule`
+- "Falkner\*in für 1 Tag" — 2026-07-06T00:00:00+00:00 — `https://www.detmold-adlerwarte.de/news/falkner-fuer-1-tag`
+- 22. Mai: Internationaler Tag der biologischen Vielfalt — 2026-05-21T00:00:00+00:00 — `https://www.detmold-adlerwarte.de/news/22-mai-internationaler-tag-der-biologischen-vielfalt`
+### Apenheul
+- Zes doodshoofdaapjes geboren — 2026-07-28T13:19:09+00:00 — `https://www.apenheul.nl/nieuws/2026/07/zes-doodshoofdaapjes-geboren`
+- Leukste uitje nominatie — 2026-07-28T13:10:46+00:00 — `https://www.apenheul.nl/nieuws/2026/07/leukste-uitje-nominatie`
+- Apenheul op het (jeugd)journaal — 2026-07-17T10:35:49+00:00 — `https://www.apenheul.nl/nieuws/2026/07/apenheul-op-het-jeugd-journaal`
 ### Brook Valley Zoo
 - Belangrijke wijziging: Open dag verplaatst naar 25 oktober 2025 - Brook Valley Zoo — 2025-09-22T10:37:46+00:00 — `https://brookvalleyzoo.com/nieuws/belangrijke-wijziging-open-dag-verplaatst-naar-25-oktober-2025`
 ### Burgers' Zoo
-- Wild eagle-owls select Burgers' Zoo as breeding ground — undated — `https://www.burgerszoo.com/news/2026/05/wild-eagle-owls-select-burgers-zoo-as-breeding-ground`
-- Burgers' Zoo developing world's largest seagrass aquarium — 2026-08-06T00:00:00+00:00 — `https://www.burgerszoo.com/news/2026/08/burgers-zoo-developing-worlds-largest-seagrass-aquarium`
-### Chester Zoo
-- Meet Rana: Rare babirusa piglet born at Chester Zoo — undated — `https://www.chesterzoo.org/news/meet-rana-rare-babirusa-piglet-born-at-chester-zoo`
+- Bears devour the largest white pumpkin in the Netherlands — undated — `https://www.burgerszoo.com/news/2024/11/beren-plunderen-nederlands-grootste-witte-pompoen`
+- Recognizing global conservation champions — undated — `https://www.burgerszoo.com/news/2024/12/recognizing-global-conservation-champions`
+- Chimpanzees at Burgers' Zoo ate no bananas — undated — `https://www.burgerszoo.com/news/2025/01/chimpanzees-at-burgers-zoo-ate-no-bananas`
 ### Diergaarde Blijdorp
-- New group of gorillas — undated — `https://diergaardeblijdorp.nl/en/media/nieuwe-groep-gorillas`
-### Kölner Zoo
-- Das gelingt nur selten: Fünf Schwarzhalsschwäne im Kölner Zoo geschlüpft — undated — `https://koelnerzoo.de/aktuellartical/das-gelingt-nur-selten-funf-schwarzhalsschwane-im-kolner-zoo-geschlupft`
+- Blijdorp takes in 79 endangered bird eggs — undated — `https://diergaardeblijdorp.nl/en/media/blijdorp-takes-in-79-endangered-bird-eggs`
+- Diana monkey born in Rotterdam Zoo — undated — `https://diergaardeblijdorp.nl/en/media/diana-monkey-born`
+- Unique footage of endagered pygmy hippo — undated — `https://diergaardeblijdorp.nl/en/media/unique-footage-of-endagered-pygmy-hippo`
 ### NaturZoo Rheine
 - Bunt, giftig und neu — 2026-05-29T08:55:00+00:00 — `https://www.naturzoo.de/aktuelles/artikel/bunt-giftig-und-neu`
+- Dreifacher Erfolg für den Artenschutz — 2026-05-07T08:53:00+00:00 — `https://www.naturzoo.de/aktuelles/artikel/dreifacher-erfolg-fuer-den-artenschutz`
+- Pinguinschlupf am Pinguintag — 2026-05-01T08:49:00+00:00 — `https://www.naturzoo.de/aktuelles/artikel/pinguinschlupf-am-pinguintag`
 ### Pairi Daiza
-- News charging points \| Pairi Daiza — undated — `https://www.pairidaiza.eu/en/news/practical-advice/news-charging-points`
+- Pairi Daiza welcomes ten rockhopper penguins \| Pairi Daiza — undated — `https://www.pairidaiza.eu/en/news/animals-conservation/pairi-daiza-welcomes-ten-rockhopper-penguins`
+- Hera \| Pairi Daiza — undated — `https://www.pairidaiza.eu/en/news/animals-conservation/hera`
+- Baby rhino \| Pairi Daiza — undated — `https://www.pairidaiza.eu/en/news/animals-conservation/baby-rhino`
 ### Prague Zoo
-- Southern Ground-hornbill Chick: Exceptionally on View to Visitors This Year — undated — `https://www.zoopraha.cz/en/about-zoo/news/16312-southern-ground-hornbill-chick-exceptionally-on-view-to-visitors-this-year`
-- Adoptujte si „medvěda“ — undated — `https://www.zoopraha.cz/aktualne/10743-adoptujte-si-medveda`
-### San Diego Zoo
-- First-of-its-Kind Surgery Performed on Western Lowland Gorilla at the San Diego Zoo Safari Park — 2026-07-30T18:01:38+00:00 — `https://sandiegozoowildlifealliance.org/pressroom/news-releases/first-its-kind-surgery-performed-western-lowland-gorilla-san-diego-zoo-0`
-### Tiergarten Nürnberg
-- Fahrdienst zum Klimawaldpfad im Tiergarten während der Sommerferien — 2026-08-01T00:00:00+00:00 — `https://tiergarten.nuernberg.de/entdecken/aktuell/detail/news/fahrdienst-zum-klimawaldpfad-im-tiergarten-waehrend-der-sommerferien`
+- Exchange of Male Elephants Between Prague Zoo and Ostrava Zoo — undated — `https://www.zoopraha.cz/en/about-zoo/news/16237-exchange-of-male-elephants-between-prague-zoo-and-ostrava-zoo`
+- One Keeper per Metre of Snake: Prague Zoo Moved and Measured Its Anacondas — undated — `https://www.zoopraha.cz/en/about-zoo/news/16248-one-keeper-per-metre-of-snake-prague-zoo-moved-and-measured-its-anacondas`
+- A Fur Seal Pup is Born at Prague Zoo — undated — `https://www.zoopraha.cz/en/about-zoo/news/16253-v-zoo-praha-se-narodilo-mlade-lachtana-2`
 ### Tierpark + Fossilium Bochum
 - Lernen, staunen, entdecken — 2026-08-11T00:00:00+00:00 — `https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-bk-2026`
+- Dino-Alarm: Gigantischer Zuwachs im Tierpark Bochum — 2026-08-07T00:00:00+00:00 — `https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-08-dino`
+- Kleiner Nachwuchs, große Mitmach-Aktion im Tierpark Bochum — 2026-07-31T00:00:00+00:00 — `https://www.tierpark-bochum.de/neuigkeiten/aktuelles/detail/2026-07-sh`
 ### Tierpark Berlin
 - Dreifaches Eselglück im Tierpark Berlin — 2026-08-13T00:00:00+00:00 — `https://www.tierpark-berlin.de/de/aktuelles/news/artikel/dreifaches-eselglueck-im-tierpark-berlin`
+- Naturverbundenheit beginnt mit einer Begegnung — 2026-08-12T00:00:00+00:00 — `https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung`
+- Ein Schweinchen namens Dayan — 2026-08-10T00:00:00+00:00 — `https://www.tierpark-berlin.de/de/aktuelles/news/artikel/ein-schweinchen-namens-dayan`
 ### Zoo Berlin
 - Naturverbundenheit beginnt mit einer Begegnung — 2026-08-12T00:00:00+00:00 — `https://www.zoo-berlin.de/de/aktuelles/news/artikel/naturverbundenheit-beginnt-mit-einer-begegnung`
-### Zoo Frankfurt
-- Abschied von den Turen im Zoo Frankfurt — 2026-07-14T00:00:00+00:00 — `https://www.zoo-frankfurt.de/de/news/news-detail/farewell-to-the-turs-at-frankfurt-zoo`
+- Bring Back Blue: Die Rückkehr des Vietnamesischen Fasans — 2026-07-29T00:00:00+00:00 — `https://www.zoo-berlin.de/de/aktuelles/news/artikel/bring-back-blue-die-rueckkehr-des-vietnamesischen-fasans`
+- Ein kleiner Höhlenkobold auf vier Pfoten — 2026-07-23T00:00:00+00:00 — `https://www.zoo-berlin.de/de/aktuelles/news/artikel/ein-kleiner-hoehlenkobold-auf-vier-pfoten`
 ### ZOOM Erlebniswelt
-- Tag der Menschenaffen in der ZOOM Erlebniswelt — 2026-07-27T11:56:08+00:00 — `https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting`
+- Tag der Menschenaffen in der ZOOM Erlebniswelt — 2026-07-03T09:15:55+00:00 — `https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-als-beliebtestes-ausflugsziel-in-nrw-ausgezeichnet-sieg-beim-wdr-publikumsvoting`
+- ZOOM Erlebniswelt gewährt Einblicke in die Welt der Giraffen — 2026-06-12T08:48:10+00:00 — `https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-gewaehrt-besondere-einblicke-in-die-welt-der-giraffen`
+- ZOOM Erlebniswelt Gelsenkirchen lädt zum Großen Artenschutztag ein — 2026-04-21T06:46:08+00:00 — `https://www.zoom-erlebniswelt.de/presse-2026/zoom-erlebniswelt-gelsenkirchen-laedt-zum-grossen-artenschutztag-ein`
